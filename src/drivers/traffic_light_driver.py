@@ -38,7 +38,7 @@ class TrafficLightDriver:
     Abstracts the underlying hardware protocol from the AI agents.
     """
 
-    def __init__(self, intersection_id: str, ip_address: str, port: int, community_string: str = 'public'):
+    def __init__(self, intersection_id: str, ip_address: str, port: int, community_string: str = 'public') -> None:
         self.intersection_id = intersection_id
         self.ip_address = ip_address
         self.port = port

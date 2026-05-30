@@ -31,7 +31,7 @@ import asyncio
 import re
 import ipaddress
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Dict, Union
 
 # Modern PySNMP (v7+) compatibility for Python 3.12+
 try:
@@ -54,7 +54,7 @@ class BaseTrafficDriver(ABC):
     Provides built-in SNMP communication and a background heartbeat mechanism.
     """
 
-    def __init__(self, ip_address: str, port: int, community_string: str = 'public', timeout: int = 2, retries: int = 1):
+    def __init__(self, ip_address: str, port: int, community_string: str = 'public', timeout: int = 2, retries: int = 1) -> None:
         # Robust IP sanitization: extract a valid IPv4 address from any input,
         # even if garbage text (e.g. log output) was accidentally pasted.
         ip_address = str(ip_address).strip()
@@ -213,11 +213,11 @@ class BaseTrafficDriver(ABC):
         pass
 
     @abstractmethod
-    def send_action(self, action_data: dict) -> bool:
+    def send_action(self, action_data: Dict[str, Any]) -> bool:
         pass
 
     @abstractmethod
-    def get_telemetry(self) -> dict:
+    def get_telemetry(self) -> Dict[str, Any]:
         pass
 
     @abstractmethod

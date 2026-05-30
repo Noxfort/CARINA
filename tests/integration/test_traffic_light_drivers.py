@@ -58,7 +58,9 @@ def test_ntcip_telemetry_fidelity(ntcip_driver, mock_snmp_hardware):
     # Simulate physical detectors reporting Phases 1 and 5 are Green
     # Phase 1 (bit 0 = 1) and Phase 5 (bit 4 = 16) = 1 + 16 = 17
     mock_snmp_hardware[ntcip_driver.OID_PHASE_STATUS_GREENS] = 17
+    mock_snmp_hardware[ntcip_driver.OID_PHASE_STATUS_YELLOWS] = 2 # Phase 2 is yellow
     mock_snmp_hardware[ntcip_driver.OID_PHASE_STATUS_REDS] = 0
+    mock_snmp_hardware[ntcip_driver.OID_PHASE_STATUS_PED_CALLS] = 8 # Ped call on phase 4
     
     # Driver should fetch data from our memory (SNMP via mock)
     telemetry = ntcip_driver.get_telemetry()
@@ -66,7 +68,9 @@ def test_ntcip_telemetry_fidelity(ntcip_driver, mock_snmp_hardware):
     assert telemetry['protocol'] == "NTCIP 1202"
     assert telemetry['status'] == "online"
     assert telemetry['active_greens'] == 17
+    assert telemetry['active_yellows'] == 2
     assert telemetry['active_reds'] == 0
+    assert telemetry['active_ped_calls'] == 8
 
 @pytest.mark.integration
 def test_ntcip_connection_loss_resilience(ntcip_driver, mock_snmp_hardware):
@@ -119,6 +123,8 @@ def test_utmc_telemetry_fidelity(utmc_driver, mock_snmp_hardware):
     """
     # Simulate physical detectors reporting Stage 3 is green (bit 2 = 4)
     mock_snmp_hardware[utmc_driver.OID_STAGE_STATUS_ACTIVE] = 4
+    mock_snmp_hardware[utmc_driver.OID_STAGE_STATUS_LEAVING] = 2 # Stage 2 leaving
+    mock_snmp_hardware[utmc_driver.OID_STAGE_STATUS_PED_DEMAND] = 1 # Ped demand on Stage 1
     
     # Driver should fetch data from our memory (SNMP via mock)
     telemetry = utmc_driver.get_telemetry()
@@ -126,6 +132,8 @@ def test_utmc_telemetry_fidelity(utmc_driver, mock_snmp_hardware):
     assert telemetry['protocol'] == "UTMC2"
     assert telemetry['status'] == "online"
     assert telemetry['active_greens'] == 4
+    assert telemetry['active_yellows'] == 2
+    assert telemetry['active_ped_calls'] == 1
 
 @pytest.mark.integration
 def test_utmc_connection_loss_resilience(utmc_driver, mock_snmp_hardware):

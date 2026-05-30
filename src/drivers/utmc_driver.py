@@ -24,6 +24,7 @@ Translates CARINA commands into UTMC-compliant SNMP OID requests.
 """
 
 import logging
+from typing import Dict, Any
 from src.drivers.base_driver import BaseTrafficDriver
 
 # --- PySNMP Data Types Compatibility Block ---
@@ -63,14 +64,14 @@ class UtmcDriver(BaseTrafficDriver):
     # System Control/Heartbeat OID (Watchdog)
     OID_UTMC_WATCHDOG = "1.3.6.1.4.1.2825.4.2.1.1.2.1.21.1"
 
-    def __init__(self, ip_address: str, port: int, community_string: str = 'public'):
+    def __init__(self, ip_address: str, port: int, community_string: str = 'public') -> None:
         super().__init__(ip_address, port, community_string)
         logger.info(f"[{self.ip_address}:{self.port}] Initialized UTMC2 Driver.")
 
     def get_protocol_name(self) -> str:
         return "UTMC2"
 
-    def send_action(self, action_data: dict) -> bool:
+    def send_action(self, action_data: Dict[str, Any]) -> bool:
         """
         Translates CARINA's neural network action into UTMC2 stage commands.
         Expected action_data format: {'action_type': 'hold', 'phase': 2}
@@ -113,11 +114,11 @@ class UtmcDriver(BaseTrafficDriver):
             
         return success
 
-    def get_telemetry(self) -> dict:
+    def get_telemetry(self) -> Dict[str, Any]:
         """
         Fetches the current status of the intersection using UTMC OIDs.
         """
-        telemetry = {
+        telemetry: Dict[str, Any] = {
             "protocol": self.get_protocol_name(),
             "status": "unknown",
             "active_greens": 0,

@@ -29,8 +29,8 @@ class AgentEvaluator:
     Mede seus tempos de operação usando o StepTimer injetado.
     """
 
-    def __init__(self, state_extractor, input_preprocessor, reward_computer, 
-                 action_authorizer, action_supervisor, maturity_manager, locale_manager):
+    def __init__(self, state_extractor: Any, input_preprocessor: Any, reward_computer: Any, 
+                 action_authorizer: Any, action_supervisor: Any, maturity_manager: Any, locale_manager: Any) -> None:
         self.state_extractor = state_extractor
         self.input_preprocessor = input_preprocessor
         self.reward_computer = reward_computer

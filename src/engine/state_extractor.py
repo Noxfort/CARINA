@@ -41,7 +41,7 @@ class StateExtractor:
     using the static topology extracted from the .net.xml map.
     """
 
-    def __init__(self, locale_manager: 'LocaleManagerBackend'):
+    def __init__(self, locale_manager: 'LocaleManagerBackend') -> None:
         self.locale_manager = locale_manager
         self.lm = locale_manager
         
@@ -60,7 +60,7 @@ class StateExtractor:
         
         logging.info(self.lm.get_string("state_extractor.init.sensor_created", fallback="StateExtractor (HFT) inicializado."))
 
-    def load_topology(self, net_file_path: str):
+    def load_topology(self, net_file_path: str) -> None:
         """
         Reads the .net.xml file and maps connections.
         """
