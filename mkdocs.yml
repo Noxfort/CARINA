@@ -1,0 +1,138 @@
+# ==============================================================================
+# CARINA — MkDocs Configuration (Material for MkDocs)
+# Controlled Artificial Road-traffic Intelligence Network Architecture
+# Copyright (C) 2026 — Noxfort Systems
+# ==============================================================================
+
+site_name: "CARINA — Documentação de Arquitetura"
+site_description: "Documentação técnica interna do CARINA — cérebro neural do ecossistema Noxfort."
+site_author: "Gabriel Moraes — Noxfort Systems"
+copyright: "Copyright &copy; 2026 — Noxfort Systems"
+
+# ==============================================================================
+# Theme
+# ==============================================================================
+theme:
+  name: material
+  language: pt-BR
+  icon:
+    logo: material/traffic-light
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Modo Claro
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Modo Escuro
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.path
+    - navigation.instant
+    - navigation.tracking
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+
+# ==============================================================================
+# Markdown Extensions
+# ==============================================================================
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+# ==============================================================================
+# Plugins
+# ==============================================================================
+# ==============================================================================
+# Plugins e i18n
+# ==============================================================================
+plugins:
+  - search:
+      lang: pt
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: true
+      languages:
+        - locale: pt
+          name: Português
+          default: true
+        - locale: en
+          name: English
+        - locale: ru
+          name: Русский
+        - locale: zh
+          name: 简体中文
+        - locale: es
+          name: Español
+        - locale: fr
+          name: Français
+
+extra:
+  alternate:
+    - name: Português
+      link: /pt/
+      lang: pt
+    - name: English
+      link: /en/
+      lang: en
+    - name: Русский
+      link: /ru/
+      lang: ru
+    - name: 简体中文
+      link: /zh/
+      lang: zh
+    - name: Español
+      link: /es/
+      lang: es
+    - name: Français
+      link: /fr/
+      lang: fr
+
+# ==============================================================================
+# Navigation
+# ==============================================================================
+nav:
+  - Visão Geral: index.md
+  - Arquitetura C4: architecture.md
+  - Processos & IPC: processes.md
+  - Arquitetura Neural (GOMES): neural.md
+  - Agentes & Decisão: agents.md
+  - Segurança & Fail-Safe: safety.md
+  - Infraestrutura & Operação: infrastructure.md
+
+# ==============================================================================
+# Extra CSS
+# ==============================================================================
+extra_css:
+  - stylesheets/extra.css

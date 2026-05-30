@@ -1,0 +1,5 @@
+{
+    "min_green_time_seconds": 10.0,
+    "yellow_time_seconds": 4.0,
+    "all_red_time_seconds": 2.0
+}

@@ -1,0 +1,206 @@
+{
+  "main_ui": {
+    "app_title": "CARINA - Панель Управления",
+    "app_long_title": "CARINA - Controlled Artificial Road-traffic Intelligence Network Architecture",
+    "settings_tooltip": "Открыть Настройки",
+    "tab_dashboard": "Оперативная Панель",
+    "tab_planning": "Планирование и Оптимизация",
+    "tab_diagnostics": "Диагностика и Система"
+  },
+  "dashboard_view": {
+    "global_controls_title": "Глобальное Управление",
+    "global_controls_locked": "Глобальное Управление (Ожидание - ИИ незрелый)",
+    "mode_auto": "Автоматический",
+    "mode_semiauto": "Полуавтоматический",
+    "mode_manual": "Ручной",
+    "street_info_title_prefix": "Детали Улицы:",
+    "street_congestion": "Загруженность:",
+    "street_flow": "Поток (машин/мин):",
+    "street_speed": "Средняя Скорость:",
+    "street_vehicles": "Кол-во Машин:",
+    "semaphore_controls_title_prefix": "Управление для:",
+    "maturity_phase_label": "Фаза Зрелости:",
+    "lane_states_title": "Состояние Полос:",
+    "green_time": "Время Зеленого (с)",
+    "yellow_time": "Время Желтого (с)",
+    "action_alert": "Включить Режим Тревоги",
+    "action_deactivate": "Отключить Светофор",
+    "save_timings_button": "Сохранить Время",
+    "close_panel_tooltip": "Закрыть панель",
+    "snackbar_manual_control_denied": "Светофор {id} (Фаза: {phase}) не может управляться вручную."
+  },
+  "planning_view": {
+    "analyze_button": "Анализ Инфраструктуры",
+    "analyze_tooltip": "Загружает последний отчет по инфраструктуре, созданный системой",
+    "generate_report_button": "Создать Отчет .txt",
+    "status_ready": "Готов к загрузке последнего анализа.",
+    "status_loading": "Поиск последнего отчета...",
+    "status_loaded_no_change": "Анализ загружен. Значительных изменений не найдено.",
+    "status_loaded_with_change": "Анализ загружен. Обнаружены значительные изменения.",
+    "status_report_saved": "Отчет сохранен. Готов к загрузке следующего анализа.",
+    "status_save_cancelled": "Операция сохранения отменена.",
+    "file_picker_title": "Сохранить Отчет CARINA",
+    "snackbar_report_saved": "Отчет успешно сохранен в: {path}",
+    "dialog_no_change_title": "Анализ Завершен",
+    "dialog_no_change_content": "Значительных изменений с момента последнего отчета не было. Все равно создать файл .txt?",
+    "dialog_confirm_button": "Да, Создать Отчет",
+    "map_error_title": "Карта Планирования не найдена",
+    "map_error_subtitle": "Пожалуйста, убедитесь, что фоновый процесс CARINA запущен...",
+    "legend_existing": "Существующий / Сохранить Светофор",
+    "legend_add": "Добавить Светофор",
+    "legend_remove": "Удалить Светофор"
+  },
+  "diagnostics_view": {
+    "nav_logs": "Журнал в Реальном Времени",
+    "nav_xai": "Анализ Решений (XAI)",
+    "nav_system": "Сводка Системы",
+    "log_viewer_title": "Журнал в Реальном Времени",
+    "log_pause": "Пауза",
+    "log_resume": "Продолжить",
+    "log_clear": "Очистить Журнал",
+    "log_watching_file": "✅ Наблюдение за файлом: {file_path}",
+    "log_searching": "🟠 Поиск файла журнала CARINA...",
+    "log_new_detected": "🟡 Обнаружен новый файл журнала. Перезапуск наблюдения...",
+    "log_read_error": "❌ Ошибка чтения файла журнала: {error}",
+    "xai_title": "Анализ Решений (XAI)",
+    "xai_dropdown_label": "Выберите Агента для Анализа",
+    "xai_dropdown_hint_select": "Выберите агента",
+    "xai_dropdown_hint_no_scenario": "Сценарий с результатами не найден",
+    "xai_button": "Начать Анализ Решений",
+    "xai_status_ready": "Выберите агента и начните анализ.",
+    "xai_status_loading": "Запрос отправлен. Ожидание обработки анализа бэкендом...",
+    "xai_error_no_agent": "Пожалуйста, выберите агента."
+  },
+  "system_status_view": {
+    "hardware_title": "Оборудование",
+    "gpu_label": "Обнаружен GPU:",
+    "topology_title": "Топология Сети (SUMO)",
+    "nodes_label": "Светофоры (Узлы):",
+    "edges_label": "Соединения (Ребра):",
+    "ai_title": "Популяция ИИ",
+    "local_agents_label": "Локальные Агенты (PPO):",
+    "guardian_agents_label": "Агенты-Хранители (DQN):",
+    "last_updated_label": "Последнее обновление:",
+    "status_file_not_found": "Файл status.json не найден.",
+    "status_file_error": "Ошибка чтения status.json: {error}",
+    "gpu_not_detected": "Не обнаружено",
+    "loading": "Загрузка..."
+  },
+  "settings_view": {
+    "title": "Системные Настройки",
+    "tab_general": "Общие",
+    "tab_advanced": "Расширенные (ИИ)",
+    "save_button": "Сохранить Изменения",
+    "restore_button": "Восстановить по Умолчанию",
+    "warning_text": "Внимание: Изменение этих значений может повлиять на производительность и стабильность ИИ.",
+    "general_card_title": "Общие и Внешний Вид",
+    "dark_mode_label": "Темный Режим",
+    "language_label": "Язык Интерфейса",
+    "traffic_rules_card": {
+      "title": "Правила Движения",
+      "min_green_time": "Минимальное Время Зеленой Фазы (с)",
+      "yellow_time": "Длительность Желтой Фазы (с)"
+    },
+    "dashboard_card": {
+      "title": "Панель и Диагностика",
+      "heatmap_strategy": "Стратегия Агрегации Тепловой Карты",
+      "heatmap_saturation": "Порог Насыщенности Тепловой Карты"
+    },
+    "advanced_ppo_card": {
+      "title": "Локальный Агент (PPO)",
+      "performance_margin": "Запас Производительности для Выпуска (%)",
+      "gamma": "Коэффициент Дисконтирования (Gamma)",
+      "k_epochs": "Эпохи Обучения (K-epochs)",
+      "eps_clip": "Предел Обрезки (Epsilon)"
+    },
+    "advanced_dqn_card": {
+      "title": "Агент-Хранитель (DQN)",
+      "epsilon_decay": "Затухание Эпсилон (Шаги)",
+      "batch_size": "Размер Пакета (Batch Size)"
+    },
+    "piloting_school_card": {
+      "title": "Школа Пилотирования (Правила Продвижения)",
+      "child_phase_duration": "Мин. Длительность - Фаза Ребенок (Эпизоды)",
+      "child_promotion_entropy": "Макс. Энтропия для Продвижения (Ребенок -> Подросток)",
+      "teen_phase_duration": "Мин. Длительность - Фаза Подросток (Эпизоды)",
+      "performance_window": "Окно Оценки Производительности (Эпизоды)",
+      "calibration_window": "Окно Калибровки Уверенности (Эпизоды)"
+    },
+    "reward_weights_card": {
+      "title": "Система Вознаграждений (Личность ИИ)",
+      "description": "Настройте цели ИИ. Отрицательные значения - штрафы, положительные - вознаграждения.",
+      "waiting_time_label": "Вес: Время Ожидания",
+      "waiting_time_tooltip": "Отрицательное значение. Чем оно ниже, тем больше ИИ будет стараться избегать очередей.",
+      "flow_label": "Вес: Поток Транспорта",
+      "flow_tooltip": "Положительное значение. Чем оно выше, тем больше ИИ будет приоритизировать движение транспорта.",
+      "emergency_brake_label": "Штраф: Экстренное Торможение",
+      "emergency_brake_tooltip": "Штраф за создание рискованных ситуаций. Должно быть высоким отрицательным значением.",
+      "teleport_label": "Штраф: Экстремальная Загруженность (Телепортации)",
+      "teleport_tooltip": "Максимальный штраф за блокировку движения. Должно быть самым высоким отрицательным значением."
+    },
+    "advanced_system_card": {
+      "title": "Обучение (PBT) и Система",
+      "pbt_frequency": "Частота Эволюции (Эпизоды)",
+      "pbt_exploitation": "Процентиль Эксплуатации (%)",
+      "watchdog_grace": "Период Ожидания Watchdog (с)",
+      "analysis_interval_label": "Минимальный Интервал Между Анализами",
+      "unit_days": "Дни",
+      "unit_weeks": "Недели",
+      "unit_months": "Месяцы",
+      "unit_years": "Годы"
+    },
+    "db_card": {
+      "title": "Настройки Базы Данных",
+      "subtitle": "PostgreSQL рекомендуется для высоких нагрузок и распределенного машинного обучения.",
+      "type_label": "Тип Базы Данных",
+      "host": "Хост",
+      "port": "Порт",
+      "user": "Пользователь",
+      "password": "Пароль",
+      "dbname": "Название Базы Данных",
+      "btn_test": "Проверить Соединение",
+      "status_untested": "НЕ ПРОВЕРЕНО",
+      "status_testing": "ПРОВЕРКА...",
+      "status_connected": "ПОДКЛЮЧЕНО",
+      "status_error": "ОШИБКА ПОДКЛЮЧЕНИЯ",
+      "msg_success": "Соединение с базой данных успешно установлено!"
+    }
+  },
+  "dialogs": {
+    "confirm_button": "Да, подтвердить",
+    "cancel_button": "Отмена",
+    "close_button": "Закрыть",
+    "attention_title": "Внимание!",
+    "confirm_action_title": "Подтвердите Действие",
+    "change_mode_content": "Переключение системы в режим {mode_name} является действием с высоким уровнем воздействия.\n\nВы уверены, что хотите продолжить?",
+    "language_change_title": "Подтвердите Смену Языка",
+    "language_change_content": "Приложение необходимо перезагрузить, чтобы применить новый язык. Вы хотите продолжить?",
+    "save_settings_content": "Изменения будут сохранены и могут повлиять на поведение системы. Вы хотите продолжить?",
+    "specific_action_alert": "активировать режим 'Тревога' для светофора {id}",
+    "specific_action_off": "отключить светофор {id}",
+    "specific_action_normal": "вернуть светофор {id} к нормальной работе",
+    "confirm_specific_action_content": "Вы уверены, что хотите {action_text}?"
+  },
+  "maturity_phases": {
+    "CHILD": "Детство",
+    "TEEN": "Подростковый возраст",
+    "ADULT": "Взрослый",
+    "UNKNOWN": "Неизвестно"
+  },
+  "xai_viewer": {
+    "agent_select_label": "Выберите агента",
+    "analyze_btn": "Выполнить анализ XAI",
+    "tab_chart": "Важность датчиков (график)",
+    "tab_text": "Подробный отчет (текст)",
+    "status_requesting": "Запрос анализа для агента {agent_id}... (Это включает в себя вывод LLM, пожалуйста, подождите)",
+    "status_success": "Анализ успешно завершен!",
+    "status_error": "Ошибка: {error}",
+    "status_timeout": "Время ожидания истекло ({seconds}с). ИИ работает слишком медленно."
+  },
+  "plot_viewer": {
+    "no_data": "Анализ еще не сгенерирован."
+  },
+  "explanation_viewer": {
+    "no_data": "Подробный отчет недоступен."
+  }
+}

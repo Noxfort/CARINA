@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=CARINA
+Comment=Cognitive Artificial Route and Intersection Network Agent
+Exec=/usr/local/bin/carina
+Icon=carina
+Terminal=false
+Type=Application
+Categories=Science;Engineering;System;

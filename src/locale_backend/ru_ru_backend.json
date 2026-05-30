@@ -1,0 +1,724 @@
+{
+  "action_authorizer": {
+    "reason": {
+      "child": "Фаза обучения (ДЕТСТВО)",
+      "adult": "Полный контроль (ВЗРОСЛЫЙ)",
+      "teen_peak": "Часы пик в подростковом возрасте",
+      "teen_offpeak": "Управление разрешено (ПОДРОСТОК)",
+      "unknown": "Зрелость неизвестна"
+    }
+  },
+  "actions": {
+    "change_phase": "СМЕНИТЬ ФАЗУ",
+    "keep_phase": "СОХРАНИТЬ ФАЗУ",
+    "unknown": "НЕИЗВЕСТНО ({action})"
+  },
+  "asset_manager": {
+    "init": {
+      "created": "[ASSET_MANAGER] Менеджер активов (Фасад) создан, специалисты инстанциированы."
+    }
+  },
+  "captum_analyzer": {
+    "run": {
+      "empty_memory_warning": "[CAPTUM_ANALYZER] Память XAI для агента {agent_id} пуста. Анализ не может быть сгенерирован.",
+      "text_report_success": "[CAPTUM_ANALYZER] Текстовый анализ сохранен в: {path}",
+      "analysis_error": "[CAPTUM_ANALYZER] Не удалось сгенерировать анализ: {error}"
+    }
+  },
+  "central_controller": {
+    "run": {
+      "simulation_ended": "Симуляция завершена или потеряно соединение TraCI.",
+      "initial_connection_fail": "[CONTROLLER] Начальное подключение к SUMO не удалось. Завершение процесса.",
+      "keyboard_interrupt": "[CONTROLLER] Получено прерывание с клавиатуры.",
+      "fatal_error": "[CONTROLLER] Фатальная ошибка в оркестраторе: {error}",
+      "process_finished": "[CONTROLLER] Процесс Центрального Контроллера завершен."
+    },
+    "shutdown": {
+      "sending_signal": "Отправка сигнала завершения процессу ИИ...",
+      "signal_error": "Не удалось отправить сигнал завершения ИИ: {error}"
+    },
+    "main_loop": {
+      "starting": "[CONTROLLER] Оркестратор запущен. Вход в основной цикл симуляции."
+    }
+  },
+  "childhood_analyzer": {
+    "init": {
+      "analyzer_created": "[CHILDHOOD_ANALYZER] Анализатор Среды создан."
+    },
+    "cache": {
+      "found": "[CHILDHOOD] Кэш анализа детства найден по адресу: {path}",
+      "loading": "[CHILDHOOD] Загрузка профилей трафика и базовой линии из кэша.",
+      "load_error": "[CHILDHOOD] Ошибка при загрузке кэша анализа детства: {error}",
+      "saving": "[CHILDHOOD] Сохранение профилей трафика и базовой линии в кэш.",
+      "save_error": "[CHILDHOOD] Ошибка при сохранении кэша анализа детства: {error}"
+    },
+    "run": {
+      "no_rules_warning": "[CHILDHOOD] В настройках не найдены правила времени. Возвращаются профили по умолчанию.",
+      "start": "[CHILDHOOD] Анализ трафика 'детства' начат...",
+      "analyzing_episodes": "   L- Анализ {count} эпизодов.",
+      "complete": "[CHILDHOOD] Анализ детства завершен. Средняя базовая награда: {reward}"
+    }
+  },
+  "connection_manager": {
+    "import": {
+      "sumo_tools_path": "Путь к инструментам SUMO добавлен: {path}",
+      "traci_loaded": "Модуль TraCI успешно загружен из: {path}",
+      "traci_critical_fail": "КРИТИЧЕСКИЙ СБОЙ: Не удалось импортировать TraCI. Пожалуйста, проверьте, правильно ли установлена переменная окружения 'SUMO_HOME'."
+    },
+    "init": {
+      "manager_created": "[CONN_MANAGER] Менеджер Подключения SUMO создан."
+    },
+    "connect": {
+      "waiting_for_sumo": "Ожидание загрузки сценария SUMO на порту {port}...",
+      "open_sumocfg_prompt": "Пожалуйста, откройте SUMO и ваш файл .sumocfg.",
+      "success": "✅ УСПЕХ: Соединение с SUMO установлено.",
+      "scenario_loaded": "   L- Сценарий Загружен: {scenario}",
+      "fatal_error": "[CONN_MANAGER] Фатальный сбой при подключении к SUMO."
+    },
+    "close": {
+      "closing": "[CONN_MANAGER] Закрытие соединения с SUMO...",
+      "already_lost": "[CONN_MANAGER] Соединение с SUMO уже было потеряно при попытке закрытия.",
+      "no_connection": "[CONN_MANAGER] Нет активного соединения для закрытия."
+    }
+  },
+  "connector": {
+    "connecting": "[CONNECTOR] Подключение к прокси-серверу TraCI...",
+    "connection_established": "✅ [CONNECTOR] 'Соединение' с прокси-сервером TraCI установлено."
+  },
+  "db_manager": {
+    "init": {
+      "manager_created": "[DB_MANAGER] Менеджер Базы Данных указывает на: {path}",
+      "db_error": "[DB_MANAGER] Ошибка при инициализации базы данных: {error}"
+    },
+    "create_run": {
+      "success": "[DB_MANAGER] Новый запуск успешно зарегистрирован (Сценарий: {scenario}).",
+      "error": "[DB_MANAGER] Ошибка при создании записи о запуске: {error}"
+    },
+    "log_episode": {
+      "error": "[DB_MANAGER] Ошибка при сохранении метрик для эпизода {episode}: {error}"
+    },
+    "log_report": {
+      "error": "[DB_MANAGER] Ошибка при сохранении отчета об анализе: {error}"
+    }
+  },
+  "db_worker": {
+    "run": {
+      "worker_started": "[DB_WORKER] Процесс Работника Базы Данных запущен и готов к приему данных.",
+      "shutdown_signal": "[DB_WORKER] Получен сигнал о завершении работы.",
+      "unknown_log_type": "[DB_WORKER] Получен неизвестный тип журнала: {type}",
+      "processing_error": "[DB_WORKER] Ошибка при обработке пакета данных: {packet}",
+      "user_interrupt": "[DB_WORKER] Процесс прерван пользователем.",
+      "fatal_error": "[DB_WORKER] Фатальная и необработанная ошибка в работнике: {error}",
+      "worker_finished": "[DB_WORKER] Процесс Работника Базы Данных завершен."
+    }
+  },
+  "decision_orchestrator": {
+    "init": {
+      "created": "[DECISION_ORCHESTRATOR] Оркестратор Решений создан."
+    }
+  },
+  "episode_runner": {
+    "init": {
+      "created": "[EPISODE_RUNNER] Исполнитель Эпизодов (чистый режим ИИ) создан."
+    },
+    "run": {
+      "start_unified": "Начало Эпизода {episode} (единый режим обучения)"
+    }
+  },
+  "guardian_agent": {
+    "init": {
+      "success": "   -> [ХРАНИТЕЛЬ] Мозг ИИ (Dueling DQN) создан. AMP включен: {enabled}"
+    }
+  },
+  "health_monitor": {
+    "init": {
+      "monitor_created": "[HEALTH_MONITOR] Монитор Здоровья ИИ создан с тайм-аутом {timeout}с."
+    },
+    "activity": {
+      "communication_reestablished": "[HEALTH_MONITOR] Связь с ИИ восстановлена."
+    },
+    "health_check": {
+      "failure": "[HEALTH_MONITOR] СБОЙ: Нет связи с ИИ более {timeout}с.",
+      "switching_to_watchdog": "[HEALTH_MONITOR] Сигнализация контроллеру о переключении в отказоустойчивый режим (Watchdog)."
+    }
+  },
+  "heatmap_renderer": {
+    "init": {
+      "created": "[HEATMAP_RENDERER] Рендерер Тепловых Карт создан."
+    },
+    "run": {
+      "error": "[HEATMAP_RENDERER] Ошибка при генерации изображения тепловой карты: {error}"
+    }
+  },
+  "infra_analyzer": {
+    "init": {
+      "config_error": "Раздел [INFRASTRUCTURE_ANALYSIS] не найден или неполон."
+    },
+    "unknown_scenario": "Неизвестный Сценарий",
+    "analyzer_created": "Менеджер Анализа Инфраструктуры создан.",
+    "summary_first_run": "Первый анализ выполнен.",
+    "change_new_junction": "обнаружен новый перекресток {id}",
+    "change_metric": "изменение на {percent}% в '{metric}' на перекрестке {id}",
+    "summary_changes_detected": "Обнаружены значительные изменения: {changes}",
+    "summary_no_changes": "Значительных изменений в метриках трафика не обнаружено."
+  },
+  "init_orchestrator": {
+    "init": {
+      "created": "[INIT_ORCHESTRATOR] Инженер по Настройке создан."
+    },
+    "summary": {
+      "success": "[INIT_ORCHESTRATOR] Файл сводки 'status.json' успешно создан по адресу: {path}",
+      "critical_error": "[INIT_ORCHESTRATOR] КРИТИЧЕСКИЙ СБОЙ при записи 'status.json': {error}"
+    },
+    "run": {
+      "start": "[INIT_ORCHESTRATOR] Оркестратор Инициализации берет управление...",
+      "scenario_path_error": "Не удалось получить путь к сценарию SUMO.",
+      "assets_dashboard": "[INIT_ORCHESTRATOR] Команда Менеджеру Активов на генерацию активов Панели Управления...",
+      "coords_file_error": "[INIT_ORCHESTRATOR] Не удалось сгенерировать файл координат, так как данные карты не были возвращены.",
+      "assets_planning": "[INIT_ORCHESTRATOR] Генерация начальной карты для вкладки Планирование...",
+      "collecting_summary": "[INIT_ORCHESTRATOR] Сбор данных для сводки системы (топология светофоров)...",
+      "complete": "[INIT_ORCHESTRATOR] Фаза Настройки завершена. Передача управления Тренеру."
+    }
+  },
+  "launcher": {
+    "main": {
+      "preparing_processes": "Подготовка системных процессов CARINA...",
+      "starting_ui_process": "Запуск процесса UI из: {path}",
+      "ui_started": " -> Пользовательский Интерфейс (UI) запущен с PID: {pid}",
+      "starting_backend_processes": "Запуск всех фоновых процессов экосистемы CARINA...",
+      "process_started_metrics": " -> {process_name} (PID: {pid}) [Метрики: http://localhost:{port}]",
+      "process_started_no_metrics": " -> {process_name} (PID: {pid})",
+      "system_running": "Система CARINA полностью запущена с фронтендом и бэкендом.",
+      "interrupt_received": "\nПолучен сигнал прерывания (Ctrl+C). Завершение работы...",
+      "terminating_ui": "   -> Завершение процесса UI (PID: {pid})...",
+      "force_killing_ui": "   -> Процесс UI не завершился вовремя. Принудительное завершение.",
+      "final_cleanup": "Выполнение окончательной очистки фоновых процессов...",
+      "terminating_backend_process": "   -> Завершение процесса {name} (PID: {pid})...",
+      "system_shutdown": "Система выключена."
+    }
+  },
+  "learning_coordinator": {
+    "init": {
+      "created": "[LEARNER] Координатор Обучения создан."
+    },
+    "update": {
+      "trigger": "[LEARNER] Запуск цикла обучения для агентов."
+    }
+  },
+  "lifecycle_manager": {
+    "init": {
+      "manager_created": "[LIFECYCLE] Менеджер Жизненного Цикла создан.",
+      "checkpoint_dir_set": "[LIFECYCLE] Директория для контрольных точек этого сценария установлена на: '{path}'"
+    },
+    "create": {
+      "no_checkpoint_dir_error": "[LIFECYCLE] Директория для контрольных точек сценария не настроена.",
+      "loading_checkpoints": "[LIFECYCLE] Создание агентов и загрузка контрольных точек из '{path}'...",
+      "uniform_obs_size": "[LIFECYCLE] Единый размер наблюдения для всех агентов: {size}",
+      "no_dna_found": "Начальный ДНК для агента {tl_id} не найден. Пропуск.",
+      "creation_complete": "[LIFECYCLE] Всего создано {num_agents} агентов и {num_guardians} хранителей."
+    },
+    "save": {
+      "starting_checkpoint": "--- НАЧАЛО СОХРАНЕНИЯ КОНТРОЛЬНОЙ ТОЧКИ ({reason}) в '{path}' ---",
+      "checkpoint_complete": "--- СОХРАНЕНИЕ КОНТРОЛЬНОЙ ТОЧКИ ЗАВЕРШЕНО ---"
+    }
+  },
+  "local_agent": {
+    "load": {
+      "obs_mismatch_warning": "[АГЕНТ {agent_id}] Размер наблюдения в контрольной точке ({chk_obs}) отличается от текущего ({cur_obs}).",
+      "success": "OK [АГЕНТ {agent_id}] Контрольная точка загружена из '{path}'. Память XAI с {count} образцами.",
+      "not_found_warning": "[АГЕНТ {agent_id}] Контрольная точка не найдена по адресу '{path}'. Создание агента с нуля.",
+      "error": "[АГЕНТ {agent_id}] Ошибка при загрузке контрольной точки: {error}"
+    }
+  },
+  "main_ai": {
+    "hardware_check": {
+      "starting": "ЗАПУСК ДИАГНОСТИКИ ОБОРУДОВАНИЯ (PYTORCH)...",
+      "gpu_not_found": "Не обнаружено или нет поддержки CUDA",
+      "gpu_success": "✅ УСПЕХ: GPU найден: {name}",
+      "gpu_not_found_warning": "❌ ПРЕДУПРЕЖДЕНИЕ: Не найдено GPU, совместимого с CUDA."
+    },
+    "load_settings": {
+      "critical_error": "КРИТИЧЕСКИЙ СБОЙ: Файл конфигурации не найден или пуст по адресу: {path}"
+    },
+    "run": {
+      "process_started": "[MAIN_IA] Процесс ИИ запущен и 'подключен' к прокси-серверу TraCI."
+    }
+  },
+  "map_generator": {
+    "run": {
+      "net_file_not_found": "[MapGenerator] Файл сети не найден по адресу: {path}",
+      "netconvert_not_found": "[MapGenerator] КРИТИЧЕСКИ: Исполняемый файл 'netconvert' не найден. Проверьте переменную окружения SUMO_HOME.",
+      "generating_files": "[MapGenerator] Генерация файлов данных карты (.nod.xml, .edg.xml)...",
+      "success": "[MapGenerator] Файлы данных успешно сгенерированы с префиксом: {prefix}",
+      "files_not_found_after_run": "[MapGenerator] Команда 'netconvert' выполнена, но файлы данных не найдены.",
+      "netconvert_error": "Ошибка при выполнении 'netconvert'. SUMO вернул ошибку.",
+      "stderr_output": "Вывод Ошибки (stderr):\n{stderr}",
+      "unexpected_error": "Неожиданная ошибка в MapGenerator: {error}"
+    }
+  },
+  "maturity_manager": {
+    "init": {
+      "manager_created": "[MATURITY_MANAGER] Директор Школы Пилотирования создан.",
+      "performance_target": "   L- Целевая Производительность для Выпуска (Базовая линия): Награда > {target}"
+    },
+    "register": {
+      "agents_registered": "[MATURITY_MANAGER] {count} агентов зарегистрировано в фазе: {phase}."
+    },
+    "calibration": {
+      "thresholds_updated": "[MATURITY_MANAGER] Пороги уверенности для ВЗРОСЛОГО получены от Калибратора и активированы."
+    },
+    "save": {
+      "success": "[MATURITY_MANAGER] Состояние зрелости успешно сохранено в: {path}",
+      "error": "[MATURITY_MANAGER] Ошибка при сохранении состояния зрелости: {error}"
+    },
+    "load": {
+      "not_found": "[MATURITY_MANAGER] Файл состояния зрелости не найден по адресу '{path}'. Начинаем с нуля.",
+      "success": "[MATURITY_MANAGER] Состояние зрелости успешно загружено из '{path}'.",
+      "error": "[MATURITY_MANAGER] Ошибка при загрузке состояния зрелости: {error}"
+    },
+    "phase_child": "Детство",
+    "phase_teen": "Подростковый",
+    "phase_adult": "Взрослый",
+    "criterion_time": "Критерий: Время в Фазе",
+    "criterion_performance": "Критерий: Производительность",
+    "criterion_confidence": "Критерий: Уверенность",
+    "time_details": "{episodes_in_phase} из {required_episodes} эпизодов завершено",
+    "performance_details": "Среднее {mean_performance:.2f} > Цель {baseline_target:.2f}",
+    "confidence_details": "Энтропия {agent_entropy:.2f} < Порог {entropy_threshold:.2f}",
+    "new_phase_message": "Новая Фаза: {phase_name}",
+    "criteria_met_header": "Критерии Выполнены:",
+    "promotion_not_met_message": "не соответствовал требованиям для перехода на фазу {target_phase_name}",
+    "criteria_status_header": "Статус Критериев:"
+  },
+  "maturity_reporter": {
+    "promotion": {
+      "title_graduated": "ВЫПУСКНИК",
+      "title_promoted": "ПОВЫШЕН",
+      "header": "🎓 {title} | Агент: {agent_id}"
+    },
+    "rejection": {
+      "title": "Оценочный Лист",
+      "header": "📝 {title} | Агент: {agent_id} (Фаза: {current_phase_name})"
+    }
+  },
+  "network_parser": {
+    "lane_to_edge": {
+      "start": "[PARSER] Построение карты перевода полоса -> ребро из '{path}'...",
+      "success": "[PARSER] Карта перевода успешно построена. {count} полос сопоставлено.",
+      "file_not_found_error": "КРИТИЧЕСКАЯ ОШИБКА: Файл сети не найден по адресу '{path}'.",
+      "processing_error": "ОШИБКА при обработке файла сети для карты перевода: {error}"
+    },
+    "structural_map": {
+      "start": "[PARSER] Построение СТРУКТУРНОЙ карты соседства из файла сети...",
+      "reading_net_file": "   L- Чтение файла сети: {path}",
+      "neighborhood_found": "   L- Структурное соседство найдено для '{tl_id}': {neighbors}",
+      "success": "[PARSER] СТРУКТУРНАЯ карта соседства успешно построена для {count} светофоров.",
+      "file_not_found_error": "ОШИБКА: Файл не найден во время структурного анализа: {error}",
+      "processing_error": "ОШИБКА при обработке файла сети для структурного соседства: {error}"
+    },
+    "routes_map": {
+      "obsolete_warning": "[PARSER] Функция 'build_neighborhood_map_from_routes' устарела и не была выполнена."
+    }
+  },
+  "population_manager": {
+    "init": {
+      "manager_created": "[POP_MANAGER] Менеджер Популяции (PBT) создан.",
+      "evolution_freq": "    L- Частота Эволюции: {freq} эпизодов.",
+      "exploit_percentile": "    L- Процентиль Эксплуатации: {percentile}% худших агентов.",
+      "initializing_population": "[POP_MANAGER] Инициализация популяции агентов с ДНК PBT...",
+      "population_created": "[POP_MANAGER] Популяция с {count} агентами успешно создана."
+    },
+    "evolve": {
+      "start_cycle": "\n--- ЦИКЛ ЭВОЛЮЦИИ PBT ---",
+      "no_scores_warning": "[PBT] Оценки агентов не рассчитаны. Пропуск цикла эволюции.",
+      "agent_copy": "  [PBT] Агент {worst_id} (оценка: {worst_score}) скопирует ДНК у агента {best_id} (оценка: {best_score})",
+      "mutating_param": "    L- Мутация '{param}': {old_value} -> {new_value}",
+      "end_cycle": "--- КОНЕЦ ЦИКЛА ЭВОЛЮЦИИ ---\n"
+    }
+  },
+  "post_episode_coordinator": {
+    "init": {
+      "created": "[POST_EPISODE_COORDINATOR] Менеджер Смены (режим ИИ + БД) создан."
+    },
+    "run": {
+      "no_metrics_warning": "[POST_EPISODE] Метрики из эпизода не получены. Пропуск задач.",
+      "db_queue_error": "[POST_EPISODE] Не удалось отправить метрики в очередь БД: {error}"
+    },
+    "checkpoint": {
+      "reason_promotion": "Продвижение Агента",
+      "reason_periodic": "Эпизод {episode}"
+    }
+  },
+  "report_generator": {
+    "header": {
+      "title1": "======================================================================",
+      "title2": "==      CARINA - ОТЧЕТ ОБ АНАЛИЗЕ ИНФРАСТРУКТУРЫ СВЕТОФОРОВ     ==",
+      "title3": "======================================================================"
+    },
+    "general_data": {
+      "title": "ОБЩИЕ ДАННЫЕ АНАЛИЗА",
+      "scenario": "Анализируемый Сценарий",
+      "date": "Дата Анализа",
+      "duration": "Базовая Длительность Симуляции"
+    },
+    "summary": {
+      "title": "СВОДКА РЕКОМЕНДАЦИЙ",
+      "junctions_analyzed": "Всего Проанализировано Релевантных Перекрестков",
+      "recommendations": "Рекомендации: {add} ДОБАВИТЬ, {remove} УДАЛИТЬ, {keep} СОХРАНИТЬ."
+    },
+    "parameters": {
+      "title": "ПАРАМЕТРЫ, ИСПОЛЬЗОВАННЫЕ В АНАЛИЗЕ",
+      "min_vol_primary": "Минимальный Объем (Главная Дорога)",
+      "min_vol_secondary": "Минимальный Объем (Второстепенная Дорога)",
+      "unacceptable_delay": "Недопустимая Средняя Задержка",
+      "conflict_threshold": "Порог Конфликтных Событий",
+      "removal_threshold": "Порог для Удаления (% от Объема)"
+    },
+    "detailed_rec": {
+      "title1": "======================================================================",
+      "title2": "==                 ДЕТАЛЬНЫЕ РЕКОМЕНДАЦИИ ПО ПЕРЕКРЕСТКАМ               ==",
+      "title3": "======================================================================"
+    },
+    "junction": {
+      "title": "ID ПЕРЕКРЕСТКА: {id}",
+      "recommendation": "Окончательная Рекомендация",
+      "current_status": "Текущая Ситуация",
+      "justification": "Основное Обоснование",
+      "warrants_analysis": "АНАЛИЗ ОБОСНОВАНИЙ (WARRANTS)",
+      "warrant_satisfied": "УДОВЛЕТВОРЕНО",
+      "warrant_not_satisfied": "НЕ УДОВЛЕТВОРЕНО",
+      "warrant1_volume": "ОБОСНОВАНИЕ 1 (Объем)",
+      "warrant2_delay": "ОБОСНОВАНИЕ 2 (Задержка)",
+      "warrant4_safety": "ОБОСНОВАНИЕ 4 (Безопасность)",
+      "observed_data": "НАБЛЮДАЕМЫЕ ДАННЫЕ",
+      "volume_primary_keep": "Объем (Главная Дорога):     {value} машин/час (требуется > {threshold} для сохранения)",
+      "volume_primary": "Объем (Главная Дорога):     {value} машин/час (порог: {threshold})",
+      "volume_secondary": "Объем (Второстепенная Дорога):    {value} машин/час (порог: {threshold})",
+      "avg_delay": "Сред. Задержка на Второстепенной: {value} секунд (порог: {threshold})",
+      "conflict_events": "Конфликтные События:        {value} событий (порог: {threshold})"
+    },
+    "footer": {
+      "title1": "======================================================================",
+      "title2": "==                         КОНЕЦ ОТЧЕТА                            ==",
+      "title3": "======================================================================",
+      "generated_by": "Сгенерировано: CARINA - Controlled Artificial Road-traffic Intelligence Network Architecture"
+    }
+  },
+  "reporter": {
+    "creation": {
+      "agent_created": "   -> [СОЗДАНИЕ] Локальный Агент (PPO) и Хранитель (DQN) созданы для ID Светофора: '{tl_id}'.",
+      "amp_status": "      L- Обучение со смешанной точностью (AMP) включено: {enabled}"
+    },
+    "graph": {
+      "title": "АНАЛИЗ ТОПОЛОГИИ СЕТИ ЗАВЕРШЕН",
+      "nodes": "  - Всего Светофоров (Узлов): {count}",
+      "edges": "  - Всего Соединений (Ребер): {count}"
+    },
+    "step_header": "\n--- {message} ---",
+    "step_start": "ШАГ СИМУЛЯЦИИ {step} (Время: {sim_time}с)",
+    "step_mode": "\u001b[97mControle Global\u001b[0m Текущий Режим Работы: {mode}",
+    "agent_suggestion": "[🧠 АГЕНТ {tl_id} | {maturity_level}] Предложение: {action_str}",
+    "status_approved": "ОДОБРЕНО",
+    "status_denied": "ОТКЛОНЕНО",
+    "system_decision": "    -> [СИСТЕМА] Решение: {status} ({reason})",
+    "bulletin_header": "КОНЕЦ ЭПИЗОДА {episode_count} | ШКОЛЬНЫЙ БЮЛЛЕТЕНЬ",
+    "bulletin_performance": "  - Производительность Эпизода: Общая Награда = {total_reward}",
+    "bulletin_class_status": "  - Статус Класса: {adults} Взрослых | {teens} Подростков | {children} Детей",
+    "bulletin_calibration_status": "  - Статус Калибровки Уверенности: {status}",
+    "calib_status_done": "Завершена",
+    "calib_status_ongoing": "В процессе",
+    "override_suffix_alert": " - Режим Тревоги",
+    "override_suffix_off": " - Отключен"
+  },
+  "request_processor": {
+    "init": {
+      "processor_created": "[REQ_PROCESSOR] Обработчик Запросов (режим Диспетчера) создан."
+    },
+    "ui_command": {
+      "received": "[REQ_PROCESSOR] Получена команда от UI: ТИП={type}",
+      "processing_save": "-> Обработка команды 'save_settings'...",
+      "save_success": "-> Настройки успешно сохранены SettingsManager.",
+      "processing_error": "[REQ_PROCESSOR] Ошибка при обработке команды от UI: {error}"
+    },
+    "batch_collect": {
+      "error": "[REQ_PROCESSOR] Ошибка во время пакетного сбора данных: {error}"
+    },
+    "ai_request": {
+      "queue_full_warning": "[REQ_PROCESSOR] Одна из очередей служб (SDS/SAS) заполнена.",
+      "processing_error": "[REQ_PROCESSOR] Ошибка при обработке запроса от ИИ: {error}"
+    },
+    "watchdog": {
+      "processing_error": "[REQ_PROCESSOR] Ошибка при обработке команды от Watchdog: {error}"
+    },
+    "override": {
+      "ai_ignored": "\u001b[97mControle Global\u001b[0m Предложение ИИ для '{tl_id}' проигнорировано. Светофор находится под вмешательством оператора (Состояние: {state}).",
+      "manual_intervention": "[РУЧНОЕ ВМЕШАТЕЛЬСтво] Светофор '{semaphore_id}' был переведен в режим '{state}' пользователем."
+    }
+  },
+  "sas_collector": {
+    "init": {
+      "collector_created": "[SAS_COLLECTOR] Сборщик Данных для Анализа создан."
+    },
+    "reset": {
+      "data_reset": "[SAS_COLLECTOR] Накопленные данные были сброшены для следующего цикла."
+    },
+    "get_data": {
+      "data_processed": "[SAS_COLLECTOR] Накопленные данные обработаны и готовы к анализу."
+    }
+  },
+  "sas_engine": {
+    "init": {
+      "engine_created": "[SAS_ENGINE] Движок Анализа (режим +БД) создан."
+    },
+    "run": {
+      "analysis_skipped_no_data": "[SAS_ENGINE] Анализ пропущен из-за неверной длительности симуляции или пути к файлу сети.",
+      "report_sent_to_db": "[SAS_ENGINE] Отчет об анализе отправлен в очередь БД.",
+      "db_queue_error": "[SAS_ENGINE] Не удалось отправить отчет в очередь БД: {error}",
+      "analysis_complete": "[SAS_ENGINE] Выполнение анализа завершено.",
+      "processing_data": "[SAS_ENGINE] Обработка накопленных данных симуляции...",
+      "data_processed": "[SAS_ENGINE] Данные обработаны для {count} перекрестков."
+    },
+    "map": {
+      "generating": "[SAS_ENGINE] Генерация новой карты планирования с иконками рекомендаций..."
+    },
+    "topology": {
+      "critical_error": "[SAS_ENGINE] Критическая ошибка при построении топологии сети: {error}",
+      "cannot_continue_error": "[SAS_ENGINE] Не удалось создать топологию сети. Анализ не может быть продолжен."
+    },
+    "cache": {
+      "save_error": "[SAS_ENGINE] Ошибка при сохранении файла кэша."
+    },
+    "ui": {
+      "status_save_error": "[SAS_ENGINE] Ошибка при сохранении файла состояния для UI."
+    }
+  },
+  "sas_orchestrator": {
+    "init": {
+      "analysis_frequency_set": "[SAS_ORCH] Частота анализа установлена на каждые {freq}с симуляции.",
+      "config_error": "[SAS_ORCH] Раздел [INFRASTRUCTURE_ANALYSIS] или ключи времени не найдены. Используются значения по умолчанию.",
+      "orchestrator_created": "[SAS_ORCH] Оркестратор SAS создан, специалисты инстанциированы."
+    },
+    "run": {
+      "main_loop_start": "[SAS_ORCH] Вход в основной цикл сбора и анализа.",
+      "run_id_captured": "[SAS_ORCH] RUN_ID: {run_id} захвачен для этого цикла анализа.",
+      "analysis_triggered": "[SAS_ORCH] Триггер анализа сработал в {time}с. Начало анализа...",
+      "analysis_skipped_no_run_id": "[SAS_ORCH] Анализ пропущен, так как действительный RUN_ID еще не получен.",
+      "analysis_cycle_complete": "[SAS_ORCH] Цикл анализа завершен. Сборщик был сброшен.",
+      "interrupt_received": "[SAS_ORCH] Получен сигнал прерывания. Завершение работы оркестратора.",
+      "fatal_error": "[SAS_ORCH] Фатальная ошибка в цикле оркестратора: {error}",
+      "orchestrator_shutdown": "[SAS_ORCH] Оркестратор SAS выключен."
+    }
+  },
+  "sas_worker": {
+    "run": {
+      "user_interrupt": "[SAS_WORKER] Процесс SAS прерван пользователем.",
+      "fatal_error": "[SAS_WORKER] Фатальная и необработанная ошибка в работнике SAS: {error}",
+      "worker_finished": "[SAS_WORKER] Процесс работника SAS завершен."
+    }
+  },
+  "sds_processor": {
+    "init": {
+      "processor_created": "[SDS_PROCESSOR] Обработчик Данных (режим Canvas/JSON) создан."
+    }
+  },
+  "sds_orchestrator": {
+    "init": {
+      "orchestrator_created": "[SDS_ORCH] Оркестратор SDS создан, специалисты инстанциированы."
+    },
+    "run": {
+      "ws_thread_started": "[SDS_ORCH] Поток сервера WebSocket запущен.",
+      "main_loop_start": "[SDS_ORCH] Вход в основной цикл обработки данных.",
+      "interrupt_received": "[SDS_ORCH] Получен сигнал прерывания. Завершение работы оркестратора.",
+      "fatal_error": "[SDS_ORCH] Фатальная ошибка в цикле оркестратора: {error}",
+      "orchestrator_finished": "[SDS_ORCH] Оркестратор SDS завершен."
+    }
+  },
+  "sds_websocket": {
+    "register": {
+      "client_connected": "[SDS_WS] Новый клиент подключен: {address}"
+    },
+    "unregister": {
+      "client_disconnected": "[SDS_WS] Клиент {address} отключен."
+    },
+    "handler": {
+      "command_received": "[SDS_WS] Получена команда от UI: {command}",
+      "invalid_json": "[SDS_WS] Получено неверное (не JSON) сообщение от {address}",
+      "queue_full": "[SDS_WS] Очередь команд UI заполнена. Команда UI была отброшена."
+    },
+    "main_loop": {
+      "server_started": "[SDS_WS] Сервер WebSocket SDS запущен по адресу ws://{host}:{port}"
+    }
+  },
+  "sds_worker": {
+    "run": {
+      "user_interrupt": "[SDS_WORKER] Процесс SDS прерван пользователем.",
+      "fatal_error": "[SDS_WORKER] Фатальная и необработанная ошибка в работнике SDS: {error}",
+      "worker_finished": "[SDS_WORKER] Процесс работника SDS завершен."
+    }
+  },
+  "static_map_renderer": {
+    "init": {
+      "created": "[STATIC_MAP_RENDERER] Рендерер Статических Карт создан."
+    },
+    "run": {
+      "rendering_map": "[STATIC_MAP_RENDERER] Рендеринг карты высокого разрешения в: {path}",
+      "render_complete": "[STATIC_MAP_RENDERER] Рендеринг карты завершен: {filename}",
+      "critical_error_icons": "[STATIC_MAP_RENDERER] Критическая ошибка при генерации карты с иконками: {error}",
+      "critical_error_coords": "[STATIC_MAP_RENDERER] Ошибка при генерации файла координат: {error}"
+    }
+  },
+  "strategic_coordinator": {
+    "init": {
+      "created": "[STRATEGIC_COORD] Стратегический Координатор (GAT) создан."
+    },
+    "initialize": {
+      "start": "[STRATEGIC_COORD] Инициализация стратегической подсистемы...",
+      "max_state_dim": "[STRATEGIC_COORD] Максимальный размер локального состояния (для дополнения): {size}",
+      "model_created": "[STRATEGIC_COORD] Модель Стратега GAT создана и перемещена на устройство: {device}."
+    }
+  },
+  "threshold_calibrator": {
+    "init": {
+      "created": "[THRESHOLD_CALIBRATOR] Калибратор Уверенности создан.",
+      "window_info": "   L- Будет отслеживать стабильность в окне из {window} эпизодов."
+    },
+    "step": {
+      "collecting_data": "[CALIBRATOR] Сбор данных энтропии... ({current}/{total})",
+      "std_dev_check": "[CALIBRATOR] Текущее стандартное отклонение энтропии: {std_dev} (Порог: {threshold})"
+    },
+    "calibrate": {
+      "plateau_detected": "[THRESHOLD_CALIBRATOR] Обнаружено плато энтропии! Кривая обучения уверенности стабилизировалась.",
+      "stable_value": "   L- Рассчитанное стабильное значение энтропии: {value}",
+      "complete": "[THRESHOLD_CALIBRATOR] Калибровка завершена!",
+      "teen_threshold": "   L- Порог для Подростка установлен: Энтропия < {threshold}",
+      "adult_threshold": "   L- Порог для Взрослого установлен: Энтропия < {threshold}"
+    }
+  },
+  "trainer": {
+    "shutdown": {
+      "signal_received": "[TRAINER] Получен сигнал плавного завершения работы от CentralController.",
+      "connection_lost": "[TRAINER] Потеряно соединение с CentralController. Инициация завершения работы.",
+      "reason": "Завершение работы"
+    },
+    "run": {
+      "new_run_id": "--- НОВЫЙ ЗАПУСК ЗАРЕГИСТРИРОВАН С RUN_ID: {run_id} ---",
+      "db_error": "Не удалось создать запись о запуске в базе данных. Прерывание.",
+      "cache_not_found": "[TRAINER] Кэш анализа не найден. Запуск фазы анализа..."
+    },
+    "main": {
+      "keyboard_interrupt": "\n[TRAINER] Обнаружено прерывание с клавиатуры. Завершение работы...",
+      "fatal_error": "Фатальная ошибка в цикле Тренера: {error}",
+      "final_checkpoint": "Сохранение конечного состояния ИИ перед выключением...",
+      "service_finished": "[TRAINER] Служба обучения ИИ завершена."
+    }
+  },
+  "watchdog": {
+    "run": {
+      "process_started": "Процесс Watchdog запущен. Отправка непрерывного отказоустойчивого сигнала.",
+      "shutdown_signal": "Watchdog получает сигнал для завершения работы.",
+      "loop_error": "Ошибка в цикле Watchdog: {error}",
+      "process_finished": "Процесс Watchdog завершен."
+    }
+  },
+  "warrant_evaluator": {
+    "init": {
+      "evaluator_created": "[WARRANT_EVALUATOR] Инженер по Анализу создан."
+    },
+    "evaluate": {
+      "diagnostics_start": "[ДИАГНОСТИКА] Оценка Перекрестка '{id}'. Это настоящий светофор? {is_real}",
+      "diagnostics_final": "[ОКОНЧАТЕЛЬНАЯ ДИАГНОСТИКА] Результат для '{id}': \n{result}"
+    },
+    "has_tl": "Управляется светофором",
+    "no_tl": "Несигнализированный",
+    "status_with_tl": "Управляется светофором",
+    "status_without_tl": "Несигнализированный (тип: {type})",
+    "rec_remove": "УДАЛИТЬ Светофор",
+    "rec_keep": "СОХРАНИТЬ Светофор",
+    "rec_add": "ДОБАВИТЬ Светофор",
+    "just_remove": "Ни одно из обоснований не выполнено, и объем ниже порога для удаления.",
+    "just_keep": "Выполнено хотя бы одно из обоснований, или объем достаточен для оправдания сохранения.",
+    "just_add": "Выполнено хотя бы одно из обоснований (объем, задержка или безопасность).",
+    "justify_remove_no_warrants": "Ни одно из 4 обоснований транспортной инженерии не было выполнено. Светофор не нужен.",
+    "justify_remove_low_volume": "Объем ниже порога удаления и недостаточно выполненных обоснований.",
+    "justify_keep": "{count} обоснование(й) выполнено. Оправдывает сохранение светофора.",
+    "justify_add": "{count} обоснований выполнено. Установка светофора математически обоснована.",
+    "justify_add_saturation": "Степень насыщения (X > 0.85) указывает на технический коллапс. Вмешательство является необходимостью.",
+    "justify_keep_no_tl": "Только {count} обоснование(й) выполнено. Недостаточно для обоснования установки."
+  },
+  "xai_worker": {
+    "run": {
+      "start": "[XAI_WORKER] Процесс Работника XAI запущен. Наблюдение за папкой: {path}",
+      "request_received": "[XAI_WORKER] Получен запрос на анализ для агента: '{agent_id}'",
+      "analysis_failed": "Не удалось сгенерировать файлы анализа.",
+      "processing_error": "[XAI_WORKER] Ошибка при обработке запроса: {error}",
+      "response_file_error": "[XAI_WORKER] Критический сбой при записи файла ответа: {error}",
+      "response_sent": "[XAI_WORKER] Ответ для '{filename}' отправлен.",
+      "critical_loop_error": "[XAI_WORKER] Критическая ошибка в цикле наблюдателя: {error}",
+      "finished": "[XAI_WORKER] Процесс Работника XAI завершен."
+    }
+  },
+  "global_modes": {
+    "automatic": "Автоматический",
+    "semi_automatic": "Полуавтоматический",
+    "manual": "Ручной"
+  },
+  "environment": {
+    "init": {
+      "maestro_created": "'Маэстро' среды (SumoEnvironment) был создан."
+    },
+    "connect": {
+      "success": "Специалисты среды (StateExtractor и др.) успешно инициализированы для сценария: {scenario}"
+    },
+    "reset": {
+      "start": "Инициация сброса среды...",
+      "success": "Среда успешно сброшена."
+    }
+  },
+  "state_extractor": {
+    "init": {
+      "sensor_created": "'Сенсор' среды (StateExtractor) был создан."
+    }
+  },
+  "reward_calculator": {
+    "init": {
+      "judge_created": "'Судья' среды (RewardCalculator) был создан.",
+      "weights_loaded": "Веса вознаграждений загружены: {weights}"
+    }
+  },
+  "action_supervisor": {
+    "init": {
+      "actuator_created": "'Исполнитель' среды (ActionSupervisor) был создан.",
+      "min_green_time_rule": "Правило безопасности включено: Минимальное время зеленого = {time}с."
+    },
+    "reset": {
+      "success": "Супервизор Действий успешно сброшен."
+    },
+    "veto": {
+      "received": "[СУПЕРВИЗОР] Вето от Хранителя получено для светофора {tl_id}. Действие {action} будет заблокировано."
+    },
+    "apply": {
+      "action_blocked": "[СУПЕРВИЗОР] Действие {action} заблокировано Хранителем для светофора {tl_id}.",
+      "min_time_not_met": "Минимальное время зеленого еще не достигнуто для светофора {tl_id}. Действие проигнорировано."
+    }
+  },
+  "service_manager": {
+    "init": {
+      "created": "[SERVICE_MANAGER] Менеджер Сервисов создан."
+    },
+    "start": {
+      "all": "[SERVICE_MANAGER] Запуск всех вспомогательных служб (Хранитель, XAI)...",
+      "guardian_success": " -> Работник Хранителя запущен с PID: {pid}",
+      "xai_success": " -> Работник XAI запущен с PID: {pid}"
+    }
+  },
+  "xai_report": {
+    "chart_xlabel": "Важность",
+    "chart_title": "Анализ Важности Признаков - Агент {agent_id}",
+    "title": "Отчет об Анализе XAI - Агент {agent_id}",
+    "subtitle": "Сгенерировано: {timestamp}",
+    "header_description": "В этом отчете представлена важность каждого датчика (признака) для принятия решений агентом на основе метода интегрированных градиентов.",
+    "section_sensor": "Датчик",
+    "section_importance": "Важность",
+    "section_description": "Описание"
+  }
+}

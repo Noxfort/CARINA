@@ -1,0 +1,14 @@
+# File: prometheus.yml
+
+global:
+  scrape_interval: 15s # A cada quantos segundos o Prometheus coleta os dados
+
+scrape_configs:
+  - job_name: 'carina_services'
+    static_configs:
+      - targets:
+          - 'localhost:8001'  # CentralController
+          - 'localhost:8002'  # AI_Process
+          - 'localhost:8003'  # DashboardService (SDS)
+          - 'localhost:8004'  # AnalysisService (SAS)
+          - 'localhost:8005'  # DatabaseWorker
