@@ -64,6 +64,7 @@ venv.bak/
 
 # Project specific ignores
 Model_Vault/
+*.gguf
 logs/
 results/
 *.log
