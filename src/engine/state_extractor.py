@@ -170,14 +170,20 @@ class StateExtractor:
                 phase_one_hot[valid_green_phases.index(current_phase_idx)] = 1.0
             except ValueError: pass
         
-        return np.array(sensor_data + phase_one_hot, dtype=np.float32)
+        # Pedestrian Call status (from hardware telemetry)
+        ped_calls = 0.0
+        if 'tls_telemetry' in traffic_frame:
+            telemetry = traffic_frame['tls_telemetry'].get(tl_id, {})
+            ped_calls = 1.0 if telemetry.get('active_ped_calls', 0) > 0 else 0.0
+            
+        return np.array(sensor_data + phase_one_hot + [ped_calls], dtype=np.float32)
 
     def get_observation_space_size(self, tl_id: str) -> int:
         if not self.topology_loaded: return 0
         num_edges = len(self.tl_incoming_edges.get(tl_id, []))
         num_phases = len(self.tl_green_phases.get(tl_id, []))
         if num_phases == 0: num_phases = 1
-        return (num_edges * 3) + num_phases
+        return (num_edges * 3) + num_phases + 1 # +1 for pedestrian calls
 
     def get_phase_lane_states(self, tl_id: str, phase_index: int) -> Dict[str, str]:
         """

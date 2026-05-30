@@ -48,14 +48,17 @@ class UtmcDriver(BaseTrafficDriver):
     Note: UTMC often refers to 'Stages' rather than 'Phases'.
     """
 
-    # --- UTMC Standard OIDs (Examples based on TS004 Data Dictionary) ---
-    # Stage Control Group (e.g., Hold, Force-Off)
+    # Stage Control Group (e.g., Hold, Force-Off, Omit)
     OID_STAGE_HOLD = "1.3.6.1.4.1.2825.4.2.1.1.4.1.2.1"
     OID_STAGE_FORCE_OFF = "1.3.6.1.4.1.2825.4.2.1.1.4.1.3.1"
+    OID_STAGE_OMIT = "1.3.6.1.4.1.2825.4.2.1.1.4.1.7.1"
+    OID_STAGE_EXTEND = "1.3.6.1.4.1.2825.4.2.1.1.4.1.6.1"
     
     # Telemetry OIDs (Status of current running stages)
-    OID_STAGE_STATUS_ACTIVE = "1.3.6.1.4.1.2825.4.2.1.1.4.1.4.1"
+    OID_STAGE_STATUS_ACTIVE = "1.3.6.1.4.1.2825.4.2.1.1.4.1.4.1" # Represents Greens
     OID_STAGE_STATUS_DEMAND = "1.3.6.1.4.1.2825.4.2.1.1.4.1.5.1"
+    OID_STAGE_STATUS_LEAVING = "1.3.6.1.4.1.2825.4.2.1.1.4.1.8.1" # Represents Yellows/Amber in UTMC
+    OID_STAGE_STATUS_PED_DEMAND = "1.3.6.1.4.1.2825.4.2.1.1.4.1.9.1"
     
     # System Control/Heartbeat OID (Watchdog)
     OID_UTMC_WATCHDOG = "1.3.6.1.4.1.2825.4.2.1.1.2.1.21.1"
@@ -92,6 +95,15 @@ class UtmcDriver(BaseTrafficDriver):
         elif action_type == 'force_off':
             logger.debug(f"[{self.ip_address}] Sending UTMC FORCE-OFF for stage {stage}")
             success, result = self.snmp_set(self.OID_STAGE_FORCE_OFF, stage_bitmask, Integer32)
+        elif action_type == 'omit':
+            logger.debug(f"[{self.ip_address}] Sending UTMC OMIT for stage {stage}")
+            success, result = self.snmp_set(self.OID_STAGE_OMIT, stage_bitmask, Integer32)
+        elif action_type == 'demand':
+            logger.debug(f"[{self.ip_address}] Sending UTMC DEMAND (Call) for stage {stage}")
+            success, result = self.snmp_set(self.OID_STAGE_STATUS_DEMAND, stage_bitmask, Integer32)
+        elif action_type == 'extend':
+            logger.debug(f"[{self.ip_address}] Sending UTMC EXTEND for stage {stage}")
+            success, result = self.snmp_set(self.OID_STAGE_EXTEND, stage_bitmask, Integer32)
         else:
             logger.warning(f"[{self.ip_address}] Unknown action type: {action_type}")
             return False
@@ -109,7 +121,9 @@ class UtmcDriver(BaseTrafficDriver):
             "protocol": self.get_protocol_name(),
             "status": "unknown",
             "active_greens": 0,
-            "active_reds": 0  # Can be inferred or polled depending on the UTMC controller spec
+            "active_yellows": 0,
+            "active_reds": 0,  # Can be inferred or polled depending on the UTMC controller spec
+            "active_ped_calls": 0
         }
 
         # Fetch active stage (green)
@@ -118,7 +132,17 @@ class UtmcDriver(BaseTrafficDriver):
             telemetry["active_greens"] = int(val_active)
             telemetry["status"] = "online"
 
-        if not success_active:
+        # Fetch leaving stage (yellow/amber)
+        success_leaving, val_leaving = self.snmp_get(self.OID_STAGE_STATUS_LEAVING)
+        if success_leaving:
+            telemetry["active_yellows"] = int(val_leaving)
+
+        # Fetch active ped calls
+        success_ped, val_ped = self.snmp_get(self.OID_STAGE_STATUS_PED_DEMAND)
+        if success_ped:
+            telemetry["active_ped_calls"] = int(val_ped)
+
+        if not success_active and not success_leaving:
             telemetry["status"] = "offline"
             logger.warning(f"[{self.ip_address}] Failed to fetch UTMC telemetry.")
 

@@ -60,6 +60,13 @@ class AgentEvaluator:
         
         # 1. Extract State
         step_timer.start_phase()
+        
+        # Log Pedestrian Action if present
+        if 'tls_telemetry' in traffic_data:
+            telemetry = traffic_data['tls_telemetry'].get(tl_id, {})
+            if telemetry.get('active_ped_calls', 0) > 0:
+                logging.info(f"🚶‍♂️ [AgentEvaluator] TL {tl_id}: Botão de pedestre pressionado detectado pelo hardware (UTMC/NTCIP).")
+        
         state_vector = self.state_extractor.extract_state(traffic_data, tl_id, current_phase_idx)
         if len(state_vector) == 0: 
             return None, maturity_name, False, 0.0, 0.0, tls_lanes_state

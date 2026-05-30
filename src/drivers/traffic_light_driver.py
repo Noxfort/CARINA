@@ -88,7 +88,9 @@ class TrafficLightDriver:
                 "status": "offline",
                 "protocol": "none",
                 "active_greens": 0,
-                "active_reds": 0
+                "active_yellows": 0,
+                "active_reds": 0,
+                "active_ped_calls": 0
             }
             
         telemetry = self.hardware_driver.get_telemetry()

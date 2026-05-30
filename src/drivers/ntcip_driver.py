@@ -51,10 +51,15 @@ class NtcipDriver(BaseTrafficDriver):
     # Phase Control Group (e.g., Hold, Force-Off, Omit)
     OID_PHASE_HOLD = "1.3.6.1.4.1.1206.4.2.1.1.4.1.2.1"
     OID_PHASE_FORCE_OFF = "1.3.6.1.4.1.1206.4.2.1.1.4.1.3.1"
+    OID_PHASE_OMIT = "1.3.6.1.4.1.1206.4.2.1.1.4.1.7.1"
+    OID_PHASE_VEH_CALL = "1.3.6.1.4.1.1206.4.2.1.1.4.1.6.1"
+    OID_PHASE_PED_CALL = "1.3.6.1.4.1.1206.4.2.1.1.4.1.8.1"
     
     # Telemetry OIDs
     OID_PHASE_STATUS_GREENS = "1.3.6.1.4.1.1206.4.2.1.1.4.1.4.1"
-    OID_PHASE_STATUS_REDS = "1.3.6.1.4.1.1206.4.2.1.1.4.1.5.1"
+    OID_PHASE_STATUS_YELLOWS = "1.3.6.1.4.1.1206.4.2.1.1.4.1.5.1"
+    OID_PHASE_STATUS_REDS = "1.3.6.1.4.1.1206.4.2.1.1.4.1.6.1"  # Corrected to standard REDs OID
+    OID_PHASE_STATUS_PED_CALLS = "1.3.6.1.4.1.1206.4.2.1.1.4.1.9.1"
     
     # System Control/Heartbeat OID
     # In NTCIP, remote control requires maintaining a valid value in the system control OID
@@ -91,6 +96,15 @@ class NtcipDriver(BaseTrafficDriver):
         elif action_type == 'force_off':
             logger.debug(f"[{self.ip_address}] Sending NTCIP FORCE-OFF for phase {phase}")
             success, result = self.snmp_set(self.OID_PHASE_FORCE_OFF, phase_bitmask, Integer32)
+        elif action_type == 'omit':
+            logger.debug(f"[{self.ip_address}] Sending NTCIP OMIT for phase {phase}")
+            success, result = self.snmp_set(self.OID_PHASE_OMIT, phase_bitmask, Integer32)
+        elif action_type == 'veh_call':
+            logger.debug(f"[{self.ip_address}] Sending NTCIP VEHICULAR CALL for phase {phase}")
+            success, result = self.snmp_set(self.OID_PHASE_VEH_CALL, phase_bitmask, Integer32)
+        elif action_type == 'ped_call':
+            logger.debug(f"[{self.ip_address}] Sending NTCIP PEDESTRIAN CALL for phase {phase}")
+            success, result = self.snmp_set(self.OID_PHASE_PED_CALL, phase_bitmask, Integer32)
         else:
             logger.warning(f"[{self.ip_address}] Unknown action type: {action_type}")
             return False
@@ -108,7 +122,9 @@ class NtcipDriver(BaseTrafficDriver):
             "protocol": self.get_protocol_name(),
             "status": "unknown",
             "active_greens": 0,
-            "active_reds": 0
+            "active_yellows": 0,
+            "active_reds": 0,
+            "active_ped_calls": 0
         }
 
         # Fetch active greens
@@ -117,12 +133,22 @@ class NtcipDriver(BaseTrafficDriver):
             telemetry["active_greens"] = int(val_green)
             telemetry["status"] = "online"
 
+        # Fetch active yellows
+        success_yellow, val_yellow = self.snmp_get(self.OID_PHASE_STATUS_YELLOWS)
+        if success_yellow:
+            telemetry["active_yellows"] = int(val_yellow)
+
         # Fetch active reds
         success_red, val_red = self.snmp_get(self.OID_PHASE_STATUS_REDS)
         if success_red:
             telemetry["active_reds"] = int(val_red)
 
-        if not success_green and not success_red:
+        # Fetch active ped calls
+        success_ped, val_ped = self.snmp_get(self.OID_PHASE_STATUS_PED_CALLS)
+        if success_ped:
+            telemetry["active_ped_calls"] = int(val_ped)
+
+        if not success_green and not success_yellow and not success_red:
             telemetry["status"] = "offline"
             logger.warning(f"[{self.ip_address}] Failed to fetch NTCIP telemetry.")
 
