@@ -1,6 +1,12 @@
+---
+tags: [testing, qa, pytest]
+aliases: [Testing, Quality Assurance]
+---
 # 🧪 Testing Guidelines
 
 CARINA controls critical traffic infrastructure. Code coverage and deterministic test validations are strictly enforced.
+
+⬅️ Back to [[CARINA_MOC|Main Documentation Hub]]
 
 ## Running the Test Suite
 

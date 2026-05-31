@@ -1,6 +1,12 @@
+---
+tags: [xai, explainability, sas, llm]
+aliases: [XAI, SAS, Explainable AI]
+---
 # 🤖 Explainable AI (XAI) & Smart Analysis System (SAS)
 
 CARINA is not a black box. It actively explains its neural decisions and provides continuous traffic engineering consulting. Both systems run in entirely separate OS processes due to their massive computational footprint.
+
+⬅️ Back to [[CARINA_MOC|Main Documentation Hub]]
 
 ## 1. Explainable AI (`XAI_Worker`)
 

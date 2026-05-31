@@ -1,6 +1,12 @@
+---
+tags: [ai, neural, ppo-tcn, research]
+aliases: [Research Notes, Neural Models]
+---
 # 🔬 Neural Research & GOMES Formulations
 
 This document provides a technical deep-dive into the custom neural network architectures, the DA SILVA curriculum, and the mathematical formulations utilized by the **GOMES** (Graph-based Operational Multi-agent Expert System) engine.
+
+⬅️ Back to [[CARINA_MOC|Main Documentation Hub]]
 
 ## 1. PPO-TCN: Temporal Convolutional Networks over LSTMs
 

@@ -1,6 +1,12 @@
+---
+tags: [dev, guides, setup]
+aliases: [Developer Guides, Integração]
+---
 # 🛠️ Developer & System Integration Guide
 
 CARINA is designed as an extensible enterprise framework. This guide details how to extend the system, handle multiprocessing, and prepare binaries.
+
+⬅️ Back to [[CARINA_MOC|Main Documentation Hub]]
 
 ## 1. Creating and Registering Custom Neural Agents
 

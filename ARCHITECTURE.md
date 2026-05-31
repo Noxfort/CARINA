@@ -1,6 +1,12 @@
+---
+tags: [architecture, core, system]
+aliases: [Arquitetura CARINA, Visão Geral]
+---
 # 🏛️ CARINA: The Complete System Blueprint
 
 This document specifies the exact, low-level boundaries of the CARINA ecosystem. It maps out the asynchronous micro-processes, the neural interaction matrices, and the rigorous pipeline that guarantees fail-safe traffic execution.
+
+⬅️ Back to [[CARINA_MOC|Main Documentation Hub]]
 
 ---
 

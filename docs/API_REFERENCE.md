@@ -1,6 +1,12 @@
+---
+tags: [api, grpc, networking]
+aliases: [API, HFT Protocol, IPC]
+---
 # 🔌 Synapse HFT Protocol & IPC Memory Queues
 
 CARINA interfaces with the physical world via the **Synapse HFT Protocol** (gRPC). Internally, it manages its highly concurrent microservices via OS-level **Inter-Process Communication (IPC)** Queues.
+
+⬅️ Back to [[CARINA_MOC|Main Documentation Hub]]
 
 ## 1. Internal IPC Queues (`multiprocessing.Queue`)
 

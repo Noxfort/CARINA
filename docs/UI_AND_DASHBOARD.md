@@ -1,6 +1,12 @@
+---
+tags: [ui, flet, frontend]
+aliases: [UI, Dashboard, Frontend]
+---
 # 🖥️ UI & Smart Dashboard Service (SDS)
 
 CARINA features a completely decoupled frontend architecture. The heavy lifting of rendering UI components and streaming live telemetry is completely isolated from the AI Engine to guarantee zero frame-drops or inference stuttering.
+
+⬅️ Back to [[CARINA_MOC|Main Documentation Hub]]
 
 ## 1. The Flet Desktop Architecture (`ui/`)
 
