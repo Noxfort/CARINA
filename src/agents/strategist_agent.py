@@ -66,7 +66,7 @@ class StrategistAgent:
         # Build graph from file immediately upon instantiation
         self._build_topology_from_sumo(map_path)
 
-    def _build_topology_from_sumo(self, net_file: str):
+    def _build_topology_from_sumo(self, net_file: str) -> None:
         """
         Parses the SUMO .net.xml file to extract traffic lights as nodes
         and physical connections as edges using BFS traversal.
@@ -137,7 +137,7 @@ class StrategistAgent:
             self.logger.error(err_msg)
             raise e
 
-    def _find_downstream_tls(self, start_node, tls_ids_set: Set[str], net) -> Set[str]:
+    def _find_downstream_tls(self, start_node: Any, tls_ids_set: Set[str], net: Any) -> Set[str]:
         """
         Traverses the network starting from start_node to find reachable Traffic Lights.
         Stops traversing a branch when a TLS is found.
@@ -198,18 +198,18 @@ class StrategistAgent:
             
         return strategic_vectors
 
-    def update(self, loss: torch.Tensor):
+    def update(self, loss: torch.Tensor) -> None:
         self.model.train()
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
         self.optimizer.step()
 
-    def save_checkpoint(self, path: str):
+    def save_checkpoint(self, path: str) -> None:
         torch.save(self.model.state_dict(), path)
         self.logger.info(f"Strategist Agent checkpoint saved to {path}")
 
-    def load_checkpoint(self, path: str):
+    def load_checkpoint(self, path: str) -> None:
         if os.path.exists(path):
             self.model.load_state_dict(torch.load(path, map_location=self.device))
             self.logger.info(f"Strategist Agent checkpoint loaded from {path}")

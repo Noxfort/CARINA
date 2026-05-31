@@ -54,7 +54,7 @@ class GuardianAgent:
     # Temporal depth for spillback projection
     TEMPORAL_SEQ_LEN = 8
 
-    def __init__(self, aiconfig, traffic_rules_config, locale_manager: 'LocaleManagerBackend', shared_pae: Optional[PredictiveAutoencoder] = None):
+    def __init__(self, aiconfig: Any, traffic_rules_config: Any, locale_manager: 'LocaleManagerBackend', shared_pae: Optional[PredictiveAutoencoder] = None) -> None:
         """
         Args:
             aiconfig: Configuration section for AI hyperparameters.
@@ -105,7 +105,7 @@ class GuardianAgent:
         pae_status = f"PAE latent={self.pae_latent_dim}" if self.shared_pae else "without PAE"
         logging.info(f"[GUARDIAN] Neural Layer: D3QN_TCN ({pae_status}) | AMP: {self.scaler.is_enabled()}")
 
-    def _load_hyperparameters(self, cfg):
+    def _load_hyperparameters(self, cfg: Any) -> None:
         """Loads hyperparameters from configuration."""
         self.batch_size = cfg.getint('batch_size', 128)
         self.gamma = cfg.getfloat('gamma', 0.90)
@@ -115,7 +115,7 @@ class GuardianAgent:
         self.learning_rate = cfg.getfloat('learning_rate', 0.00025)
         self.memory_size = cfg.getint('memory_size', 50000)
 
-    def _get_temporal_sequence(self, state: list, tl_id: str) -> torch.Tensor:
+    def _get_temporal_sequence(self, state: List[float], tl_id: str) -> torch.Tensor:
         """
         Manages the temporal deque for a specific tl_id and returns
         the standardized temporal sequence as a tensor.
@@ -153,7 +153,7 @@ class GuardianAgent:
                 return self.shared_pae.encode(last_frame)  # [batch, latent_dim]
         return torch.zeros(seq_tensor.size(0), self.pae_latent_dim, device=self.device)
 
-    def select_action(self, state: list, context: Dict[str, Any]) -> Tuple[int, str]:
+    def select_action(self, state: List[float], context: Dict[str, Any]) -> Tuple[int, str]:
         """
         Combines Symbolic rules (instantaneous) and Neural prediction (spillback).
         Returns: Tuple of (Action, Reason String). Action 0 = Veto. Action 1 = Allow.
@@ -203,7 +203,7 @@ class GuardianAgent:
 
         return self.ACTION_CHANGE_PHASE, "Symbolic audit passed"
 
-    def evaluate_spillback_risk(self, state: list, tl_id: str) -> float:
+    def evaluate_spillback_risk(self, state: List[float], tl_id: str) -> float:
         """
         Executed in the background 'Thinking Mode' loop.
         Evaluates the spillback risk using D3QN_TCN and PAE.

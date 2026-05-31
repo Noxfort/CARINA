@@ -42,12 +42,12 @@ class CaptumModelWrapper(nn.Module):
     If the agent has a PAE, the wrapper applies the PAE augmentation internally
     so that the attribution covers the augmented input space.
     """
-    def __init__(self, model, shared_pae=None):
+    def __init__(self, model: nn.Module, shared_pae: Optional[PredictiveAutoencoder] = None) -> None:
         super(CaptumModelWrapper, self).__init__()
         self.model = model
         self.shared_pae = shared_pae
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # If we have PAE, augment the input with the latent vector
         if self.shared_pae is not None:
             with torch.no_grad():
@@ -61,7 +61,7 @@ class CaptumModelWrapper(nn.Module):
         return self.model(x)[0]
 
 class CaptumAnalyzer:
-    def __init__(self, agent: LocalAgent, scenario_results_dir: str, locale_manager: LocaleManagerBackend, feature_glossary: Optional[Dict[int, Dict[str, str]]] = None):
+    def __init__(self, agent: LocalAgent, scenario_results_dir: str, locale_manager: LocaleManagerBackend, feature_glossary: Optional[Dict[int, Dict[str, str]]] = None) -> None:
         """
         Initializes the Captum Analyzer with PAE-aware feature glossary.
         """
@@ -89,7 +89,7 @@ class CaptumAnalyzer:
         self.output_path_png = os.path.join(self.output_dir, f"xai_report_{agent.id}_{timestamp}.png")
         self.output_path_txt = os.path.join(self.output_dir, f"xai_report_{agent.id}_{timestamp}.txt")
     
-    def _expand_glossary_with_pae(self):
+    def _expand_glossary_with_pae(self) -> None:
         """
         Expands the feature glossary with the PAE latent dimensions.
         The latent features are named PAE_latent_0..PAE_latent_N and
@@ -127,10 +127,10 @@ class CaptumAnalyzer:
         
         logging.info(f"[CaptumAnalyzer] Feature glossary expanded with {latent_dim} PAE latent features")
         
-    def _get_feature_glossary(self) -> dict:
+    def _get_feature_glossary(self) -> Any:
         return self.feature_glossary
 
-    def generate_analysis(self) -> dict | None:
+    def generate_analysis(self) -> Optional[Dict[str, str]]:
         lm = self.locale_manager
         original_mode_is_training = self.agent.policy_net.training
         

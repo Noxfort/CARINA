@@ -23,13 +23,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GATv2Conv
 
+from typing import Optional, Any
 class GATv2Lite(nn.Module):
     """
     Implementation of the GATv2 Lite (Graph Attention Network v2) architecture.
     Used by the StrategistAgent to process the road network topology and
     generate strategic guidance vectors (latents) for local agents.
     """
-    def __init__(self, input_dim, hidden_dim, output_dim, heads):
+    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int, heads: int) -> None:
         """
         Inicializa as camadas da rede GATv2.
 
@@ -64,7 +65,7 @@ class GATv2Lite(nn.Module):
         self.norm1 = nn.LayerNorm(hidden_dim * heads)
         self.norm2 = nn.LayerNorm(output_dim)
 
-    def forward(self, x, edge_index):
+    def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         """
         Define o "forward pass" da rede.
 

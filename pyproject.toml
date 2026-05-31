@@ -16,7 +16,8 @@ dependencies = [
     "torch>=2.0.0",
     "pysnmp>=7.0.0",
     "sumolib>=1.19.0",
-    "flet>=0.20.0"
+    "flet>=0.20.0",
+    "python-dotenv>=1.0.0"
 ]
 
 [project.optional-dependencies]

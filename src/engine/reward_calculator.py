@@ -20,7 +20,7 @@
 
 import logging
 import configparser
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Any
 
 if TYPE_CHECKING:
     from utils.locale_manager_backend import LocaleManagerBackend
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 class RewardCalculator:
     """The environment 'Judge': specialist in calculating the reward from pre-collected data."""
 
-    def __init__(self, settings: configparser.ConfigParser, locale_manager: 'LocaleManagerBackend'):
+    def __init__(self, settings: configparser.ConfigParser, locale_manager: 'LocaleManagerBackend') -> None:
         """
         Inicializa o RewardCalculator.
         """
@@ -52,7 +52,7 @@ class RewardCalculator:
         logging.info(lm.get_string("reward_calculator.init.weights_loaded", weights=self.reward_weights))
 
 
-    def calculate_rewards_from_batch(self, traffic_light_ids: list, current_batch: dict, last_batch: dict) -> dict:
+    def calculate_rewards_from_batch(self, traffic_light_ids: List[str], current_batch: Dict[str, Any], last_batch: Dict[str, Any]) -> Dict[str, float]:
         """
         Calculates the reward for each traffic light using pre-collected data packets.
         """

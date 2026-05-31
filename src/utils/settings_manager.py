@@ -28,6 +28,12 @@ import os
 import logging
 from typing import Dict, Any
 
+# Dotenv for 12-Factor App Secrets Management
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
 # --- CHANGE 1: Import resource_path ---
 import sys
 # Ensures that 'src' is in the path for relative import to work
@@ -106,6 +112,26 @@ class SettingsManager:
         elif config.has_section('UI') and config.has_option('UI', 'theme_dark'): # Add theme_dark
              settings_dict['theme_dark'] = config.getboolean('UI', 'theme_dark')
 
+        # --- 12-FACTOR APP: OVERRIDE SECRETS WITH .ENV VARIABLES ---
+        if load_dotenv is not None:
+            load_dotenv() # Loads variables from local .env into os.environ
+
+        env_overrides = {
+            'CARINA_DB_USER': 'db_user',
+            'CARINA_DB_PASSWORD': 'db_password',
+            'CARINA_DB_HOST': 'db_host',
+            'CARINA_DB_PORT': 'db_port',
+            'CARINA_DB_NAME': 'db_name',
+            'CARINA_DB_SCHEMA': 'db_schema',
+            'CARINA_SNMP_COMMUNITY': 'snmp_community_string', # Not originally in INI, but good for drivers
+            'CARINA_MQTT_HOST': 'monitor_mqtt_host',
+            'CARINA_MQTT_PORT': 'monitor_mqtt_port',
+        }
+        
+        for env_key, settings_key in env_overrides.items():
+            env_val = os.getenv(env_key)
+            if env_val:
+                settings_dict[settings_key] = env_val
 
         return settings_dict
 

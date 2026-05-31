@@ -20,7 +20,7 @@
 
 import torch
 import torch.nn as nn
-from typing import Callable
+from typing import Callable, Dict, Any, Tuple, Optional, List
 
 class PPOOptimizer:
     """
@@ -28,7 +28,7 @@ class PPOOptimizer:
     mathematical logic for continuous and discrete temporal agents.
     Abstracted strictly to adhere to the Single Responsibility Principle (SOLID).
     """
-    def __init__(self, hyperparams: dict, device: torch.device, scaler: torch.amp.GradScaler = None):
+    def __init__(self, hyperparams: Dict[str, Any], device: torch.device, scaler: Optional[torch.amp.GradScaler] = None) -> None:
         """
         Initializes the PPO Strategy instance.
         """
@@ -36,7 +36,7 @@ class PPOOptimizer:
         self.scaler = scaler or torch.amp.GradScaler(enabled=False)
         self.load_hyperparameters(hyperparams)
 
-    def load_hyperparameters(self, hyperparams: dict):
+    def load_hyperparameters(self, hyperparams: Dict[str, Any]) -> None:
         """Updates internal RL hyperparameters without destroying the object."""
         self.gamma = float(hyperparams.get('gamma', 0.99))
         self.gae_lambda = float(hyperparams.get('gae_lambda', 0.95))
@@ -46,7 +46,7 @@ class PPOOptimizer:
         self.grad_clip_norm = float(hyperparams.get('grad_clip_norm', 0.5))
         self.critic_loss_coef = 0.5
 
-    def step(self, policy_net: nn.Module, optimizer: torch.optim.Optimizer, memory_batch: tuple, evaluate_fn: Callable) -> float:
+    def step(self, policy_net: nn.Module, optimizer: torch.optim.Optimizer, memory_batch: Tuple[Any, torch.Tensor, torch.Tensor, List[float], List[bool], torch.Tensor], evaluate_fn: Callable) -> float:
         """
         Executes a single PPO backpropagation step using Generalized Advantage Estimation.
         

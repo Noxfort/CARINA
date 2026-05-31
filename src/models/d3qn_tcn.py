@@ -45,6 +45,7 @@ Flow: sequence -> TCN -> temporal_features --+
 import torch
 import torch.nn as nn
 from torch.nn.utils import weight_norm
+from typing import Tuple, List, Optional, Any
 
 
 # =============================================================================
@@ -56,11 +57,11 @@ class Chomp1d(nn.Module):
     Removes extra right padding to ensure causality.
     This ensures that the output at t depends only on inputs t, t-1, ...
     """
-    def __init__(self, chomp_size):
+    def __init__(self, chomp_size: int) -> None:
         super(Chomp1d, self).__init__()
         self.chomp_size = chomp_size
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x[:, :, :-self.chomp_size].contiguous()
 
 
@@ -69,7 +70,7 @@ class TemporalBlock(nn.Module):
     A standard TCN residual block consisting of two dilated convolutions,
     weight normalization, ReLU, Dropout and Chomp (causal trimming).
     """
-    def __init__(self, n_inputs, n_outputs, kernel_size, stride, dilation, padding, dropout=0.2):
+    def __init__(self, n_inputs: int, n_outputs: int, kernel_size: int, stride: int, dilation: int, padding: int, dropout: float = 0.2) -> None:
         super(TemporalBlock, self).__init__()
 
         # First convolutional layer
@@ -94,13 +95,13 @@ class TemporalBlock(nn.Module):
         self.relu = nn.ReLU()
         self.init_weights()
 
-    def init_weights(self):
+    def init_weights(self) -> None:
         self.conv1.weight.data.normal_(0, 0.01)
         self.conv2.weight.data.normal_(0, 0.01)
         if self.downsample is not None:
             self.downsample.weight.data.normal_(0, 0.01)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.net(x)
         res = x if self.downsample is None else self.downsample(x)
         return self.relu(out + res)
@@ -110,9 +111,9 @@ class TemporalConvNet(nn.Module):
     """
     The complete TCN network, composed of a stack of TemporalBlocks.
     """
-    def __init__(self, num_inputs, num_channels, kernel_size=2, dropout=0.2):
+    def __init__(self, num_inputs: int, num_channels: List[int], kernel_size: int = 2, dropout: float = 0.2) -> None:
         super(TemporalConvNet, self).__init__()
-        layers = []
+        layers: List[nn.Module] = []
         num_levels = len(num_channels)
         for i in range(num_levels):
             dilation_size = 2 ** i
@@ -124,7 +125,7 @@ class TemporalConvNet(nn.Module):
 
         self.network = nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.network(x)
 
 
@@ -143,8 +144,8 @@ class D3QN_TCN(nn.Module):
 
     def __init__(self, n_observations: int = 2, n_actions: int = 2,
                  pae_latent_dim: int = 16, hidden_size: int = 64,
-                 tcn_channels: list = None, kernel_size: int = 3,
-                 dropout: float = 0.1):
+                 tcn_channels: Optional[List[int]] = None, kernel_size: int = 3,
+                 dropout: float = 0.1) -> None:
         """
         Initializes the D3QN neural network with TCN and PAE fusion.
 

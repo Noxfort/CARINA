@@ -43,6 +43,7 @@ Design Decisions:
 import torch
 import torch.nn as nn
 import logging
+from typing import Tuple, List, Optional, Any
 
 
 class PredictiveAutoencoder(nn.Module):
@@ -58,7 +59,7 @@ class PredictiveAutoencoder(nn.Module):
         input_dim (int): Input state vector dimension.
     """
 
-    def __init__(self, input_dim: int, latent_dim: int = 16, lr: float = 5e-4):
+    def __init__(self, input_dim: int, latent_dim: int = 16, lr: float = 5e-4) -> None:
         """
         Initializes the Predictive Autoencoder.
 

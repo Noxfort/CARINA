@@ -25,7 +25,7 @@ import torch.optim as optim
 
 import logging
 import numpy as np
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Dict, Any, List, Tuple
 from src.models.pae import PredictiveAutoencoder
 
 if TYPE_CHECKING:
@@ -42,7 +42,7 @@ class LocalAgent:
     Utilizes a TCN (Temporal Convolutional Network) to process
     the temporal sequence of states.
     """
-    def __init__(self, tlight_id, n_observations, n_actions, initial_hyperparams: dict, log_dir: str, locale_manager: 'LocaleManagerBackend', shared_pae: Optional[PredictiveAutoencoder] = None):
+    def __init__(self, tlight_id: str, n_observations: int, n_actions: int, initial_hyperparams: Dict[str, Any], log_dir: str, locale_manager: 'LocaleManagerBackend', shared_pae: Optional[PredictiveAutoencoder] = None) -> None:
         self.id = tlight_id
         self.n_actions = n_actions
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -72,9 +72,9 @@ class LocalAgent:
         self.scaler = torch.amp.GradScaler(enabled=(self.device.type == 'cuda'))
         
         if self.shared_pae:
-            logging.info(f"[LocalAgent {self.id}] PAE integrado (latent_dim={self.pae_latent_dim})")
+            logging.info(self.locale_manager.get_string("local_agent.init.pae_integrated", default="[LocalAgent {id}] Integrated PAE (latent_dim={dim})", id=self.id, dim=self.pae_latent_dim))
         
-    def _load_hyperparameters(self):
+    def _load_hyperparameters(self) -> None:
         """Loads hyperparameters from a dictionary."""
         self.gamma = float(self.hyperparams.get('gamma', 0.99))
         self.gae_lambda = float(self.hyperparams.get('gae_lambda', 0.95))
@@ -86,7 +86,7 @@ class LocalAgent:
         self.dropout_p = float(self.hyperparams.get('dropout_p', 0.1))
         self.critic_loss_coef = 0.5
 
-    def update_hyperparameters(self, new_hyperparams: dict):
+    def update_hyperparameters(self, new_hyperparams: Dict[str, Any]) -> None:
         """Updates hyperparameters and recreates the network and optimizer (for PBT)."""
         self.hyperparams = new_hyperparams
         self._load_hyperparameters()
@@ -97,16 +97,16 @@ class LocalAgent:
                 if isinstance(module, nn.Dropout):
                     module.p = self.dropout_p
 
-    def _build_network(self):
+    def _build_network(self) -> None:
         """Instantiates the Actor-Critic network with expanded input to accommodate the PAE latent vector."""
         augmented_input_dim = self.n_observations + self.pae_latent_dim
         self.policy_net = ActorCriticNet(augmented_input_dim, self.n_actions, dropout_p=self.dropout_p).to(self.device)
 
-    def _create_optimizer(self):
+    def _create_optimizer(self) -> None:
         """Creates the optimizer for the network."""
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=self.learning_rate)
     
-    def save_checkpoint(self, filepath: str, maturity_stage: str = "CHILD"):
+    def save_checkpoint(self, filepath: str, maturity_stage: str = "CHILD") -> None:
         """
         Saves the agent's state to a checkpoint file.
         
@@ -177,7 +177,7 @@ class LocalAgent:
             
         return saved_maturity
 
-    def push_memory(self, state_sequence, action, log_prob, reward, done, state_value):
+    def push_memory(self, state_sequence: List[List[float]], action: torch.Tensor, log_prob: torch.Tensor, reward: float, done: bool, state_value: torch.Tensor) -> None:
         """Adds a transition to the agent's memories."""
         self.memory.push(
             state_sequence, 
@@ -215,7 +215,7 @@ class LocalAgent:
             # Concatenate to the original state
             return torch.cat([state_tensor, latent_expanded], dim=-1)
 
-    def choose_action(self, state_tensor: torch.Tensor) -> tuple:
+    def choose_action(self, state_tensor: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Takes a decision based on a sequence tensor of states, augmented by the PAE."""
         state_tensor = self._augment_with_pae(state_tensor)
         
@@ -231,7 +231,7 @@ class LocalAgent:
 
 
 
-    def evaluate(self, state_sequence_batch, action) -> tuple:
+    def evaluate(self, state_sequence_batch: torch.Tensor, action: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Re-evaluates actions for the data batch during learning (with PAE fusion)."""
         state_sequence_batch = self._augment_with_pae(state_sequence_batch)
         action_probs, state_values = self.policy_net(state_sequence_batch)

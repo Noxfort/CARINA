@@ -20,7 +20,7 @@
 
 import torch
 import torch.nn as nn
-from typing import Callable
+from typing import Callable, Dict, Any, Optional
 
 
 class DQNOptimizer:
@@ -28,7 +28,7 @@ class DQNOptimizer:
     Executes the Reinforcement Learning Dueling DQN logic.
     Abstracted strictly to adhere to the Single Responsibility Principle (SOLID).
     """
-    def __init__(self, hyperparams: dict, device: torch.device, scaler: torch.amp.GradScaler = None):
+    def __init__(self, hyperparams: Dict[str, Any], device: torch.device, scaler: Optional[torch.amp.GradScaler] = None) -> None:
         """
         Initializes the DQN Strategy instance.
         """
@@ -36,13 +36,13 @@ class DQNOptimizer:
         self.scaler = scaler or torch.amp.GradScaler(enabled=False)
         self.load_hyperparameters(hyperparams)
 
-    def load_hyperparameters(self, hyperparams: dict):
+    def load_hyperparameters(self, hyperparams: Dict[str, Any]) -> None:
         """Updates internal RL hyperparameters without destroying the object."""
         self.gamma = float(hyperparams.get('gamma', 0.90))
         self.batch_size = int(hyperparams.get('batch_size', 128))
 
     def step(self, policy_net: nn.Module, target_net: nn.Module, optimizer: torch.optim.Optimizer, 
-             memory, forward_policy: Callable, forward_target: Callable) -> float:
+             memory: Any, forward_policy: Callable, forward_target: Callable) -> float:
         """
         Executes a Q-Learning optimization step (Off-Policy) using Double DQN and PER.
         
@@ -110,6 +110,6 @@ class DQNOptimizer:
         
         return loss.item()
 
-    def update_target_net(self, policy_net: nn.Module, target_net: nn.Module):
+    def update_target_net(self, policy_net: nn.Module, target_net: nn.Module) -> None:
         """Hard override of target parameters from policy parameters."""
         target_net.load_state_dict(policy_net.state_dict())

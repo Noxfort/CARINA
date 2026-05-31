@@ -35,7 +35,7 @@ class TelemetryAggregator:
     from the core control logic.
     """
 
-    def __init__(self, update_interval: float = 5.0):
+    def __init__(self, update_interval: float = 5.0) -> None:
         """
         Args:
             update_interval (float): Minimum seconds between visual updates (Waze/Maps style: 5-30 seconds).
@@ -57,7 +57,7 @@ class TelemetryAggregator:
         
         logging.info(f"[TelemetryAggregator] Initialized with {update_interval}s update interval")
 
-    def process_frame(self, frame) -> None:
+    def process_frame(self, frame: Any) -> None:
         """
         Accumulates data from a single traffic frame into the aggregation buffer.
         """
@@ -219,7 +219,7 @@ class TelemetryAggregator:
         
         return rich_payload
     
-    def reset(self):
+    def reset(self) -> None:
         """Manually clears the buffer."""
         self.heatmap_buffer.clear()
         self.last_update_time = 0.0

@@ -31,12 +31,12 @@ from utils.safety_rules import SafetyRules
 
 class StepProcessor:
     """
-    Responsável por gerenciar o ciclo de vida e estado interno de uma
-    Simulação/Sessão (Passos). Atua EXCLUSIVAMENTE como orquestrador.
+    Responsible for managing the lifecycle and internal state of a
+    Simulation/Session (Steps). Acts EXCLUSIVELY as an orchestrator.
     """
-    def __init__(self, settings, locale_manager, agent_manager, input_preprocessor, 
-                 state_extractor, action_supervisor, action_authorizer, 
-                 maturity_manager, reward_computer, cycle_manager, pipe_conn):
+    def __init__(self, settings: Any, locale_manager: Any, agent_manager: Any, input_preprocessor: Any, 
+                 state_extractor: Any, action_supervisor: Any, action_authorizer: Any, 
+                 maturity_manager: Any, reward_computer: Any, cycle_manager: Any, pipe_conn: Any) -> None:
         self.settings = settings
         self.lm = locale_manager
         
@@ -80,7 +80,7 @@ class StepProcessor:
         self._episode_total_reward = 0.0
         self._episode_steps_in_current = 0
 
-    def reset_state(self):
+    def reset_state(self) -> None:
         """Resets the counters for a new session (or new map)."""
         self.step_counter = 0
         self.start_time_offset = None
@@ -92,13 +92,13 @@ class StepProcessor:
         self._episode_total_reward = 0.0
         self._episode_steps_in_current = 0
 
-    def set_current_phases(self, phases: dict):
+    def set_current_phases(self, phases: Dict[str, Any]) -> None:
         self.current_phases = phases
 
-    def set_guardians(self, guardians: dict):
+    def set_guardians(self, guardians: Dict[str, Any]) -> None:
         self.guardians = guardians
 
-    def process_hft_step(self, traffic_data: dict, agents: dict):
+    def process_hft_step(self, traffic_data: Dict[str, Any], agents: Dict[str, Any]) -> None:
         """
         Orchestrates a single simulation step based on Real-Time Traffic Data.
 
@@ -121,7 +121,7 @@ class StepProcessor:
         # Log current time settings for debugging
         logging.debug(f"[StepProcessor] Current time settings - Yellow: {self.yellow_time}s, All-Red: {self.all_red_time}s")
         
-        # --- Sincronização de Transições Físicas ---
+        # --- Physical Transitions Synchronization ---
         # Evaluate automatic hardware transitions (Yellow/All-red) based on sim_time
         self._auto_advance_transitions(sim_time)
         
@@ -186,7 +186,7 @@ class StepProcessor:
             self._episode_steps_in_current = 0
 
         # --- SEND HFT FEEDBACK TO CENTRAL CONTROLLER CACHE ---
-        # Renomeado de 'hft_rich_update' para 'ai_telemetry_sync' para não conflitar com a UI (SDS/SAS)
+        # Renamed from 'hft_rich_update' to 'ai_telemetry_sync' to avoid conflicting with the UI (SDS/SAS)
         rich_payload = {
             "edges": edges_data,
             "tls_phases": self.current_phases,
@@ -201,16 +201,16 @@ class StepProcessor:
             except Exception as e:
                 logging.error(f"[TRAINER] Failed to send AI Telemetry update: {e}")
 
-    def _report_episode_bulletin(self, agents: dict, episode_steps: int):
+    def _report_episode_bulletin(self, agents: Dict[str, Any], episode_steps: int) -> None:
         """
         Logs the detailed 'School Bulletin' at the end of each episode.
         
         Legacy format:
         ────────────────────────────────────────────────────────────
-        FIM DO EPISÓDIO {N} | BOLETIM DA ESCOLA
-          - Desempenho do Episódio: Recompensa Total = {R}
-          - Status da Turma: {A} Adultos | {T} Adolescentes | {C} Crianças
-          - Status da Calibração de Confiança: Em Andamento
+        END OF EPISODE {N} | SCHOOL BULLETIN
+          - Episode Performance: Total Reward = {R}
+          - Class Status: {A} Adults | {T} Teens | {C} Children
+          - Confidence Calibration Status: Ongoing
         ────────────────────────────────────────────────────────────
         """
         from collections import Counter
@@ -230,7 +230,7 @@ class StepProcessor:
             calibration_status=calibration_status
         )
 
-    def _auto_advance_transitions(self, sim_time: float):
+    def _auto_advance_transitions(self, sim_time: float) -> None:
         """Advances physical phases automatically based on simulation elapsed time."""
         for tl_id in list(self.current_phases.keys()):
             current_phase_idx = self.current_phases.get(tl_id, 0)
@@ -265,7 +265,7 @@ class StepProcessor:
                     self.action_supervisor._last_phase_change_time[tl_id] = sim_time
                     logging.info(f"[StepProcessor] TL {tl_id} advanced to phase {self.current_phases[tl_id]}")
 
-    def _update_estimated_phase(self, tl_id, current_phase_idx, sim_time):
+    def _update_estimated_phase(self, tl_id: str, current_phase_idx: int, sim_time: float) -> None:
         """Initiates the transition strictly to the next logical phase (typically Yellow)."""
         phase_codes = self.state_extractor.tl_phase_codes.get(tl_id, {})
         total_phases = len(phase_codes)

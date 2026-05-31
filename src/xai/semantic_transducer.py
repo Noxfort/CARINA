@@ -24,6 +24,7 @@ import torch
 import argparse
 import logging
 from datetime import datetime
+from typing import Dict, Any, List
 from xai.resource_manager import ResourceManager
 
 # Configure basic logging to console (will be captured by the parent process)
@@ -38,15 +39,15 @@ class SemanticTransducer:
     Load -> Generate -> Exit (to release VRAM).
     """
 
-    def __init__(self, model_path: str, use_gpu: bool = False, offload_to_cpu: bool = True):
-        # Forçar uso exclusivo da CPU
+    def __init__(self, model_path: str, use_gpu: bool = False, offload_to_cpu: bool = True) -> None:
+        # Force exclusive CPU usage
         self.model_path = model_path
         self.resource_manager = ResourceManager(model_path, use_gpu=False, offload_to_cpu=True)
         self.device = self.resource_manager.get_device()
         
-        logging.info(f"Initializing Transducer on device: {self.device} (GPU desativada)")
+        logging.info(f"Initializing Transducer on device: {self.device} (GPU disabled)")
 
-    def load_resources(self):
+    def load_resources(self) -> None:
         """Loads the frozen model and tokenizer from the Model Vault using ResourceManager."""
         if not os.path.exists(self.model_path):
             raise FileNotFoundError(f"Model Vault not found at: {self.model_path}")
@@ -60,7 +61,7 @@ class SemanticTransducer:
         if self.model is None:
             raise RuntimeError("Model or tokenizer failed to load.")
 
-    def _build_prompt(self, input_data: dict) -> str:
+    def _build_prompt(self, input_data: Dict[str, Any]) -> List[Dict[str, str]]:
         """
         Constructs a chat-template format prompt for Qwen3, implementing a thinking
         mode requirement with multilingual UI alignment.
@@ -92,7 +93,7 @@ class SemanticTransducer:
         
         return messages
 
-    def generate_report(self, input_data: dict) -> str:
+    def generate_report(self, input_data: Dict[str, Any]) -> str:
         """Runs the inference to generate the text."""
         import re
         messages = self._build_prompt(input_data)
@@ -112,13 +113,13 @@ class SemanticTransducer:
         
         return report_text
 
-def main():
+def main() -> None:
     """CLI Entry Point for the Subprocess."""
     parser = argparse.ArgumentParser(description="CARINA Semantic Transducer (XAI)")
     parser.add_argument("--input", required=True, help="Path to input JSON file containing attributions")
     parser.add_argument("--output", required=True, help="Path to save the generated text report")
     parser.add_argument("--vault", default=None, help="Path to the model vault")
-    # Argumentos relacionados à GPU removidos para forçar uso exclusivo da CPU
+    # GPU-related arguments removed to force exclusive CPU usage
     
     args = parser.parse_args()
     
@@ -146,7 +147,7 @@ def main():
             data = json.load(f)
             
         # 2. Initialize Engine
-        # Forçar uso exclusivo da CPU
+        # Force exclusive CPU usage
         transducer = SemanticTransducer(model_path, use_gpu=False, offload_to_cpu=True)
         transducer.load_resources()
         

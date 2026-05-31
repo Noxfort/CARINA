@@ -22,7 +22,7 @@ import logging
 import configparser
 import sys
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Any, Tuple, List, Optional
 
 # Add 'src' directory to path (kept)
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -40,7 +40,7 @@ from engine.action_supervisor import ActionSupervisor
 class SumoEnvironment:
     """The environment 'Maestro': orchestrates the specialists."""
 
-    def __init__(self, settings: configparser.ConfigParser, locale_manager: 'LocaleManagerBackend'):
+    def __init__(self, settings: configparser.ConfigParser, locale_manager: 'LocaleManagerBackend') -> None:
         self.settings = settings
         self.locale_manager = locale_manager
         lm = self.locale_manager
@@ -59,7 +59,7 @@ class SumoEnvironment:
 
         logging.info(lm.get_string("environment.init.maestro_created"))
 
-    def connect(self, conn_proxy=None):
+    def connect(self, conn_proxy: Any = None) -> None:
         """Prepares the environment and binds the Synapse connection."""
         lm = self.locale_manager
         
@@ -79,18 +79,18 @@ class SumoEnvironment:
                  logging.error(f"[Environment] Erro inesperado durante a inicialização pós-conexão: {e_general}", exc_info=True)
                  self.scenario_path = lm.get_string("environment.connect.unknown_scenario")
 
-    def close(self):
-        """Limpa as referências locais (conexão gerida remotamente)."""
+    def close(self) -> None:
+        """Clears local references (connection managed remotely)."""
         self.conn = None
 
-    def reset(self):
+    def reset(self) -> None:
         """Resets the environment for a new episode, delegating to specialists."""
         lm = self.locale_manager
         logging.info(lm.get_string("environment.reset.start"))
 
         # Checks if the connection (proxy) exists
         if not self.conn:
-            logging.error("[Environment] Tentativa de reset sem conexão ativa.")
+            logging.error(lm.get_string("environment.error.reset_no_conn", default="[Environment] Attempt to reset without active connection."))
             # Depending on the logic, it may return or throw an error
             return # Or raise RuntimeError("...")
 
@@ -106,10 +106,10 @@ class SumoEnvironment:
         self._last_batched_data = {}
         logging.info(lm.get_string("environment.reset.success"))
 
-    def step(self, actions: dict) -> tuple:
+    def step(self, actions: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any], bool]:
         """Executes a full step in the environment, orchestrating the specialists."""
         if not self.conn:
-             logging.error("[Environment] Tentativa de step sem conexão ativa.")
+             logging.error(self.locale_manager.get_string("environment.error.step_no_conn", default="[Environment] Attempt to step without active connection."))
              return {}, {}, True # Returns empty state, empty reward, done=True
 
         try:
@@ -170,21 +170,21 @@ class SumoEnvironment:
             return next_states, rewards, done
 
         except Exception as e_general:
-             logging.error(f"[Environment] Erro inesperado durante o step: {e_general}", exc_info=True)
+             logging.error(self.locale_manager.get_string("environment.error.step_unexpected", default="[Environment] Unexpected error during step: {error}", error=e_general), exc_info=True)
              self.close()
              return {}, {}, True
 
 
-    def get_global_state(self) -> dict:
+    def get_global_state(self) -> Dict[str, Any]:
         """Gets the initial state of the environment, before the first step."""
         if not self.conn:
-             logging.error("[Environment] Tentativa de get_global_state sem conexão ativa.")
+             logging.error(self.locale_manager.get_string("environment.error.get_state_no_conn", default="[Environment] Attempt to get_global_state without active connection."))
              return {}
         try:
             # Request initial data from the Controller via proxy
             initial_batch = self.conn.custom.get_batched_step_data()
             if not initial_batch:
-                 logging.warning("[Environment] Não foram recebidos dados iniciais do batch.")
+                 logging.warning(self.locale_manager.get_string("environment.error.no_initial_batch", default="[Environment] Initial batch data not received."))
                  return {}
 
             self._last_batched_data = initial_batch # Save for the first step
@@ -198,12 +198,12 @@ class SumoEnvironment:
             return initial_states
 
         except Exception as e_general:
-            logging.error(f"[Environment] Erro inesperado ao obter estado global inicial: {e_general}", exc_info=True)
+            logging.error(self.locale_manager.get_string("environment.error.get_state_unexpected", default="[Environment] Unexpected error getting initial global state: {error}", error=e_general), exc_info=True)
             self.close()
             return {}
 
 
-    def get_traffic_light_ids(self) -> list:
+    def get_traffic_light_ids(self) -> List[str]:
         """Delegates ID retrieval to the StateExtractor."""
         return self.state_extractor.get_traffic_light_ids() if self.state_extractor else []
 
