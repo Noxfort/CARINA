@@ -34,6 +34,7 @@ class DatabaseEngine:
     """
     def __init__(self, locale_manager: 'LocaleManagerBackend', db_name: str = "carina_data.db"):
         self.locale_manager = locale_manager
+        self._fatal_db_error = False
         
         project_root_local = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         
@@ -62,6 +63,9 @@ class DatabaseEngine:
 
     def get_connection(self) -> Any:
         """Returns a connection (psycopg2 or sqlite3) depending on the configuration."""
+        if getattr(self, '_fatal_db_error', False):
+            return None
+            
         try:
             if self.db_type == "postgres":
                 import psycopg2
@@ -76,7 +80,14 @@ class DatabaseEngine:
             else:
                 return sqlite3.connect(self.db_path)
         except Exception as e:
-            logging.error(f"[DB_ENGINE] Failed to connect to the database ({self.db_type}): {e}")
+            error_msg = str(e).lower()
+            if "password authentication failed" in error_msg or "fatal:" in error_msg or "fe_sendauth" in error_msg:
+                self._fatal_db_error = True
+                logging.critical(f"[DB_ENGINE] CRITICAL: Fatal PostgreSQL connection error for user '{self.db_user}' / db '{self.db_name_pg}'. Connection disabled to prevent spam. Details: {e}")
+                print(f"\n[CARINA FATAL ERROR] Invalid database credentials or database does not exist.")
+                print(f"User: '{self.db_user}', DB: '{self.db_name_pg}'. Please update your settings and restart the application.\n")
+            else:
+                logging.error(f"[DB_ENGINE] Failed to connect to the database ({self.db_type}): {e}")
             return None
 
     def _initialize_db(self):
