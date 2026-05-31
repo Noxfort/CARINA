@@ -8,7 +8,7 @@ aliases: [Projeto CARINA, Root]
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c)
 ![Flet](https://img.shields.io/badge/Flet-UI-00d2b4)
-![License](https://img.shields.io/badge/License-Proprietary-red)
+![License](https://img.shields.io/badge/License-AGPL%20v3-blue)
 
 **CARINA** is a massively distributed Deep Reinforcement Learning ecosystem designed for real-time traffic control and smart city orchestration. Bypassing Python's Global Interpreter Lock (GIL) via 7 concurrent OS processes, it integrates a Tactical PPO agent and a Guardian Agent (Dueling DQN-TCN + Predictive Autoencoder) to provide neuro-symbolic safety. CARINA learns online directly in production via the sub-millisecond Synapse HFT protocol.
 
@@ -80,4 +80,4 @@ pytest tests/ -v --cov=src
 
 ---
 
-**CARINA** © 2026 Noxfort. All rights reserved.
+**CARINA** is licensed under the [GNU Affero General Public License v3.0](LICENSE). © 2026 Noxfort.
