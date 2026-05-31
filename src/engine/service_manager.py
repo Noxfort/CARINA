@@ -37,7 +37,7 @@ class ServiceManager:
 
     # --- CHANGE 2: Modify the constructor ---
     def __init__(self, locale_manager: 'LocaleManagerBackend'):
-        """Inicializa o gerenciador de serviços."""
+        """Initializes the service manager."""
         self.locale_manager = locale_manager
         self.guardian_worker_process: Process | None = None
         self.xai_worker_process: Process | None = None

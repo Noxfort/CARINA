@@ -35,10 +35,10 @@ if TYPE_CHECKING:
     from utils.locale_manager_backend import LocaleManagerBackend
 
 class DataCollector:
-    """Acumula dados de desempenho e segurança de uma simulação."""
+    """Accumulates performance and safety data of a simulation."""
 
     def __init__(self, locale_manager: 'LocaleManagerBackend'):
-        """Inicializa os acumuladores de dados."""
+        """Initializes the data accumulators."""
         self.locale_manager = locale_manager
         self.total_waiting_time_per_lane = defaultdict(float)
         self.total_vehicles_departed_per_lane = defaultdict(int)

@@ -32,15 +32,15 @@ if TYPE_CHECKING:
     from utils.locale_manager_backend import LocaleManagerBackend
 
 class AsyncHeatmapRenderer:
-    """Renderizador assíncrono de mapas de calor para evitar congelamento da interface."""
+    """Asynchronous heatmap renderer to avoid interface freezing."""
 
     def __init__(self, locale_manager: 'LocaleManagerBackend'):
-        """Inicializa o renderizador assíncrono de mapas de calor."""
+        """Initializes the asynchronous heatmap renderer."""
         self.locale_manager = locale_manager
-        self.executor = ThreadPoolExecutor(max_workers=2)  # 2 workers para renderização
+        self.executor = ThreadPoolExecutor(max_workers=2)  # 2 workers for rendering
         self.render_queue = queue.Queue()
         self.result_cache = {}
-        self.cache_size_limit = 10  # Limite de cache para evitar consumo excessivo de memória
+        self.cache_size_limit = 10  # Cache limit to avoid excessive memory consumption
         
         logging.info(self.locale_manager.get_string("async_heatmap_renderer.init.created"))
 
@@ -55,7 +55,7 @@ class AsyncHeatmapRenderer:
         Gera uma imagem de mapa com as ruas coloridas pelo nível de
         congestionamento de forma assíncrona e chama o callback com o resultado.
         """
-        # Submeter a tarefa para execução em thread separada
+        # Submit task for execution in a separate thread
         future = self.executor.submit(
             self._create_heatmap_internal,
             map_data,
@@ -63,7 +63,7 @@ class AsyncHeatmapRenderer:
             saturation_threshold
         )
         
-        # Se houver callback, executar quando a tarefa for concluída
+        # If there is a callback, execute when the task is completed
         if callback:
             def handle_result(future):
                 try:
@@ -87,10 +87,10 @@ class AsyncHeatmapRenderer:
         Returns:
             Tupla RGB representando a cor apropriada
         """
-        # Normaliza o valor entre 0 e 1, considerando o valor máximo esperado
+        # Normalize the value between 0 and 1, considering the maximum expected value
         normalized = min(max(value / max_expected_value, 0.0), 1.0)
         
-        # Escala de cores usada por serviços como Waze e Google Maps:
+        # Color scale used by services like Waze and Google Maps:
         # Verde escuro (tráfego livre) -> Verde -> Amarelo -> Laranja -> Vermelho -> Roxo (congestionamento extremo)
         color_stops = [
             (0.0, (0, 100, 0)),      # Verde escuro - tráfego livre
@@ -101,24 +101,24 @@ class AsyncHeatmapRenderer:
             (1.0, (255, 0, 0))       # Vermelho - congestionamento severo
         ]
         
-        # Encontrar entre quais pontos de controle o valor normalizado está
+        # Find between which control points the normalized value is
         for i in range(len(color_stops) - 1):
             if normalized >= color_stops[i][0] and normalized <= color_stops[i+1][0]:
-                # Calcular a fração entre os dois pontos de controle
+                # Calculate the fraction between the two control points
                 start_value, start_color = color_stops[i]
                 end_value, end_color = color_stops[i+1]
                 
-                # Normalizar novamente entre os dois pontos de controle
+                # Normalize again between the two control points
                 segment_normalized = (normalized - start_value) / (end_value - start_value)
                 
-                # Interpolar linearmente entre as duas cores
+                # Linearly interpolate between the two colors
                 r = int(start_color[0] + (end_color[0] - start_color[0]) * segment_normalized)
                 g = int(start_color[1] + (end_color[1] - start_color[1]) * segment_normalized)
                 b = int(start_color[2] + (end_color[2] - start_color[2]) * segment_normalized)
                 
-                return (r/255.0, g/255.0, b/255.0)  # Retorna valores normalizados para matplotlib
+                return (r/255.0, g/255.0, b/255.0)  # Returns normalized values for matplotlib
         
-        # Caso especial para o último intervalo
+        # Special case for the last interval
         r, g, b = color_stops[-1][1]
         return (r/255.0, g/255.0, b/255.0)
 
@@ -139,22 +139,22 @@ class AsyncHeatmapRenderer:
         # Normalizar o valor
         normalized = min(max(value / max_expected_value, 0.0), 1.0)
         
-        # Aplicar uma transformação logarítmica suavizada para realçar pequenas variações
+        # Apply a smoothed logarithmic transformation to highlight small variations
         if normalized == 0:
             adjusted = 0
         else:
-            # Usar uma combinação de funções para realçar variações em diferentes faixas
+            # Use a combination of functions to highlight variations in different ranges
             if normalized < 0.3:
-                # Aumentar sensibilidade para valores baixos
+                # Increase sensitivity for low values
                 adjusted = math.pow(normalized / 0.3, 0.7) * 0.3
             elif normalized < 0.7:
-                # Manter linearidade média para a faixa intermediária
+                # Maintain average linearity for intermediate range
                 adjusted = 0.3 + ((normalized - 0.3) / 0.4) * 0.4
             else:
-                # Ajustar para destacar altos valores
+                # Adjust to highlight high values
                 adjusted = 0.7 + math.pow((normalized - 0.7) / 0.3, 1.3) * 0.3
         
-        # Agora usar a escala de cores padronizada
+        # Now use the standardized color scale
         color_stops = [
             (0.0, (0, 100, 0)),      # Verde escuro - tráfego livre
             (0.25, (0, 255, 0)),     # Verde - tráfego leve
@@ -164,24 +164,24 @@ class AsyncHeatmapRenderer:
             (1.0, (255, 0, 0))       # Vermelho - congestionamento severo
         ]
         
-        # Encontrar entre quais pontos de controle o valor ajustado está
+        # Find between which control points the adjusted value is
         for i in range(len(color_stops) - 1):
             if adjusted >= color_stops[i][0] and adjusted <= color_stops[i+1][0]:
-                # Calcular a fração entre os dois pontos de controle
+                # Calculate the fraction between the two control points
                 start_value, start_color = color_stops[i]
                 end_value, end_color = color_stops[i+1]
                 
-                # Normalizar novamente entre os dois pontos de controle
+                # Normalize again between the two control points
                 segment_normalized = (adjusted - start_value) / (end_value - start_value)
                 
-                # Interpolar linearmente entre as duas cores
+                # Linearly interpolate between the two colors
                 r = int(start_color[0] + (end_color[0] - start_color[0]) * segment_normalized)
                 g = int(start_color[1] + (end_color[1] - start_color[1]) * segment_normalized)
                 b = int(start_color[2] + (end_color[2] - start_color[2]) * segment_normalized)
                 
-                return (r/255.0, g/255.0, b/255.0)  # Retorna valores normalizados para matplotlib
+                return (r/255.0, g/255.0, b/255.0)  # Returns normalized values for matplotlib
         
-        # Caso especial para o último intervalo
+        # Special case for the last interval
         r, g, b = color_stops[-1][1]
         return (r/255.0, g/255.0, b/255.0)
 
@@ -197,8 +197,8 @@ class AsyncHeatmapRenderer:
         lm = self.locale_manager
         try:
             nodes, edges = map_data
-            # Usar figura menor para maior velocidade
-            fig, ax = plt.subplots(figsize=(4.8, 2.88), dpi=100)  # Tamanho reduzido para velocidade
+            # Use smaller figure for higher speed
+            fig, ax = plt.subplots(figsize=(4.8, 2.88), dpi=100)  # Reduced size for speed
 
             threshold = max(saturation_threshold, 1.0)
 
@@ -206,7 +206,7 @@ class AsyncHeatmapRenderer:
                 edge_id = edge.get('id', '')
                 congestion_index = congestion_data.get(edge_id, 0.0)
                 
-                # Usar a nova função aprimorada para obter cores mais precisas
+                # Use the new improved function to get more precise colors
                 color = self.get_enhanced_color_for_congestion(congestion_index, threshold)
                 
                 shape = edge['shape']
@@ -215,7 +215,7 @@ class AsyncHeatmapRenderer:
                 ax.plot(
                     x_coords, y_coords,
                     color=color,
-                    linewidth=2.0,  # Linewidth reduzido para velocidade
+                    linewidth=2.0,  # Reduced linewidth for speed
                     zorder=1,
                     solid_capstyle='round'
                 )
@@ -223,7 +223,7 @@ class AsyncHeatmapRenderer:
             if nodes:
                 node_x = [n['x'] for n in nodes.values()]
                 node_y = [n['y'] for n in nodes.values()]
-                ax.scatter(node_x, node_y, s=10, color='#808080', zorder=2)  # Tamanho reduzido para velocidade
+                ax.scatter(node_x, node_y, s=10, color='#808080', zorder=2)  # Reduced size for speed
 
             ax.set_aspect('equal', adjustable='box')
             ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False)
@@ -233,7 +233,7 @@ class AsyncHeatmapRenderer:
             
             buf = io.BytesIO()
             plt.savefig(buf, format='png', dpi=100, facecolor=ax.get_facecolor(),
-                       bbox_inches='tight', pad_inches=0.05)  # Menor padding para velocidade
+                       bbox_inches='tight', pad_inches=0.05)  # Smaller padding for speed
             plt.close(fig)
             buf.seek(0)
             
@@ -250,7 +250,7 @@ class AsyncHeatmapRenderer:
 
 
 class UpdateThrottler:
-    """Controla a taxa de atualizações para evitar sobrecarga."""
+    """Controls the update rate to avoid overload."""
     
     def __init__(self, min_interval: float = 0.2):  # 200ms entre atualizações
         self.min_interval = min_interval
@@ -277,7 +277,7 @@ class UpdateThrottler:
 
 
 class RenderBufferManager:
-    """Gerenciador de buffers para renderização suave."""
+    """Buffer manager for smooth rendering."""
     
     def __init__(self, buffer_count: int = 2):
         self.buffers = [None] * buffer_count
@@ -286,13 +286,13 @@ class RenderBufferManager:
         self.lock = threading.Lock()
         
     def write_buffer(self, data):
-        """Escreve dados no buffer de escrita."""
+        """Writes data to the write buffer."""
         with self.lock:
             self.buffers[self.current_write_idx] = data
-            # Troca os índices de leitura e escrita
+            # Swap read and write indices
             self.current_write_idx, self.current_read_idx = self.current_read_idx, self.current_write_idx
             
     def read_buffer(self):
-        """Lê dados do buffer de leitura."""
+        """Reads data from the read buffer."""
         with self.lock:
             return self.buffers[self.current_read_idx]

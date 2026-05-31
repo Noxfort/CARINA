@@ -49,7 +49,7 @@ class MetricsManager:
         self.start_server()
 
     def start_server(self):
-        """Inicia o servidor HTTP do Prometheus em uma thread separada com tratamento de erros."""
+        """Starts the Prometheus HTTP server in a separate thread with error handling."""
         def run_server():
             # Try the original port
             try:

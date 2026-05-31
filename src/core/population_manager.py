@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from engine.environment import SumoEnvironment # Import required for type hint
 
 class PopulationManager:
-    """Gerencia o ciclo de vida e a evolução de uma população de agentes."""
+    """Manages the lifecycle and evolution of a population of agents."""
 
     def __init__(self, settings: dict, lifecycle_manager: 'LifecycleManager', locale_manager: 'LocaleManagerBackend'):
         self.settings = settings

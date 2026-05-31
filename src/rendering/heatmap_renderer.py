@@ -30,15 +30,15 @@ if TYPE_CHECKING:
 import matplotlib.pyplot as plt
 
 class HeatmapRenderer:
-    """O especialista em renderizar mapas de calor dinâmicos em memória com otimizações de desempenho."""
+    """The specialist in rendering dynamic heatmaps in memory with performance optimizations."""
 
     def __init__(self, locale_manager: 'LocaleManagerBackend'):
-        """Inicializa o renderizador de mapas de calor."""
+        """Initializes the heatmap renderer."""
         self.locale_manager = locale_manager
-        # Cache simples para evitar renderizações desnecessárias
+        # Simple cache to avoid unnecessary renders
         self._cache = {}
         self._cache_size_limit = 5
-        # Lock para proteger o acesso ao cache
+        # Lock to protect cache access
         self._cache_lock = threading.Lock()
         # --- CHANGE 3 ---
         logging.info(self.locale_manager.get_string("heatmap_renderer.init.created"))
@@ -61,36 +61,36 @@ class HeatmapRenderer:
         lm = self.locale_manager
         
         try:
-            # Criar chave para cache baseada nos dados de congestão
+            # Create cache key based on congestion data
             cache_key = self._generate_cache_key(congestion_data, saturation_threshold)
             
-            # Verificar se já existe no cache
+            # Check if it already exists in cache
             with self._cache_lock:
                 if cache_key in self._cache:
                     return self._cache[cache_key]
             
             nodes, edges = map_data
             
-            # Usar figura menor para maior velocidade
-            fig, ax = plt.subplots(figsize=(4.0, 2.4), dpi=80)  # Tamanho e DPI reduzidos para velocidade
+            # Use smaller figure for higher speed
+            fig, ax = plt.subplots(figsize=(4.0, 2.4), dpi=80)  # Reduced size and DPI for speed
 
-            cmap = plt.get_cmap('viridis')  # Usar colormap mais preciso para representar dados
+            cmap = plt.get_cmap('viridis')  # Use more precise colormap to represent data
 
             threshold = max(saturation_threshold, 1.0)
 
-            # Otimização: processar apenas as arestas com dados de congestão
+            # Optimization: only process edges with congestion data
             congestion_edges = {k for k in congestion_data.keys()}
             
             for edge in edges:
                 edge_id = edge.get('id', '')
                 
-                # Só processar arestas com dados de congestão
+                # Only process edges with congestion data
                 if edge_id not in congestion_edges:
                     continue
                     
                 congestion_index = congestion_data.get(edge_id, 0.0)
                 
-                # Usar a nova função aprimorada para obter cores mais precisas
+                # Use the new improved function to get more precise colors
                 rgb_color = self.get_enhanced_color_for_congestion(congestion_index, threshold)
                 color = rgb_color
                 
@@ -100,32 +100,32 @@ class HeatmapRenderer:
                     
                 x_coords, y_coords = zip(*shape)
 
-                # Reduzir largura e qualidade para maior velocidade
+                # Reduce width and quality for higher speed
                 ax.plot(
                     x_coords, y_coords,
                     color=color,
                     linewidth=1.5,  # Linewidth reduzido
                     zorder=1,
                     solid_capstyle='round',
-                    antialiased=False  # Desativar anti-aliasing para velocidade
+                    antialiased=False  # Disable anti-aliasing for speed
                 )
 
-            # Desenhar nós se existirem, com tamanho reduzido
+            # Draw nodes if they exist, with reduced size
             if nodes:
                 node_x = [n['x'] for n in nodes.values() if 'x' in n and 'y' in n]
                 node_y = [n['y'] for n in nodes.values() if 'x' in n and 'y' in n]
                 if node_x and node_y:
-                    ax.scatter(node_x, node_y, s=5, color='#808080', zorder=2, alpha=0.7)  # Tamanho e opacidade reduzidos
+                    ax.scatter(node_x, node_y, s=5, color='#808080', zorder=2, alpha=0.7)  # Reduced size and opacity
 
             ax.set_aspect('equal', adjustable='box')
-            # Remover eixos para velocidade
+            # Remove axes for speed
             ax.set_xticks([])
             ax.set_yticks([])
             ax.axis('off')
             ax.set_facecolor('#F7F7F7')
             
             buf = io.BytesIO()
-            # Salvar com configurações otimizadas para velocidade
+            # Save with optimized settings for speed
             plt.savefig(buf, format='png', dpi=80, facecolor=ax.get_facecolor(),
                        bbox_inches='tight', pad_inches=0.02,
                        edgecolor='none')
@@ -134,10 +134,10 @@ class HeatmapRenderer:
             
             image_base64 = base64.b64encode(buf.read()).decode('utf-8')
             
-            # Armazenar no cache
+            # Store in cache
             with self._cache_lock:
                 if len(self._cache) >= self._cache_size_limit:
-                    # Remover item mais antigo se cache estiver cheio
+                    # Remove oldest item if cache is full
                     oldest_key = next(iter(self._cache))
                     del self._cache[oldest_key]
                 self._cache[cache_key] = image_base64
@@ -150,8 +150,8 @@ class HeatmapRenderer:
             return None
 
     def _generate_cache_key(self, congestion_data: dict, threshold: float) -> str:
-        """Gera uma chave de cache baseada nos dados de congestão."""
-        # Criar uma representação simplificada dos dados para a chave
+        """Generates a cache key based on congestion data."""
+        # Create a simplified representation of the data for the key
         total_congestion = sum(congestion_data.values()) if congestion_data else 0
         edge_count = len(congestion_data)
         return f"{total_congestion:.2f}_{edge_count}_{threshold}"
@@ -168,10 +168,10 @@ class HeatmapRenderer:
         Returns:
             Tupla RGB representando a cor apropriada
         """
-        # Normaliza o valor entre 0 e 1, considerando o valor máximo esperado
+        # Normalize the value between 0 and 1, considering the maximum expected value
         normalized = min(max(value / max_expected_value, 0.0), 1.0)
         
-        # Escala de cores usada por serviços como Waze e Google Maps:
+        # Color scale used by services like Waze and Google Maps:
         # Verde escuro (tráfego livre) -> Verde -> Amarelo -> Laranja -> Vermelho -> Roxo (congestionamento extremo)
         color_stops = [
             (0.0, (0, 100, 0)),      # Verde escuro - tráfego livre
@@ -182,24 +182,24 @@ class HeatmapRenderer:
             (1.0, (255, 0, 0))       # Vermelho - congestionamento severo
         ]
         
-        # Encontrar entre quais pontos de controle o valor normalizado está
+        # Find between which control points the normalized value is
         for i in range(len(color_stops) - 1):
             if normalized >= color_stops[i][0] and normalized <= color_stops[i+1][0]:
-                # Calcular a fração entre os dois pontos de controle
+                # Calculate the fraction between the two control points
                 start_value, start_color = color_stops[i]
                 end_value, end_color = color_stops[i+1]
                 
-                # Normalizar novamente entre os dois pontos de controle
+                # Normalize again between the two control points
                 segment_normalized = (normalized - start_value) / (end_value - start_value)
                 
-                # Interpolar linearmente entre as duas cores
+                # Linearly interpolate between the two colors
                 r = int(start_color[0] + (end_color[0] - start_color[0]) * segment_normalized)
                 g = int(start_color[1] + (end_color[1] - start_color[1]) * segment_normalized)
                 b = int(start_color[2] + (end_color[2] - start_color[2]) * segment_normalized)
                 
-                return (r/255.0, g/255.0, b/255.0)  # Retorna valores normalizados para matplotlib
+                return (r/255.0, g/255.0, b/255.0)  # Returns normalized values for matplotlib
         
-        # Caso especial para o último intervalo
+        # Special case for the last interval
         r, g, b = color_stops[-1][1]
         return (r/255.0, g/255.0, b/255.0)
 
@@ -220,22 +220,22 @@ class HeatmapRenderer:
         # Normalizar o valor
         normalized = min(max(value / max_expected_value, 0.0), 1.0)
         
-        # Aplicar uma transformação logarítmica suavizada para realçar pequenas variações
+        # Apply a smoothed logarithmic transformation to highlight small variations
         if normalized == 0:
             adjusted = 0
         else:
-            # Usar uma combinação de funções para realçar variações em diferentes faixas
+            # Use a combination of functions to highlight variations in different ranges
             if normalized < 0.3:
-                # Aumentar sensibilidade para valores baixos
+                # Increase sensitivity for low values
                 adjusted = math.pow(normalized / 0.3, 0.7) * 0.3
             elif normalized < 0.7:
-                # Manter linearidade média para a faixa intermediária
+                # Maintain average linearity for intermediate range
                 adjusted = 0.3 + ((normalized - 0.3) / 0.4) * 0.4
             else:
-                # Ajustar para destacar altos valores
+                # Adjust to highlight high values
                 adjusted = 0.7 + math.pow((normalized - 0.7) / 0.3, 1.3) * 0.3
         
-        # Agora usar a escala de cores padronizada
+        # Now use the standardized color scale
         color_stops = [
             (0.0, (0, 100, 0)),      # Verde escuro - tráfego livre
             (0.25, (0, 255, 0)),     # Verde - tráfego leve
@@ -245,28 +245,28 @@ class HeatmapRenderer:
             (1.0, (255, 0, 0))       # Vermelho - congestionamento severo
         ]
         
-        # Encontrar entre quais pontos de controle o valor ajustado está
+        # Find between which control points the adjusted value is
         for i in range(len(color_stops) - 1):
             if adjusted >= color_stops[i][0] and adjusted <= color_stops[i+1][0]:
-                # Calcular a fração entre os dois pontos de controle
+                # Calculate the fraction between the two control points
                 start_value, start_color = color_stops[i]
                 end_value, end_color = color_stops[i+1]
                 
-                # Normalizar novamente entre os dois pontos de controle
+                # Normalize again between the two control points
                 segment_normalized = (adjusted - start_value) / (end_value - start_value)
                 
-                # Interpolar linearmente entre as duas cores
+                # Linearly interpolate between the two colors
                 r = int(start_color[0] + (end_color[0] - start_color[0]) * segment_normalized)
                 g = int(start_color[1] + (end_color[1] - start_color[1]) * segment_normalized)
                 b = int(start_color[2] + (end_color[2] - start_color[2]) * segment_normalized)
                 
-                return (r/255.0, g/255.0, b/255.0)  # Retorna valores normalizados para matplotlib
+                return (r/255.0, g/255.0, b/255.0)  # Returns normalized values for matplotlib
         
-        # Caso especial para o último intervalo
+        # Special case for the last interval
         r, g, b = color_stops[-1][1]
         return (r/255.0, g/255.0, b/255.0)
 
     def clear_cache(self):
-        """Limpa o cache de renderizações."""
+        """Clears the render cache."""
         with self._cache_lock:
             self._cache.clear()

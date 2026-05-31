@@ -168,8 +168,8 @@ class Trainer:
         logging.info(f"Trainer Orchestrator ready. GPU: {gpu_info}")
 
     def start_continuous_service(self):
-        # Sinaliza para a API/Controller que o backend completou 
-        # a carga de suas ferramentas e está aguardando a geometria do mapa
+        # Signals to the API/Controller that the backend completed 
+        # loading its tools and is waiting for the map geometry
         try:
             self.pipe_conn.send(('system', 'backend_ready', (), {}))
         except Exception as e:

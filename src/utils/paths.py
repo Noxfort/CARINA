@@ -29,16 +29,16 @@ import subprocess
 
 def resource_path(relative_path: str) -> str:
     """
-    Retorna o caminho absoluto para um recurso (arquivo de dados),
-    funcionando tanto em modo de desenvolvimento quanto no executável
-    criado pelo PyInstaller.
+    Returns the absolute path to a resource (data file),
+    working both in development mode and in the executable
+    created by PyInstaller.
 
     Args:
-        relative_path (str): O caminho relativo para o recurso a partir da
-                             raiz do projeto (ou do bundle).
+        relative_path (str): The relative path to the resource from the
+                             project root (or bundle).
 
     Returns:
-        str: O caminho absoluto para o recurso.
+        str: The absolute path to the resource.
     """
     try:
         # PyInstaller creates a temporary folder and stores the path in _MEIPASS
@@ -53,15 +53,15 @@ def resource_path(relative_path: str) -> str:
 
 def get_base_output_dir() -> str:
     """
-    Retorna o diretório base (OS Documents/Carina) onde arquivos de saída (logs, results) devem ser escritos.
-    Resolve a pasta Documentos do SO dinamicamente (Linux).
+    Returns the base directory (OS Documents/Carina) where output files (logs, results) should be written.
+    Resolves the OS Documents folder dynamically (Linux).
 
     Returns:
-        str: O caminho absoluto para o diretório base de saída.
+        str: The absolute path to the output base directory.
     """
     documents_dir = None
     try:
-        # Tenta obter a pasta Documentos oficial do XDG no Linux
+        # Try to get the official XDG Documents folder on Linux
         output = subprocess.check_output(['xdg-user-dir', 'DOCUMENTS'], stderr=subprocess.DEVNULL)
         documents_dir = output.decode('utf-8').strip()
     except Exception:
@@ -78,10 +78,10 @@ def get_base_output_dir() -> str:
             if os.path.isdir(fallback_pt):
                 documents_dir = fallback_pt
             else:
-                # Último recurso genérico
+                # Last generic fallback
                 documents_dir = os.path.expanduser("~")
 
-    # A subpasta Carina será em /Documentos/Carina
+    # The Carina subfolder will be in /Documents/Carina
     carina_dir = os.path.join(documents_dir, "Carina")
     os.makedirs(carina_dir, exist_ok=True)
     return carina_dir

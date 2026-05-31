@@ -39,6 +39,8 @@ from core.maturity_reporter import MaturityReporter
 if TYPE_CHECKING:
     from utils.locale_manager_backend import LocaleManagerBackend
 
+from core.dynamic_entropy_calculator import DynamicEntropyCalculator
+
 
 class MaturityManager:
     """
@@ -97,9 +99,11 @@ class MaturityManager:
         
         self.child_phase_duration = get_int_setting('child_phase_episodes', 5)
         self.teen_phase_min_duration = get_int_setting('teen_phase_min_episodes', 50)
-        self.child_promotion_max_entropy = get_setting('child_promotion_max_entropy', 1.0)
+        
+        self.entropy_calculator = DynamicEntropyCalculator(e_max=1.8, e_ideal=0.1)
         
         # Internal State
+        self.is_calibrated = True # Dynamic calibration is always ready
         self.agent_maturity = {}
         self.agent_episodes_in_phase = {}
         
@@ -107,15 +111,11 @@ class MaturityManager:
         self.agent_recent_rewards = {}
         self._rewards_window_size = rewards_window_size
         
-        self.teen_entropy_threshold = float('inf')
-        self.adult_entropy_threshold = float('inf')
-        self.is_calibrated = False
-        
         logging.info(lm.get_string("maturity_manager.init.manager_created"))
         logging.info(lm.get_string("maturity_manager.init.performance_target", target=f"{self.baseline_target:.2f}"))
 
     def get_state(self) -> dict:
-        """Coleta o estado interno do manager num dicionário serializável."""
+        """Collects the internal state of the manager in a serializable dictionary."""
         agent_recent_rewards_list = {
             agent_id: list(rewards)
             for agent_id, rewards in self.agent_recent_rewards.items()
@@ -127,10 +127,7 @@ class MaturityManager:
         return {
             "agent_maturity": agent_maturity_names,
             "agent_episodes_in_phase": self.agent_episodes_in_phase,
-            "agent_recent_rewards": agent_recent_rewards_list,
-            "is_calibrated": self.is_calibrated,
-            "teen_entropy_threshold": self.teen_entropy_threshold,
-            "adult_entropy_threshold": self.adult_entropy_threshold
+            "agent_recent_rewards": agent_recent_rewards_list
         }
 
     def save_state(self, filepath: str):
@@ -165,9 +162,6 @@ class MaturityManager:
                 agent_id: deque(rewards, maxlen=self._rewards_window_size)
                 for agent_id, rewards in state.get("agent_recent_rewards", {}).items()
             }
-            self.is_calibrated = state.get("is_calibrated", False)
-            self.teen_entropy_threshold = state.get("teen_entropy_threshold", float('inf'))
-            self.adult_entropy_threshold = state.get("adult_entropy_threshold", float('inf'))
             
             logging.info(lm.get_string("maturity_manager.load.success", path=filepath))
             
@@ -191,10 +185,9 @@ class MaturityManager:
             logging.info(lm.get_string("maturity_manager.register.agents_registered", count=new_agents_registered, phase=phase_name.upper()))
 
     def update_calibration_thresholds(self, teen_threshold: float, adult_threshold: float):
-        self.teen_entropy_threshold = teen_threshold
-        self.adult_entropy_threshold = adult_threshold
-        self.is_calibrated = True
-        logging.info(self.locale_manager.get_string("maturity_manager.calibration.thresholds_updated"))
+        # Legacy method kept for compatibility with external calls.
+        # Entropy thresholds are now calculated dynamically based on configured time.
+        logging.info(self.locale_manager.get_string("maturity_manager.calibration.thresholds_updated", default="[MATURITY] Note: Static calibration is disabled in favor of dynamic time-based entropy."))
 
     def check_and_promote_agents(self, agent_metrics: dict) -> bool:
         """
@@ -215,11 +208,12 @@ class MaturityManager:
 
             if current_phase == Maturity.CHILD:
                 if episodes_in_phase >= self.child_phase_duration:
-                    confidence_ok = agent_entropy < self.child_promotion_max_entropy
+                    dynamic_child_threshold = self.entropy_calculator.calculate_threshold(self.child_phase_duration, is_adult_transition=False)
+                    confidence_ok = agent_entropy < dynamic_child_threshold
                     if confidence_ok:
                         details = { 
                             lm.get_string("maturity_manager.criterion_time"): lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=self.child_phase_duration),
-                            lm.get_string("maturity_manager.criterion_confidence"): lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=self.child_promotion_max_entropy)
+                            lm.get_string("maturity_manager.criterion_confidence"): lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_child_threshold)
                         }
                         self._promote_agent(agent_id, Maturity.TEEN)
                         self.reporter.report_promotion(agent_id, Maturity.TEEN, details)
@@ -227,7 +221,7 @@ class MaturityManager:
                     else:
                         rejection_details = {
                             lm.get_string("maturity_manager.criterion_time"): {"ok": True, "msg": lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=self.child_phase_duration)},
-                            lm.get_string("maturity_manager.criterion_confidence"): {"ok": False, "msg": lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=self.child_promotion_max_entropy)}
+                            lm.get_string("maturity_manager.criterion_confidence"): {"ok": False, "msg": lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_child_threshold)}
                         }
                         self.reporter.report_rejection(agent_id, current_phase, Maturity.TEEN, rejection_details)
 
@@ -235,20 +229,24 @@ class MaturityManager:
                 time_ok = episodes_in_phase >= self.teen_phase_min_duration
                 if not time_ok: continue
 
-                confidence_ok = not self.is_calibrated or agent_entropy < self.adult_entropy_threshold
+                dynamic_adult_threshold = self.entropy_calculator.calculate_threshold(self.teen_phase_min_duration, is_adult_transition=True)
+                confidence_ok = agent_entropy < dynamic_adult_threshold
+                
                 performance_ok = False
                 mean_performance = 0
                 rewards_buffer = self.agent_recent_rewards[agent_id]
                 if len(rewards_buffer) >= self._rewards_window_size:
                     mean_performance = np.mean(list(rewards_buffer))
-                    if mean_performance > self.baseline_target:
+                    # Streak consistency check: all rewards must be at least above the baseline performance
+                    streak_ok = all(r > self.baseline_performance for r in rewards_buffer)
+                    if mean_performance > self.baseline_target and streak_ok:
                         performance_ok = True
 
                 if confidence_ok and performance_ok:
                     details = {
                         lm.get_string("maturity_manager.criterion_time"): lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=self.teen_phase_min_duration),
                         lm.get_string("maturity_manager.criterion_performance"): lm.get_string("maturity_manager.performance_details", mean_performance=mean_performance, baseline_target=self.baseline_target),
-                        lm.get_string("maturity_manager.criterion_confidence"): lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=self.adult_entropy_threshold)
+                        lm.get_string("maturity_manager.criterion_confidence"): lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_adult_threshold)
                     }
                     self._promote_agent(agent_id, Maturity.ADULT)
                     self.reporter.report_promotion(agent_id, Maturity.ADULT, details)
@@ -257,7 +255,7 @@ class MaturityManager:
                     rejection_details = {
                         lm.get_string("maturity_manager.criterion_time"): {"ok": True, "msg": lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=self.teen_phase_min_duration)},
                         lm.get_string("maturity_manager.criterion_performance"): {"ok": performance_ok, "msg": lm.get_string("maturity_manager.performance_details", mean_performance=mean_performance, baseline_target=self.baseline_target)},
-                        lm.get_string("maturity_manager.criterion_confidence"): {"ok": confidence_ok, "msg": lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=self.adult_entropy_threshold)}
+                        lm.get_string("maturity_manager.criterion_confidence"): {"ok": confidence_ok, "msg": lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_adult_threshold)}
                     }
                     self.reporter.report_rejection(agent_id, current_phase, Maturity.ADULT, rejection_details)
         

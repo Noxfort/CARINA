@@ -61,7 +61,7 @@ class SystemReporter:
 
     @staticmethod
     def report_graph_structure(num_nodes: int, num_edges: int, lm: 'LocaleManagerBackend'):
-        """Loga a estrutura do grafo da rede após a análise."""
+        """Logs the structure of the network graph after analysis."""
         separator = "-" * 60
         logging.info(separator)
         logging.info(lm.get_string("reporter.graph.title"))
@@ -94,7 +94,7 @@ class SystemReporter:
 
     @staticmethod
     def report_school_bulletin(lm: 'LocaleManagerBackend', episode_count: int, total_reward: float, maturity_counts: Counter, calibration_status: str):
-        """Loga o 'Boletim da Escola' ao final de cada episódio."""
+        """Logs the 'School Report' at the end of each episode."""
         children = maturity_counts[Maturity.CHILD]
         teens = maturity_counts[Maturity.TEEN]
         adults = maturity_counts[Maturity.ADULT]

@@ -31,11 +31,11 @@ class ResourceManager:
     """
     
     def __init__(self, model_path: str, use_gpu: bool = False, offload_to_cpu: bool = True):
-        # Forçar uso exclusivo da CPU, ignorando GPU
+        # Force exclusive use of CPU, ignoring GPU
         self.model_path = model_path
-        self.use_gpu = False  # Forçar uso da CPU
+        self.use_gpu = False  # Force CPU use
         self.offload_to_cpu = offload_to_cpu
-        self.device = "cpu"  # Forçar dispositivo como CPU
+        self.device = "cpu"  # Force device as CPU
         self.model = None
         self.tokenizer = None
         
@@ -47,18 +47,18 @@ class ResourceManager:
         Retorna True se bem-sucedido, False caso contrário.
         """
         try:
-            # Forçar uso exclusivo da CPU, ignorando completamente a GPU
+            # Force exclusive use of CPU, completely ignoring GPU
             logging.info("Carregando Tokenizer...")
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_path, trust_remote_code=True)
             
             logging.info(f"Carregando Modelo (FP32) exclusivamente na CPU: {self.device}")
             
-            # Carregar na CPU com otimizações para memória limitada
-            # Usar FP32 em vez de FP16 para maior compatibilidade com CPU
+            # Load on CPU with optimizations for limited memory
+            # Use FP32 instead of FP16 for higher compatibility with CPU
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_path,
-                torch_dtype=torch.float32,  # Usar FP32 para CPU
-                device_map={"": "cpu"},  # Forçar carregamento na CPU
+                torch_dtype=torch.float32,  # Use FP32 for CPU
+                device_map={"": "cpu"},  # Force loading on CPU
                 trust_remote_code=True,
                 low_cpu_mem_usage=True
             )
@@ -72,7 +72,7 @@ class ResourceManager:
             return False
     
     # Método removido: _check_vram_availability
-    # Não é mais necessário já que estamos usando apenas CPU
+    # No longer necessary since we are only using CPU
     
     def move_model_to_device(self, target_device: str) -> bool:
         """
@@ -90,7 +90,7 @@ class ResourceManager:
                 
             logging.info(f"Movendo modelo de {self.model.device} para {target_device}")
             
-            # Liberar memória antes da mudança
+            # Free memory before change
             if self.model.device.type == "cuda":
                 self._clear_gpu_cache()
                 
@@ -110,7 +110,7 @@ class ResourceManager:
             return False
     
     def _clear_gpu_cache(self):
-        """Libera cache da GPU."""
+        """Frees GPU cache."""
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             gc.collect()
@@ -124,7 +124,7 @@ class ResourceManager:
         return self.tokenizer
     
     def get_device(self) -> str:
-        """Retorna o dispositivo atual."""
+        """Returns the current device."""
         return self.device
     
     def cleanup(self):

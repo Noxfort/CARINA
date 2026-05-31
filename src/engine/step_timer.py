@@ -80,7 +80,7 @@ class StepTimer:
         self.t_guardian = 0.0
 
     def start_phase(self):
-        """Dispara cronômetro para uma fase específica."""
+        """Starts a timer for a specific phase."""
         self._current_phase_t0 = time.perf_counter()
         
     def stop_phase(self, phase_name: str):
@@ -98,7 +98,7 @@ class StepTimer:
             self.t_guardian += delta
 
     def log_and_finish_step(self, guardian_vetoed: bool, log_progress: bool):
-        """Consolida os tempos e manda pro terminal caso o sistema requeira logs."""
+        """Consolidates times and sends to terminal if system requires logs."""
         self.t_total_end = time.perf_counter()
         total_ms = (self.t_total_end - self.t_total_start) * 1000
         

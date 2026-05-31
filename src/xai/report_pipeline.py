@@ -80,7 +80,7 @@ class ReportPipeline:
                 
                 logging.info(f"[ReportPipeline] Invoking Semantic Transducer LLM for {agent_id}...")
                 
-                # Construir comando sem argumentos de GPU para forçar uso exclusivo da CPU
+                # Build command without GPU arguments to force exclusive use of CPU
                 cmd = [sys.executable, self.transducer_script, "--input", input_json_path, "--output", final_report_path]
                 
                 proc = subprocess.run(cmd, capture_output=True, text=True)

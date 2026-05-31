@@ -53,7 +53,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 # --- REMOVED: Comment about matplotlib.use('Agg') ---
 
 class StaticMapRenderer:
-    """O especialista em renderizar mapas estáticos e seus ativos associados."""
+    """The specialist in rendering static maps and their associated assets."""
 
     # --- REVERSED: Use LocaleManagerBackend ---
     def __init__(self, locale_manager: 'LocaleManagerBackend'):

@@ -56,7 +56,7 @@ except Exception as _e:
 
 
 class AnalyzerEngine:
-    """Executa a análise de infraestrutura usando dados históricos do banco de dados."""
+    """Executes infrastructure analysis using historical database data."""
 
     def __init__(self, settings: configparser.ConfigParser, db_data_queue: Queue, locale_manager: 'LocaleManagerBackend'):
         self.settings = settings

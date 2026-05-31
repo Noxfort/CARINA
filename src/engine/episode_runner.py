@@ -58,7 +58,7 @@ if TYPE_CHECKING:
 
 
 class EpisodeRunner:
-    """Orquestra a execução de um único episódio, focado no ciclo de RL."""
+    """Orchestrates the execution of a single episode, focused on the RL cycle."""
 
     def __init__(self, settings: configparser.ConfigParser, env: 'SumoEnvironment',
                  population_manager: 'PopulationManager', maturity_manager: MaturityManager,

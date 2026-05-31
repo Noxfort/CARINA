@@ -32,7 +32,7 @@ class OnPolicyBuffer:
     """A buffer that stores transitions (state, action, etc.) for a single data collection cycle."""
     
     def __init__(self):
-        """Inicializa as listas que irão armazenar os dados da trajetória."""
+        """Initializes the lists that will store the trajectory data."""
         self.actions = []
         self.states = []
         self.log_probs = []
@@ -93,5 +93,5 @@ class OnPolicyBuffer:
         del self.state_values[:]
 
     def __len__(self) -> int:
-        """Retorna o número de transições armazenadas no buffer."""
+        """Returns the number of transitions stored in the buffer."""
         return len(self.states)

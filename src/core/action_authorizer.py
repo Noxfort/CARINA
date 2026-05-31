@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
 
 class ActionAuthorizer:
-    """O "Porteiro" da Escola de Pilotagem, especialista em autorizar ações."""
+    """The "Gatekeeper" of the Flight School, specialist in authorizing actions."""
 
     def __init__(self, settings: Any, locale_manager: 'LocaleManagerBackend', traffic_profiles: Optional[dict] = None):
         """

@@ -30,7 +30,6 @@ import traci
 
 from core.population_manager import PopulationManager
 from core.maturity_manager import MaturityManager
-from core.threshold_calibrator import ThresholdCalibrator
 from core.lifecycle_manager import LifecycleManager
 from core.system_reporter import SystemReporter
 
@@ -38,14 +37,13 @@ if TYPE_CHECKING:
     from utils.locale_manager_backend import LocaleManagerBackend
 
 class PostEpisodeCoordinator:
-    """Orquestra as tarefas administrativas de IA que ocorrem entre os episódios."""
+    """Orchestrates AI administrative tasks occurring between episodes."""
 
     def __init__(self, settings, population_manager: PopulationManager, maturity_manager: MaturityManager,
-                 calibrator: ThresholdCalibrator, lifecycle_manager: LifecycleManager, 
+                 lifecycle_manager: LifecycleManager, 
                  db_data_queue: Queue, run_id: int, locale_manager: 'LocaleManagerBackend'):
         self.population_manager = population_manager
         self.maturity_manager = maturity_manager
-        self.calibrator = calibrator
         self.lifecycle_manager = lifecycle_manager
         self.db_data_queue = db_data_queue
         self.run_id = run_id
@@ -69,15 +67,7 @@ class PostEpisodeCoordinator:
         for agent in self.population_manager.agents.values():
             agent.episodes_done = episode_count
 
-        if not self.calibrator.is_calibrated:
-            entropies = [m['entropy'] for m in episode_metrics.values() if 'entropy' in m]
-            if entropies:
-                mean_entropy = np.mean(entropies)
-                self.calibrator.step(mean_entropy)
-                
-                if self.calibrator.is_calibrated:
-                    teen_thresh, adult_thresh = self.calibrator.get_thresholds()
-                    self.maturity_manager.update_calibration_thresholds(teen_thresh, adult_thresh)
+        # Calibrator logic removed. Dynamic entropy rules are handled internally by MaturityManager
         
         promotion_happened = self.maturity_manager.check_and_promote_agents(episode_metrics)
 
@@ -113,8 +103,8 @@ class PostEpisodeCoordinator:
         total_reward = sum(m['reward'] for m in episode_metrics.values())
         maturity_counts = Counter(self.maturity_manager.agent_maturity.values())
         
-        calib_key = "reporter.calib_status_done" if self.calibrator.is_calibrated else "reporter.calib_status_ongoing"
-        calibration_status_text = lm.get_string(calib_key)
+        # Calibration status is now irrelevant because the limit is dynamic based on time
+        calibration_status_text = lm.get_string("reporter.calib_status_done")
         
         SystemReporter.report_school_bulletin(
             lm,

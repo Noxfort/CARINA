@@ -40,7 +40,7 @@ class AssetManager:
         """
         self.locale_manager = locale_manager
         self.static_map_renderer = StaticMapRenderer(locale_manager)
-        self.heatmap_renderer = PreciseHeatmapRenderer(locale_manager)  # Usar o renderizador preciso
+        self.heatmap_renderer = PreciseHeatmapRenderer(locale_manager)  # Use the precise renderer
         # --- CHANGE 3 ---
         logging.info(self.locale_manager.get_string("asset_manager.init.created"))
 

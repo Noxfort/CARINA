@@ -35,13 +35,13 @@ if TYPE_CHECKING:
 
 
 class MaturityReporter:
-    """O "Porta-voz" da Escola de Pilotagem, especialista em gerar relatórios de log."""
+    """The "Spokesperson" of the Flight School, specialist in generating log reports."""
 
     def __init__(self, locale_manager: 'LocaleManagerBackend'):
         self.locale_manager = locale_manager
 
     def report_promotion(self, agent_id: str, new_phase: Maturity, details: dict):
-        """Formata e loga uma mensagem de promoção bem-sucedida."""
+        """Formats and logs a successful promotion message."""
         lm = self.locale_manager
         
         is_graduation = new_phase == Maturity.ADULT

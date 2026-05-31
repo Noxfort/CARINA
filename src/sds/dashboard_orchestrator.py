@@ -39,7 +39,7 @@ from sds.data_processor import DataProcessor
 from sds.websocket_server import WebSocketServer
 
 class Orchestrator:
-    """O maestro que gerencia o fluxo de trabalho do serviço SDS."""
+    """The maestro that manages the workflow of the SDS service."""
 
     def __init__(self, sds_data_queue: Queue, settings: configparser.ConfigParser, 
                  ui_command_queue: Queue, locale_manager: 'LocaleManagerBackend'):

@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from utils.locale_manager_backend import LocaleManagerBackend
 
 class AnalysisOrchestrator:
-    """O maestro que gerencia o fluxo de trabalho do serviço SAS."""
+    """The maestro that manages the workflow of the SAS service."""
 
     def __init__(self, sas_data_queue: Queue, settings: configparser.ConfigParser, db_data_queue: Queue, locale_manager: 'LocaleManagerBackend'):
         self.data_queue = sas_data_queue

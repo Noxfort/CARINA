@@ -41,7 +41,7 @@ from utils.network_parser import build_structural_neighborhood_map
 from core.system_reporter import SystemReporter # Fixed to import from core
 
 class StrategicCoordinator:
-    """Gerencia o ciclo de vida e a execução do GAT Strategist."""
+    """Manages the lifecycle and execution of the GAT Strategist."""
 
     # --- CHANGE 2: Modify the constructor ---
     def __init__(self, settings, device, locale_manager: 'LocaleManagerBackend'):
