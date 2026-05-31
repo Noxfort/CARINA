@@ -158,12 +158,16 @@ class StepProcessor:
                 
             if action is not None:
                 actions_to_apply[tl_id] = action
-                if action == 0:
-                    self._update_estimated_phase(tl_id, current_phase_idx, sim_time)
 
         # --- Execute Actions ---
         if actions_to_apply:
             self.action_supervisor.apply_actions(actions_to_apply, sim_time, self.current_phases)
+            
+        # --- Update Software Phases after Hardware Actions ---
+        for tl_id, action in actions_to_apply.items():
+            if action == 0:
+                current_phase_idx = self.current_phases.get(tl_id, 0)
+                self._update_estimated_phase(tl_id, current_phase_idx, sim_time)
 
         self._episode_total_reward += step_reward_sum
             
