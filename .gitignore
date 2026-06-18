@@ -1,81 +1,189 @@
-# Byte-compiled / optimized / DLL files
+```
+# Compiled and build artifacts
+*.pyc
 __pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
+*.o
+*.obj
+*.exe
+*.dll
 *.so
+*.class
+*.out
+
+# Dependencies
+.venv/
+venv/
+.env
+.env.local
+.env.*
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Editors
+.vscode/
+.idea/
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# OS specific
+.DS_Store
+Thumbs.db
 
 # Distribution / packaging
+dist/
+build/
+*.tar.gz
+*.zip
+*.gz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+
+# Testing
+.mypy_cache/
+.pytest_cache/
+target/
+.gradle/
+
+# Node.js
+node_modules/
+
+# Python
+*.py[cod]
+*$py.class
+*$py.cache
+*.so
+.Python
 build/
 develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
+.installed.cfg
 lib/
 lib64/
 parts/
 sdist/
 var/
 wheels/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# PyInstaller
-*.manifest
-
-# Installer logs
+.eggs/
 pip-log.txt
 pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
 .tox/
-.nox/
 .coverage
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
 *.cover
-*.sved
-.hypothesis/
-.pytest_cache/
-cover/
+*.log
+.git/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+cython_debug/
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+# Compiled object files
+*.o
+*.ko
+*.obj
+*.elf
 
-# IDEs and Editors
-.vscode/
-.idea/
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.jar
+*.class
+
+# Various IDEs
 *.swp
 *.swo
+*~
+.project
+.idea/
+*.tmproj
+.vscode/
 
-# Project specific ignores
-Model_Vault/
-*.gguf
-logs/
-results/
+# Environment variables
+.env
+.env.local
+.env.*
+
+# Log files
 *.log
-heartbeat.txt
-gitignore.txt
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Coverage directory used by tools like lcov
+coverage/
+
+# JUnit test reports
+test-results/
+
+# Build outputs
+dist/
+build/
+target/
+
+# Compression artifacts
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
+```
