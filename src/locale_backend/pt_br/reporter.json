@@ -1,0 +1,28 @@
+{
+  "reporter": {
+    "creation": {
+      "agent_created": "   -> [CRIAÇÃO] Agente Local (PPO) e Guardião (DQN) criados para o Semáforo ID: '{tl_id}'.",
+      "amp_status": "      L- Treinamento com precisão mista (AMP) ativado: {enabled}"
+    },
+    "graph": {
+      "title": "ANÁLISE DA TOPOLOGIA DA REDE CONCLUÍDA",
+      "nodes": "  - Total de Semáforos (Nós): {count}",
+      "edges": "  - Total de Conexões (Arestas): {count}"
+    },
+    "step_header": "\n--- {message} ---",
+    "step_start": "PASSO DE SIMULAÇÃO {step} (Tempo: {sim_time}s)",
+    "step_mode": "\u001b[97mControle Global\u001b[0m Modo de Operação Atual: {mode}",
+    "agent_suggestion": "[🧠 AGENTE {tl_id} | {maturity_level}] Sugestão: {action_str}",
+    "status_approved": "APROVADA",
+    "status_denied": "NEGADA",
+    "system_decision": "    -> [SISTEMA] Decisão: {status} ({reason})",
+    "bulletin_header": "FIM DO EPISÓDIO {episode_count} | BOLETIM DA ESCOLA",
+    "bulletin_performance": "  - Desempenho do Episódio: Recompensa Total = {total_reward}",
+    "bulletin_class_status": "  - Status da Turma: {adults} Adultos | {teens} Adolescentes | {children} Crianças",
+    "bulletin_calibration_status": "  - Status da Calibração de Confiança: {status}",
+    "calib_status_done": "Concluída",
+    "calib_status_ongoing": "Em Andamento",
+    "override_suffix_alert": " - Modo Alerta",
+    "override_suffix_off": " - Desativado"
+  }
+}

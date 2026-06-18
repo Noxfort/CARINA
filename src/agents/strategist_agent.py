@@ -111,7 +111,7 @@ class StrategistAgent:
                 # Find all downstream TLS neighbors
                 neighbors = self._find_downstream_tls(node, tls_ids_set, net)
                 
-                for neighbor_id in neighbors:
+                for neighbor_id in sorted(neighbors):
                     if neighbor_id != tls_id: # Avoid self-loops
                         tgt_idx = self.tls_id_to_idx[neighbor_id]
                         source_nodes.append(src_idx)

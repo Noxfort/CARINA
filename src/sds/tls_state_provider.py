@@ -54,8 +54,10 @@ class TlsStateProvider:
         """
         lanes_state_dict = {}
         
-        if not incoming_edges:
-            lanes_state_dict["Unknown_Edge"] = "r"
+        focal_groups = TlsMapExtractor.get_all_focal_groups_for_tl(tl_id)
+        
+        if not focal_groups:
+            lanes_state_dict["Unknown_Group"] = "r"
             return {"lanes_state": lanes_state_dict, "display_state": "RED"}
 
         current_time = time.time()
@@ -90,27 +92,27 @@ class TlsStateProvider:
 
             if current_time < timer['yellow_until']:
                 # --- STAGE 1: YELLOW WARNING ---
-                for edge in incoming_edges:
-                    old_c = old_colors.get(edge, 'r')
-                    new_c = new_colors.get(edge, 'r')
+                for fg in focal_groups:
+                    old_c = old_colors.get(fg, 'r')
+                    new_c = new_colors.get(fg, 'r')
                     
                     if old_c == 'G' and new_c == 'r':
-                        extracted_colors[edge] = 'y' # Closing movement gets Yellow
+                        extracted_colors[fg] = 'y' # Closing movement gets Yellow
                     elif old_c == 'G' and new_c == 'G':
-                        extracted_colors[edge] = 'G' # Continuing movement stays Green
+                        extracted_colors[fg] = 'G' # Continuing movement stays Green
                     else:
-                        extracted_colors[edge] = 'r' # Opening movement waits in Red
+                        extracted_colors[fg] = 'r' # Opening movement waits in Red
 
             elif current_time < timer['all_red_until']:
                 # --- STAGE 2: ALL-RED CLEARANCE ---
-                for edge in incoming_edges:
-                    old_c = old_colors.get(edge, 'r')
-                    new_c = new_colors.get(edge, 'r')
+                for fg in focal_groups:
+                    old_c = old_colors.get(fg, 'r')
+                    new_c = new_colors.get(fg, 'r')
                     
                     if old_c == 'G' and new_c == 'G':
-                        extracted_colors[edge] = 'G' # Only pure continuous movements stay Green
+                        extracted_colors[fg] = 'G' # Only pure continuous movements stay Green
                     else:
-                        extracted_colors[edge] = 'r' # Everything else is strictly Red for safety
+                        extracted_colors[fg] = 'r' # Everything else is strictly Red for safety
 
             else:
                 # --- TRANSITION COMPLETED ---
@@ -121,9 +123,9 @@ class TlsStateProvider:
             # Normal steady state (No active transition)
             extracted_colors = TlsMapExtractor.get_edge_colors_for_phase(tl_id, phase_idx)
 
-        # Map the resolved colors to the incoming edges
-        for edge_id in incoming_edges:
-            lanes_state_dict[edge_id] = extracted_colors.get(edge_id, 'r')
+        # Map the resolved colors to the focal groups
+        for fg in focal_groups:
+            lanes_state_dict[fg] = extracted_colors.get(fg, 'r')
             
         # --- GLOBAL DISPLAY STATE LOGIC ---
         all_states_str = "".join(str(v) for v in lanes_state_dict.values()).lower()

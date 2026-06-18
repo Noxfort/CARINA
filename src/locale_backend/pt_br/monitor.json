@@ -1,0 +1,12 @@
+{
+  "monitor": {
+    "watchdog_trigger": "Watchdog acionado (> {timeout}ms de silêncio). Mudando para o fallback de Tempo Fixo. Evento #{event}.",
+    "synapse_restored": "Sinal do Synapse restaurado após {elapsed}s. Modo Watchdog desativado, retomando controle da Rede Neural IA.",
+    "auth_failure": "Falha de autenticação detectada para o usuário: {username}",
+    "lockdown_active": "LOCKDOWN de segurança ativado devido a múltiplas falhas de login.",
+    "manual_override": "Operador desativou manualmente o controle da IA. Mudado para o fallback de Tempo Fixo.",
+    "manual_disconnect": "O operador desconectou explicitamente o CARINA do Monitor.",
+    "shutdown": "Sistema CARINA sendo desligado...",
+    "heartbeat": "Heartbeat: Sistema online e operando normalmente."
+  }
+}

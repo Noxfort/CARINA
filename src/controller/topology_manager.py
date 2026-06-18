@@ -87,7 +87,7 @@ class TopologyManager:
 
                 # 2. NOTIFY UI (This fixes the 'Waiting for Connection' issue)
                 try:
-                    self.sds_data_queue.put(('initial_map_geometry', {}))
+                    self.sds_data_queue.put(('initial_map_geometry', {"net_file": net_xml_path}))
                     logging.info("[CentralController] 'initial_map_geometry' event sent to SDS queue (Restored State).")
                 except Exception as e:
                     logging.error(f"Error notifying UI during restore: {e}")
@@ -129,7 +129,7 @@ class TopologyManager:
 
         # 3. Notify UI (SDS)
         try:
-            self.sds_data_queue.put(('initial_map_geometry', {}))
+            self.sds_data_queue.put(('initial_map_geometry', {"net_file": map_path}))
             logging.info("'initial_map_geometry' event sent to SDS queue.")
         except Exception as e:
             logging.error(f"Error notifying UI about new map: {e}")

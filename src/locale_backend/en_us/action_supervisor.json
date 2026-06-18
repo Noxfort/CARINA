@@ -1,0 +1,18 @@
+{
+  "action_supervisor": {
+    "init": {
+      "actuator_created": "The environment's 'Actuator' (ActionSupervisor) was created.",
+      "min_green_time_rule": "Safety rule active: Minimum green time = {time}s."
+    },
+    "reset": {
+      "success": "Action Supervisor successfully reset."
+    },
+    "veto": {
+      "received": "[SUPERVISOR] Guardian veto received for traffic light {tl_id}. Action {action} will be blocked."
+    },
+    "apply": {
+      "action_blocked": "[SUPERVISOR] Action {action} blocked by Guardian for traffic light {tl_id}.",
+      "min_time_not_met": "Minimum green time not yet reached for traffic light {tl_id}. Action ignored."
+    }
+  }
+}

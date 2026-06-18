@@ -35,7 +35,7 @@ from typing import Dict, List, Optional
 from enum import Enum
 from dataclasses import dataclass, field
 
-from src.controller.common_types import SignalState, PhaseDefinition
+from src.controller.common_types import SignalState, StageDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 class IntersectionState:
     """Runtime state for a single intersection's fixed-time cycle."""
     tls_id: str
-    phases: List[PhaseDefinition]
+    phases: List[StageDefinition]
     current_phase_index: int = 0
     current_signal_state: SignalState = field(default=SignalState.ALL_RED)
     state_start_time: float = 0.0
@@ -70,6 +70,9 @@ class IntersectionStateManager:
             yellow_duration: Seconds of YELLOW before transitioning.
             all_red_duration: Seconds of ALL_RED clearance between phases.
         """
+        if green_duration <= 0 or yellow_duration <= 0 or all_red_duration <= 0:
+            raise ValueError("Timing parameters must be greater than zero.")
+            
         self.green_duration = green_duration
         self.yellow_duration = yellow_duration
         self.all_red_duration = all_red_duration

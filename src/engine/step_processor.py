@@ -27,6 +27,8 @@ from core.enums import Maturity
 from core.system_reporter import SystemReporter
 from engine.step_timer import StepTimer
 from engine.agent_evaluator import AgentEvaluator
+from engine.episode_reporter import EpisodeReporter
+from engine.stage_transition_manager import StageTransitionManager
 from utils.safety_rules import SafetyRules
 
 class StepProcessor:
@@ -36,7 +38,8 @@ class StepProcessor:
     """
     def __init__(self, settings: Any, locale_manager: Any, agent_manager: Any, input_preprocessor: Any, 
                  state_extractor: Any, action_supervisor: Any, action_authorizer: Any, 
-                 maturity_manager: Any, reward_computer: Any, cycle_manager: Any, pipe_conn: Any) -> None:
+                 maturity_manager: Any, reward_computer: Any, cycle_manager: Any, pipe_conn: Any,
+                 mfd: Any = None) -> None:
         self.settings = settings
         self.lm = locale_manager
         
@@ -50,6 +53,7 @@ class StepProcessor:
         self.cycle_manager = cycle_manager
         
         self.pipe_conn = pipe_conn
+        self.mfd = mfd
         
         # SRP Instantiations
         self.step_timer = StepTimer()
@@ -62,11 +66,20 @@ class StepProcessor:
             maturity_manager=self.maturity_manager,
             locale_manager=self.lm
         )
+        self.stage_transition_manager = StageTransitionManager(
+            state_extractor=self.state_extractor,
+            action_supervisor=self.action_supervisor
+        )
+        self.episode_reporter = EpisodeReporter(
+            locale_manager=self.lm,
+            maturity_manager=self.maturity_manager
+        )
         
         # Session State Variables
         self.step_counter = 0
         self.start_time_offset: Optional[float] = None
-        self.current_phases: Dict[str, Any] = {}
+        self.current_stages: Dict[str, Any] = {}
+        self.last_commanded_stages: Dict[str, int] = {}
         self.accumulated_metrics = defaultdict(lambda: {'rewards': [], 'entropies': []})
         self.log_step_progress = True
         self.guardians = {}
@@ -84,16 +97,19 @@ class StepProcessor:
         """Resets the counters for a new session (or new map)."""
         self.step_counter = 0
         self.start_time_offset = None
-        self.current_phases.clear()
+        self.current_stages.clear()
+        self.last_commanded_stages.clear()
         self.accumulated_metrics.clear()
         self.action_supervisor.reset()
         self.input_preprocessor.reset()
         self._episode_counter = 0
         self._episode_total_reward = 0.0
         self._episode_steps_in_current = 0
+        if self.mfd:
+            self.mfd.reset()
 
     def set_current_phases(self, phases: Dict[str, Any]) -> None:
-        self.current_phases = phases
+        self.current_stages = phases
 
     def set_guardians(self, guardians: Dict[str, Any]) -> None:
         self.guardians = guardians
@@ -123,7 +139,7 @@ class StepProcessor:
         
         # --- Physical Transitions Synchronization ---
         # Evaluate automatic hardware transitions (Yellow/All-red) based on sim_time
-        self._auto_advance_transitions(sim_time)
+        self.stage_transition_manager.auto_advance_transitions(sim_time, self.current_stages)
         
         # --- STEP HEADER ---
         if self.log_step_progress:
@@ -139,12 +155,12 @@ class StepProcessor:
 
         # --- Main Agent Loop ---
         for tl_id, agent in agents.items():
-            current_phase_idx = self.current_phases.get(tl_id, 0)
+            current_stage_idx = self.current_stages.get(tl_id, 0)
             guardian = self.guardians.get(tl_id)
 
             # Execution via isolated evaluator component
             action, maturity_name, vetoed, reward, entropy, lanes_state = self.agent_evaluator.evaluate_agent(
-                tl_id, agent, current_phase_idx, traffic_data, edges_data, sim_time, guardian, self.step_timer
+                tl_id, agent, current_stage_idx, traffic_data, edges_data, sim_time, guardian, self.step_timer
             )
             
             tls_lanes_state[tl_id] = lanes_state
@@ -161,13 +177,13 @@ class StepProcessor:
 
         # --- Execute Actions ---
         if actions_to_apply:
-            self.action_supervisor.apply_actions(actions_to_apply, sim_time, self.current_phases)
+            self.action_supervisor.apply_actions(actions_to_apply, sim_time, self.current_stages)
             
         # --- Update Software Phases after Hardware Actions ---
         for tl_id, action in actions_to_apply.items():
             if action == 0:
-                current_phase_idx = self.current_phases.get(tl_id, 0)
-                self._update_estimated_phase(tl_id, current_phase_idx, sim_time)
+                current_stage_idx = self.current_stages.get(tl_id, 0)
+                self.stage_transition_manager.update_estimated_stage(tl_id, current_stage_idx, sim_time, self.current_stages)
 
         self._episode_total_reward += step_reward_sum
             
@@ -179,23 +195,66 @@ class StepProcessor:
         if self.step_counter % episode_steps == 0:
             self._episode_counter += 1
             
-            # CycleManager handles: metrics aggregation, promotion check, checkpoints, UI sync
-            self.cycle_manager.evaluate_cycle(self.step_counter, agents, self.accumulated_metrics)
+            mfd_efficiency = 0.0
+            if self.mfd:
+                latest = self.mfd.get_latest()
+                if latest:
+                    mfd_efficiency = latest.efficiency
+                    
+            # Triggers cycle management
+            self.cycle_manager.evaluate_cycle(self.step_counter, agents, self.accumulated_metrics, mfd_efficiency)
             
             # --- SCHOOL BULLETIN (Legacy Format) ---
-            self._report_episode_bulletin(agents, episode_steps)
+            self.episode_reporter.report_episode_bulletin(agents, self._episode_counter, self._episode_total_reward)
             
             # Reset episode-level counters
             self._episode_total_reward = 0.0
             self._episode_steps_in_current = 0
 
+        # --- MFD: Compute Network Performance ---
+        mfd_data = None
+        if self.mfd and edges_data:
+            mfd_snapshot = self.mfd.compute_step(edges_data, sim_time)
+            mfd_data = mfd_snapshot.to_dict()
+            
+            # Log network state at episode boundaries
+            if self.step_counter % episode_steps == 0:
+                report = self.mfd.get_network_report()
+                if report.get('status') == 'OK':
+                    state = report['network_state']
+                    eff = report['current'].get('efficiency', 0)
+                    logging.info(
+                        f"[MFD] Network State: {state} | "
+                        f"Efficiency: {eff:.1%} | "
+                        f"Production: {mfd_snapshot.production:.2f} veh·m/s | "
+                        f"Accumulation: {mfd_snapshot.accumulation:.2f} veh"
+                    )
+
+        # --- Log commanded stage colors to carina_colors.log and command hardware on stage changes ---
+        for tl_id, driver in self.action_supervisor.connection_manager.active_connections.items():
+            current_stage_idx = self.current_stages.get(tl_id, 0)
+            
+            # If the traffic light has an active manual override, skip automatic stage commands
+            if self.action_supervisor.override_states.get(tl_id) in ("ALERT", "OFF"):
+                self.last_commanded_stages.pop(tl_id, None)
+                continue
+
+            # Send command and log only when the stage changes
+            if tl_id not in self.last_commanded_stages or self.last_commanded_stages[tl_id] != current_stage_idx:
+                self.last_commanded_stages[tl_id] = current_stage_idx
+                self.action_supervisor.send_stage_hold(tl_id, current_stage_idx)
+
+                stage_codes = self.state_extractor.tl_stage_codes.get(tl_id, {})
+                driver.log_carina_colors(current_stage_idx, stage_codes)
+
         # --- SEND HFT FEEDBACK TO CENTRAL CONTROLLER CACHE ---
         # Renamed from 'hft_rich_update' to 'ai_telemetry_sync' to avoid conflicting with the UI (SDS/SAS)
         rich_payload = {
             "edges": edges_data,
-            "tls_phases": self.current_phases,
+            "tls_phases": self.current_stages,
             "tls_lanes_state": tls_lanes_state,
-            "maturity": maturity_info
+            "maturity": maturity_info,
+            "mfd": mfd_data
         }
         
         # Sends to the Central Controller via Pipe
@@ -205,87 +264,3 @@ class StepProcessor:
             except Exception as e:
                 logging.error(f"[TRAINER] Failed to send AI Telemetry update: {e}")
 
-    def _report_episode_bulletin(self, agents: Dict[str, Any], episode_steps: int) -> None:
-        """
-        Logs the detailed 'School Bulletin' at the end of each episode.
-        
-        Legacy format:
-        ────────────────────────────────────────────────────────────
-        END OF EPISODE {N} | SCHOOL BULLETIN
-          - Episode Performance: Total Reward = {R}
-          - Class Status: {A} Adults | {T} Teens | {C} Children
-          - Confidence Calibration Status: Ongoing
-        ────────────────────────────────────────────────────────────
-        """
-        from collections import Counter
-        
-        maturity_counts = Counter()
-        for tl_id in agents:
-            phase = self.maturity_manager.agent_maturity.get(tl_id, Maturity.CHILD)
-            maturity_counts[phase] += 1
-        
-        calibration_status = self.lm.get_string("reporter.calib_status_done") if self.maturity_manager.is_calibrated else self.lm.get_string("reporter.calib_status_ongoing")
-        
-        SystemReporter.report_school_bulletin(
-            lm=self.lm,
-            episode_count=self._episode_counter,
-            total_reward=self._episode_total_reward,
-            maturity_counts=maturity_counts,
-            calibration_status=calibration_status
-        )
-
-    def _auto_advance_transitions(self, sim_time: float) -> None:
-        """Advances physical phases automatically based on simulation elapsed time."""
-        for tl_id in list(self.current_phases.keys()):
-            current_phase_idx = self.current_phases.get(tl_id, 0)
-            green_phases = self.state_extractor.tl_green_phases.get(tl_id, [])
-            
-            # If current phase is NOT a green phase, it's a physical transition (Yellow, Red, etc)
-            if green_phases and current_phase_idx not in green_phases:
-                duration = sim_time - self.action_supervisor._last_phase_change_time.get(tl_id, 0)
-                phase_codes = self.state_extractor.tl_phase_codes.get(tl_id, {})
-                state_string = phase_codes.get(current_phase_idx, "").upper()
-                total_phases = len(phase_codes)
-                
-                if total_phases == 0:
-                    continue
-                    
-                advanced = False
-                if 'Y' in state_string and duration >= self.yellow_time:
-                    self.current_phases[tl_id] = (current_phase_idx + 1) % total_phases
-                    advanced = True
-                    logging.debug(f"[StepProcessor] TL {tl_id} YELLOW->NEXT phase after {duration:.2f}s (threshold: {self.yellow_time}s)")
-                elif 'R' in state_string and duration >= self.all_red_time:
-                    self.current_phases[tl_id] = (current_phase_idx + 1) % total_phases
-                    advanced = True
-                    logging.debug(f"[StepProcessor] TL {tl_id} ALL-RED->NEXT phase after {duration:.2f}s (threshold: {self.all_red_time}s)")
-                elif 'Y' in state_string:
-                    logging.debug(f"[StepProcessor] TL {tl_id} in YELLOW phase for {duration:.2f}s (threshold: {self.yellow_time}s)")
-                elif 'R' in state_string:
-                    logging.debug(f"[StepProcessor] TL {tl_id} in ALL-RED phase for {duration:.2f}s (threshold: {self.all_red_time}s)")
-                    
-                if advanced:
-                    # Keep the exact start time of the newly entered phase to maintain sync
-                    self.action_supervisor._last_phase_change_time[tl_id] = sim_time
-                    logging.info(f"[StepProcessor] TL {tl_id} advanced to phase {self.current_phases[tl_id]}")
-
-    def _update_estimated_phase(self, tl_id: str, current_phase_idx: int, sim_time: float) -> None:
-        """Initiates the transition strictly to the next logical phase (typically Yellow)."""
-        phase_codes = self.state_extractor.tl_phase_codes.get(tl_id, {})
-        total_phases = len(phase_codes)
-        
-        if total_phases == 0:
-            logging.warning(f"[StepProcessor] No phase codes found for TL {tl_id}")
-            return
-            
-        # Instead of skipping directly to the next Green, just move to the next immediate phase (+1)
-        next_phase_idx = (current_phase_idx + 1) % total_phases
-        self.current_phases[tl_id] = next_phase_idx
-        
-        # Mark precisely when this intermediate phase was initiated by the hardware Actuator
-        self.action_supervisor._last_phase_change_time[tl_id] = sim_time
-        
-        # Log the phase transition for debugging
-        current_state = phase_codes.get(current_phase_idx, "UNKNOWN").upper()
-        next_state = phase_codes.get(next_phase_idx, "UNKNOWN").upper()
-        logging.info(f"[StepProcessor] TL {tl_id} phase transition: {current_state} -> {next_state} at time {sim_time:.2f}")

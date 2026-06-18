@@ -20,7 +20,7 @@
 
 import pytest
 import time
-from src.watchdog import Watchdog
+from src.watchdog.watchdog_logic import Watchdog
 
 @pytest.fixture
 def watchdog_instance():

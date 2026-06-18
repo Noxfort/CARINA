@@ -1,0 +1,10 @@
+{
+  "heatmap_renderer": {
+    "init": {
+      "created": "[HEATMAP_RENDERER] Heatmap Renderer created."
+    },
+    "run": {
+      "error": "[HEATMAP_RENDERER] Error generating heatmap image: {error}"
+    }
+  }
+}

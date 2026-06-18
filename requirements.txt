@@ -48,6 +48,7 @@ protobuf>=5.28.0
 scipy>=1.13.0
 configparser>=7.0.0
 requests>=2.31.0
+python-docx>=1.1.0
 grpcio>=1.60.0
 grpcio-tools>=1.60.0
 

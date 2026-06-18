@@ -1,0 +1,14 @@
+{
+  "infra_analyzer": {
+    "init": {
+      "config_error": "The [INFRASTRUCTURE_ANALYSIS] section was not found or is incomplete."
+    },
+    "unknown_scenario": "Unknown Scenario",
+    "analyzer_created": "Infrastructure Analysis Manager created.",
+    "summary_first_run": "First analysis executed.",
+    "change_new_junction": "new junction {id} detected",
+    "change_metric": "change of {percent}% in '{metric}' at junction {id}",
+    "summary_changes_detected": "Significant changes detected: {changes}",
+    "summary_no_changes": "No significant changes detected in traffic metrics."
+  }
+}

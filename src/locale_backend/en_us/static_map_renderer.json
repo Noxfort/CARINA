@@ -1,0 +1,13 @@
+{
+  "static_map_renderer": {
+    "init": {
+      "created": "[STATIC_MAP_RENDERER] Static Map Renderer created."
+    },
+    "run": {
+      "rendering_map": "[STATIC_MAP_RENDERER] Rendering high-resolution map to: {path}",
+      "render_complete": "[STATIC_MAP_RENDERER] Map rendering completed: {filename}",
+      "critical_error_icons": "[STATIC_MAP_RENDERER] Critical error generating map with icons: {error}",
+      "critical_error_coords": "[STATIC_MAP_RENDERER] Error generating coordinates file: {error}"
+    }
+  }
+}

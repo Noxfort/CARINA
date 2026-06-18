@@ -1,0 +1,14 @@
+{
+  "map_generator": {
+    "run": {
+      "net_file_not_found": "[MapGenerator] Network file not found at: {path}",
+      "netconvert_not_found": "[MapGenerator] CRITICAL: 'netconvert' executable not found. Check the SUMO_HOME environment variable.",
+      "generating_files": "[MapGenerator] Generating map data files (.nod.xml, .edg.xml)...",
+      "success": "[MapGenerator] Data files generated successfully with prefix: {prefix}",
+      "files_not_found_after_run": "[MapGenerator] 'netconvert' command executed, but data files were not found.",
+      "netconvert_error": "Error executing 'netconvert'. SUMO returned an error.",
+      "stderr_output": "Error Output (stderr):\n{stderr}",
+      "unexpected_error": "Unexpected error in MapGenerator: {error}"
+    }
+  }
+}

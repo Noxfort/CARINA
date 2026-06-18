@@ -50,7 +50,7 @@ class SettingsManager:
     """
     _KEY_TO_SECTION_MAP = {
         'theme_dark': 'UI', 'language': 'UI',
-        'min_green_time': 'TRAFFIC_RULES', 'yellow_time': 'TRAFFIC_RULES', # Note: Originally it had yellow_time_seconds, but the ui/handlers/settings_handler file uses yellow_time. Keeping yellow_time.
+        'green_time': 'TRAFFIC_RULES', 'yellow_time': 'TRAFFIC_RULES', # Note: Originally it had yellow_time_seconds, but the ui/handlers/settings_handler file uses yellow_time. Keeping yellow_time.
         'heatmap_strategy': 'HEATMAP_SCALING', 'heatmap_saturation': 'HEATMAP_SCALING',
         'log_progress': 'LOGGING', # Note: Original key can be log_step_progress
         'watchdog_grace': 'WATCHDOG', # Note: Originally it had initial_grace_period_seconds / heartbeat_timeout_seconds
@@ -61,7 +61,6 @@ class SettingsManager:
         'pbt_frequency': 'PBT', 'pbt_exploitation': 'PBT',
         # --- Add other keys/sections that need to be saved if they exist ---
         'weight_waiting_time': 'REWARD_WEIGHTS', 'weight_flow': 'REWARD_WEIGHTS',
-        'weight_emergency_brake': 'REWARD_WEIGHTS', 'weight_teleport': 'REWARD_WEIGHTS',
         'update_frequency_seconds': 'GAT_STRATEGIST', # Added GAT
         # --- CARINA Monitor Integration ---
         'monitor_enabled': 'EXTERNAL_MONITOR',

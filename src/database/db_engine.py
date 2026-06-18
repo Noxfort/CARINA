@@ -164,6 +164,15 @@ class DatabaseEngine:
                 """)
                 conn.commit()
 
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS security_users (
+                    username VARCHAR(100) PRIMARY KEY,
+                    password_hash TEXT NOT NULL,
+                    role VARCHAR(50) NOT NULL
+                );
+                """)
+                conn.commit()
+
             else:
                 cursor.execute("""
                 CREATE TABLE IF NOT EXISTS simulation_runs (
@@ -225,6 +234,15 @@ class DatabaseEngine:
                     relative_path TEXT NOT NULL UNIQUE,
                     file_content BLOB,
                     last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """)
+                conn.commit()
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS security_users (
+                    username VARCHAR(100) PRIMARY KEY,
+                    password_hash TEXT NOT NULL,
+                    role VARCHAR(50) NOT NULL
                 );
                 """)
                 conn.commit()

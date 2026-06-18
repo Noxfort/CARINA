@@ -58,9 +58,9 @@ class ActionFilter:
                 reason = lm.get_string(reason_key, fallback=override_state)
             
             # Telemetry Formatting
-            action_str = lm.get_string("actions.keep_phase")
+            action_str = lm.get_string("actions.keep_stage")
             if action_int == 0:
-                action_str = lm.get_string("actions.change_phase")
+                action_str = lm.get_string("actions.change_stage")
                 
             maturity_str = agent_maturity.name
             

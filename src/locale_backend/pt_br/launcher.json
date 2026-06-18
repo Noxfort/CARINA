@@ -1,0 +1,19 @@
+{
+  "launcher": {
+    "main": {
+      "preparing_processes": "Preparando os processos do sistema CARINA...",
+      "starting_ui_process": "Iniciando processo da UI a partir de: {path}",
+      "ui_started": " -> Interface do Utilizador (UI) iniciada com PID: {pid}",
+      "starting_backend_processes": "Iniciando todos os processos do ecossistema CARINA (backend)...",
+      "process_started_metrics": " -> {process_name} (PID: {pid}) [Métricas: http://localhost:{port}]",
+      "process_started_no_metrics": " -> {process_name} (PID: {pid})",
+      "system_running": "Sistema CARINA em pleno funcionamento com frontend e backend.",
+      "interrupt_received": "\nSinal de interrupção (Ctrl+C) recebido. Encerrando...",
+      "terminating_ui": "   -> Encerrando processo da UI (PID: {pid})...",
+      "force_killing_ui": "   -> Processo da UI não encerrou a tempo. Forçando o encerramento (kill).",
+      "final_cleanup": "Realizando limpeza final dos processos do backend...",
+      "terminating_backend_process": "   -> Encerrando processo {name} (PID: {pid})...",
+      "system_shutdown": "Sistema encerrado."
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "reporter": {
+    "creation": {
+      "agent_created": "   -> [CREATION] Local Agent (PPO) and Guardian (DQN) created for Traffic Light ID: '{tl_id}'.",
+      "amp_status": "      L- Mixed Precision Training (AMP) enabled: {enabled}"
+    },
+    "graph": {
+      "title": "NETWORK TOPOLOGY ANALYSIS COMPLETED",
+      "nodes": "  - Total Traffic Lights (Nodes): {count}",
+      "edges": "  - Total Connections (Edges): {count}"
+    },
+    "step_header": "\n--- {message} ---",
+    "step_start": "SIMULATION STEP {step} (Time: {sim_time}s)",
+    "step_mode": "\u001b[97mControle Global\u001b[0m Current Operation Mode: {mode}",
+    "agent_suggestion": "[🧠 AGENT {tl_id} | {maturity_level}] Suggestion: {action_str}",
+    "status_approved": "APPROVED",
+    "status_denied": "DENIED",
+    "system_decision": "    -> [SYSTEM] Decision: {status} ({reason})",
+    "bulletin_header": "END OF EPISODE {episode_count} | SCHOOL BULLETIN",
+    "bulletin_performance": "  - Episode Performance: Total Reward = {total_reward}",
+    "bulletin_class_status": "  - Class Status: {adults} Adults | {teens} Teens | {children} Children",
+    "bulletin_calibration_status": "  - Confidence Calibration Status: {status}",
+    "calib_status_done": "Completed",
+    "calib_status_ongoing": "Ongoing",
+    "override_suffix_alert": " - Alert Mode",
+    "override_suffix_off": " - Deactivated"
+  }
+}

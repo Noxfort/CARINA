@@ -23,7 +23,6 @@ import time
 from multiprocessing.connection import Connection
 from typing import Optional, Any, Dict
 
-from controller.fixed_time_controller import FixedTimeController
 
 logger = logging.getLogger(__name__)
 
@@ -39,14 +38,13 @@ class FailsafeManager:
     AI-controlled and fixed-time modes with strict safety guarantees.
     """
 
-    def __init__(self, ai_pipe_conn: Connection, monitor_client: Optional[Any] = None,
-                 green_duration: float = 15.0, yellow_duration: float = 4.0,
-                 all_red_duration: float = 2.0):
+    def __init__(self, ai_pipe_conn: Connection, monitor_client: Optional[Any] = None, locale_manager: Optional[Any] = None):
         self.current_operation_mode = "AUTOMATIC"
         self.failsafe_active = False
 
         self.ai_pipe_conn = ai_pipe_conn
         self.monitor_client = monitor_client
+        self.locale_manager = monitor_client.locale_manager if monitor_client else locale_manager
 
         # --- Frame Timing Monitor ---
         # Tracks the last time a TrafficFrame was received.
@@ -54,12 +52,7 @@ class FailsafeManager:
         self._last_frame_time: Optional[float] = None
         self._failsafe_timeout: float = 0.30  # 300ms default, overridden by settings
 
-        # --- Fixed-Time Controller ---
-        self.fixed_time_controller = FixedTimeController(
-            green_duration=green_duration,
-            yellow_duration=yellow_duration,
-            all_red_duration=all_red_duration
-        )
+
 
         # --- Failsafe Statistics ---
         self._failsafe_activation_time: Optional[float] = None
@@ -71,15 +64,10 @@ class FailsafeManager:
 
     def load_topology(self, net_file_path: str):
         """
-        Pre-load the traffic light topology so the FixedTimeController
-        is ready to activate instantly when failsafe triggers.
-        Called when a new map is loaded or state is restored.
+        No-op since local Fixed-Time control was removed to keep CARINA agnostic.
+        Hardware controllers should handle their own topology for fallbacks.
         """
-        success = self.fixed_time_controller.load_topology(net_file_path)
-        if success:
-            logger.info("[FailsafeManager] Topology pre-loaded for failsafe readiness.")
-        else:
-            logger.warning("[FailsafeManager] Failed to pre-load topology. Failsafe will only log, not model.")
+        pass
 
     def record_frame_received(self):
         """
@@ -120,8 +108,8 @@ class FailsafeManager:
             self.failsafe_active = True
             self.current_operation_mode = "WATCHDOG"
 
-            # Activate Fixed-Time Controller
-            self.fixed_time_controller.activate()
+            # TODO: Emit command to hardware controller to activate ALL_RED then local fixed-plans
+            logger.critical("[FailsafeManager] ⚠️ COMMANDING LOCAL CONTROLLER: Execute ALL_RED transition followed by local fixed-time plans.")
 
             # Report Critical Incident to External Monitor (MQTT)
             if self.monitor_client:
@@ -129,9 +117,11 @@ class FailsafeManager:
                     self.monitor_client.report_incident(
                         category="SOFTWARE",
                         level="CRITICAL",
-                        message=(
-                            f"Watchdog timeout triggered (>{self._failsafe_timeout * 1000:.0f}ms silence). "
-                            f"Switching to Fixed-Time fallback. Event #{self._total_failsafe_events}."
+                        message=self.locale_manager.get_string(
+                            "monitor.watchdog_trigger",
+                            default="Watchdog timeout triggered (>{timeout}ms silence). Switching to Fixed-Time fallback. Event #{event}.",
+                            timeout=f"{self._failsafe_timeout * 1000:.0f}",
+                            event=self._total_failsafe_events
                         )
                     )
                 except Exception as e:
@@ -152,8 +142,8 @@ class FailsafeManager:
                 f"Resuming AI Neural Network control."
             )
 
-            # Deactivate Fixed-Time Controller (goes to ALL_RED for safe handoff)
-            self.fixed_time_controller.deactivate()
+            # TODO: Emit command to hardware controller to resume remote control
+            logger.info("[FailsafeManager] ✅ COMMANDING LOCAL CONTROLLER: Resume remote AI control.")
 
             self.failsafe_active = False
             self.current_operation_mode = "AUTOMATIC"
@@ -164,9 +154,10 @@ class FailsafeManager:
                     self.monitor_client.report_incident(
                         category="SOFTWARE",
                         level="INFO",
-                        message=(
-                            f"Synapse signal restored after {elapsed:.1f}s. "
-                            f"Watchdog mode disabled, resuming AI Neural Network."
+                        message=self.locale_manager.get_string(
+                            "monitor.synapse_restored",
+                            default="Synapse signal restored after {elapsed}s. Watchdog mode disabled, resuming AI Neural Network.",
+                            elapsed=f"{elapsed:.1f}"
                         )
                     )
                 except Exception as e:
@@ -183,16 +174,11 @@ class FailsafeManager:
 
     def tick(self) -> Dict[str, str]:
         """
-        Advance the fixed-time controller (only when failsafe is active).
-        Called from CentralController main loop.
-        
-        Returns:
-            Dict of {tls_id: state_string} for intersections that changed state.
+        Advance the failsafe state.
+        Since local fixed-time control was removed, this just returns empty.
+        Hardware handles its own ticking during failsafe.
         """
-        if not self.failsafe_active:
-            return {}
-
-        return self.fixed_time_controller.tick()
+        return {}
 
     def get_status(self) -> Dict:
         """Returns complete failsafe status for dashboard/telemetry."""
@@ -200,5 +186,5 @@ class FailsafeManager:
             "operation_mode": self.current_operation_mode,
             "failsafe_active": self.failsafe_active,
             "total_failsafe_events": self._total_failsafe_events,
-            "fixed_time": self.fixed_time_controller.get_status_summary()
+            "fixed_time": {} # Kept for dashboard compatibility
         }

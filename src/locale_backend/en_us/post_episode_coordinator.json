@@ -1,0 +1,15 @@
+{
+  "post_episode_coordinator": {
+    "init": {
+      "created": "[POST_EPISODE_COORDINATOR] Shift Manager (AI + DB mode) created."
+    },
+    "run": {
+      "no_metrics_warning": "[POST_EPISODE] No metrics received from the episode. Skipping tasks.",
+      "db_queue_error": "[POST_EPISODE] Failed to send metrics to DB queue: {error}"
+    },
+    "checkpoint": {
+      "reason_promotion": "Agent Promotion",
+      "reason_periodic": "Episode {episode}"
+    }
+  }
+}

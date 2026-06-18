@@ -1,0 +1,27 @@
+{
+  "warrant_evaluator": {
+    "init": {
+      "evaluator_created": "[WARRANT_EVALUATOR] Engenheiro de Análise criado."
+    },
+    "evaluate": {
+      "diagnostics_start": "[DIAGNÓSTICO] Avaliando Junção '{id}'. É um semáforo real? {is_real}",
+      "diagnostics_final": "[DIAGNÓSTICO FINAL] Resultado para '{id}': \n{result}"
+    },
+    "has_tl": "Controlado por semáforo",
+    "no_tl": "Não sinalizado",
+    "status_with_tl": "Controlado por semáforo",
+    "status_without_tl": "Não sinalizado (tipo: {type})",
+    "rec_remove": "REMOVER Semáforo",
+    "rec_keep": "MANTER Semáforo",
+    "rec_add": "ADICIONAR Semáforo",
+    "just_remove": "Nenhum warrant foi satisfeito e o volume está abaixo do limiar de remoção.",
+    "just_keep": "Pelo menos um warrant foi satisfeito ou o volume é suficiente para justificar a manutenção.",
+    "just_add": "Pelo menos um warrant (volume, atraso ou segurança) foi satisfeito.",
+    "justify_remove_no_warrants": "Nenhum dos 4 warrants de engenharia de tráfego foi satisfeito. O semáforo é desnecessário.",
+    "justify_remove_low_volume": "Volume abaixo do limiar de remoção e insuficiência de warrants satisfeitos.",
+    "justify_keep": "{count} warrant(s) satisfeito(s). Justifica a manutenção do semáforo.",
+    "justify_add": "{count} warrants satisfeitos. A instalação de semáforo é matematicamente justificada.",
+    "justify_add_saturation": "Grau de saturação (X > 0.85) indica colapso técnico. Intervenção é uma necessidade.",
+    "justify_keep_no_tl": "Apenas {count} warrant(s) satisfeito(s). Insuficiente para justificar a instalação."
+  }
+}

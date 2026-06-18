@@ -1,0 +1,20 @@
+{
+  "childhood_analyzer": {
+    "init": {
+      "analyzer_created": "[CHILDHOOD_ANALYZER] Analista do Ambiente criado."
+    },
+    "cache": {
+      "found": "[CHILDHOOD] Cache da análise de infância encontrado em: {path}",
+      "loading": "[CHILDHOOD] A carregar perfis de tráfego e baseline a partir do cache.",
+      "load_error": "[CHILDHOOD] Erro ao carregar o cache da análise de infância: {error}",
+      "saving": "[CHILDHOOD] A salvar perfis de tráfego e baseline para o cache.",
+      "save_error": "[CHILDHOOD] Erro ao salvar o cache da análise de infância: {error}"
+    },
+    "run": {
+      "no_rules_warning": "[CHILDHOOD] Nenhuma regra de horário encontrada nas configurações. Retornando perfis padrão.",
+      "start": "[CHILDHOOD] Análise de tráfego da 'infância' iniciada...",
+      "analyzing_episodes": "   L- A analisar {count} episódios.",
+      "complete": "[CHILDHOOD] Análise de infância concluída. Média de recompensa base (baseline): {reward}"
+    }
+  }
+}

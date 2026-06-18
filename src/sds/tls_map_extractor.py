@@ -127,35 +127,39 @@ class TlsMapExtractor:
         state_str = phases[phase_idx]
         connections = cls._tl_connections[tl_id]
         
-        # Group all link colors by their parent incoming edge
-        edge_links = {}
         for link_idx, data in connections.items():
             if link_idx < len(state_str):
                 edge_id = data['edge']
-                direction = data['dir']
+                direction = data['dir'].upper()
                 color = state_str[link_idx]
                 
-                if edge_id not in edge_links:
-                    edge_links[edge_id] = {}
-                edge_links[edge_id][direction] = color
-
-        # Determine the final color for the edge based on movement priority
-        for edge_id, dirs in edge_links.items():
-            if 's' in dirs:    # 1. Prioritize Straight movement
-                target_color = dirs['s']
-            elif 'l' in dirs:  # 2. Fallback to Left turn
-                target_color = dirs['l']
-            elif 'r' in dirs:  # 3. Fallback to Right turn
-                target_color = dirs['r']
-            else:              # 4. Any remaining logic
-                target_color = list(dirs.values())[0]
-
-            # Normalize output color for the UI
-            if target_color.lower() == 'g':
-                edge_colors[edge_id] = 'G'
-            elif target_color.lower() == 'y':
-                edge_colors[edge_id] = 'y'
-            else:
-                edge_colors[edge_id] = 'r' # Defaults to red for stop/unknown states
+                focal_group = f"{edge_id} ({direction})"
                 
+                # Normalize color
+                if color.lower() == 'g':
+                    norm_color = 'G'
+                elif color.lower() == 'y':
+                    norm_color = 'y'
+                else:
+                    norm_color = 'r'
+                    
+                # Prioritize Green > Yellow > Red for the same focal group
+                if focal_group not in edge_colors:
+                    edge_colors[focal_group] = norm_color
+                else:
+                    if norm_color == 'G':
+                        edge_colors[focal_group] = 'G'
+                    elif norm_color == 'y' and edge_colors[focal_group] == 'r':
+                        edge_colors[focal_group] = 'y'
+
         return edge_colors
+        
+    @classmethod
+    def get_all_focal_groups_for_tl(cls, tl_id: str) -> list:
+        if tl_id not in cls._tl_connections:
+            return []
+        
+        groups = set()
+        for data in cls._tl_connections[tl_id].values():
+            groups.add(f"{data['edge']} ({data['dir'].upper()})")
+        return list(groups)

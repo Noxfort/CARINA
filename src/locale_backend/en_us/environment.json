@@ -1,0 +1,14 @@
+{
+  "environment": {
+    "init": {
+      "maestro_created": "The environment's 'Maestro' (SumoEnvironment) was created."
+    },
+    "connect": {
+      "success": "Environment specialists (StateExtractor, etc.) successfully initialized for scenario: {scenario}"
+    },
+    "reset": {
+      "start": "Starting environment reset...",
+      "success": "Environment successfully reset."
+    }
+  }
+}

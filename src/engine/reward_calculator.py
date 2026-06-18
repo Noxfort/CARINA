@@ -40,13 +40,11 @@ class RewardCalculator:
             reward_weights_section = settings['REWARD_WEIGHTS']
             self.reward_weights = {
                 'waiting_time': reward_weights_section.getfloat('weight_waiting_time'),
-                'flow': reward_weights_section.getfloat('weight_flow'),
-                'emergency_brake': reward_weights_section.getfloat('weight_emergency_brake'),
-                'teleport': reward_weights_section.getfloat('weight_teleport')
+                'flow': reward_weights_section.getfloat('weight_flow')
             }
         except (configparser.NoSectionError, KeyError):
             logging.error(lm.get_string("reward_calculator.init.config_error"))
-            self.reward_weights = {'waiting_time': -1.0, 'flow': 1.0, 'emergency_brake': -10.0, 'teleport': -10.0}
+            self.reward_weights = {'waiting_time': -1.0, 'flow': 1.0}
 
         logging.info(lm.get_string("reward_calculator.init.judge_created"))
         logging.info(lm.get_string("reward_calculator.init.weights_loaded", weights=self.reward_weights))
@@ -62,12 +60,7 @@ class RewardCalculator:
 
         total_flow_this_step = 0
 
-        teleport_penalty = current_batch.get('sim_starting_teleports_len', 0) * self.reward_weights['teleport']
-        emergency_penalty = current_batch.get('sim_emergency_stops_len', 0) * self.reward_weights['emergency_brake']
-        global_penalty = teleport_penalty + emergency_penalty
 
-        if global_penalty < 0:
-            logging.debug(self.locale_manager.get_string("reward_calculator.batch.global_penalties", penalty=f"{global_penalty:.2f}"))
 
         for tl_id in traffic_light_ids:
             controlled_lanes = current_batch.get('tls_controlled_lanes', {}).get(tl_id, [])
@@ -82,8 +75,7 @@ class RewardCalculator:
             total_flow_this_step += flow_bonus
 
             rewards[tl_id] = (waiting_time * self.reward_weights['waiting_time']) + \
-                             (flow_bonus * self.reward_weights['flow']) + \
-                             global_penalty
+                             (flow_bonus * self.reward_weights['flow'])
         
         self.last_step_total_flow = total_flow_this_step
         return rewards

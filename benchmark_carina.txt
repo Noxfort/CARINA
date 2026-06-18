@@ -1,0 +1,25 @@
+==================================================
+RELATÓRIO DE REQUISITOS DE HARDWARE - CARINA CORE
+==================================================
+
+1. INFORMAÇÕES TÉCNICAS GERAIS
+--------------------------------------------------
+Sistema Operacional : Suporta Linux 6.17.0-35-generic (64bit) ou superior.
+Arquitetura         : Exige 64-bit obrigatoriamente.
+Conexão c/ Internet : Requer banda larga (Estimativa: 1 Mbps).
+Dependências        : Python 3.8+, bibliotecas do requirements.txt.
+
+2. MÉTRICAS BRUTAS OBTIDAS (TESTE COM 70 SEMÁFOROS MOCK)
+--------------------------------------------------
+- RAM Utilizada (S/ SO): 6051.0 MB
+- VRAM (GPU) Utilizada: 1154.0 MB
+- Uso Máximo de CPU (Threads): 233.7%
+
+3. REQUISITOS DE HARDWARE RECOMENDADOS (Porte: Cidade Média)
+--------------------------------------------------
+Processador (CPU)   : 8 Núcleos reais (ou threads lógicas)
+Memória (RAM)       : 24 GB (Já inclui folga e uso do sistema operacional)
+Armazenamento       : 16 GB (HDD Suportado, SSD Recomendado)
+Placa de Vídeo (GPU): Dedicada com 4 GB VRAM
+
+==================================================

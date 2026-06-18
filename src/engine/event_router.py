@@ -119,5 +119,12 @@ class EventRouter:
                 self.trainer.current_map_path, self.trainer.agents, self.trainer.strategist
             )
             
+        elif module == "hardware" and func == "toggle_connection":
+            self.trainer.connection_manager.toggle_connection(args[0], args[1])
+
+        elif module == "hardware" and func == "apply_override":
+            if self.trainer.action_supervisor:
+                self.trainer.action_supervisor.apply_hardware_override(args[0], args[1])
+            
         elif module == "system" and func == "shutdown":
             self.trainer.is_running = False

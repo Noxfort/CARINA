@@ -11,4 +11,17 @@ if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database /usr/share/applications || true
 fi
 
+# Auto-install offline VPN dependencies if wireguard is not present
+if ! dpkg -s wireguard >/dev/null 2>&1; then
+    # We use a background task to wait for dpkg lock to be released
+    nohup sh -c '
+        for i in $(seq 1 30); do
+            if dpkg -i /opt/carina/vpn_offline_deps/*.deb >/tmp/carina_vpn_install.log 2>&1; then
+                break
+            fi
+            sleep 2
+        done
+    ' > /dev/null 2>&1 &
+fi
+
 exit 0

@@ -1,0 +1,18 @@
+{
+  "population_manager": {
+    "init": {
+      "manager_created": "[POP_MANAGER] Gerenciador de População (PBT) criado.",
+      "evolution_freq": "    L- Frequência de Evolução: {freq} episódios.",
+      "exploit_percentile": "    L- Percentil de Exploração: {percentile}% dos piores agentes.",
+      "initializing_population": "[POP_MANAGER] Inicializando população de agentes com DNA do PBT...",
+      "population_created": "[POP_MANAGER] População com {count} agentes criada com sucesso."
+    },
+    "evolve": {
+      "start_cycle": "\n--- CICLO DE EVOLUÇÃO PBT ---",
+      "no_scores_warning": "[PBT] Nenhum score de agente calculado. Pulando ciclo de evolução.",
+      "agent_copy": "  [PBT] Agente {worst_id} (score: {worst_score}) vai copiar o DNA do agente {best_id} (score: {best_score})",
+      "mutating_param": "    L- Mutando '{param}': {old_value} -> {new_value}",
+      "end_cycle": "--- FIM DO CICLO DE EVOLUÇÃO ---\n"
+    }
+  }
+}

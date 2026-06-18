@@ -213,6 +213,6 @@ class SumoEnvironment:
         return self.state_extractor.get_observation_space_size_for_tl(tl_id) if self.state_extractor else 0
 
     def get_num_green_phases_for_tl(self, tl_id: str) -> int:
-        """Delegates the retrieval of the number of green phases to the StateExtractor."""
+        """Delegates the retrieval of the number of green stages to the StateExtractor."""
         # Note: StateExtractor now uses self.conn (proxy) and internal cache
         return self.state_extractor._get_green_phases_for_tl(tl_id) if self.state_extractor else 0 # Call curly method

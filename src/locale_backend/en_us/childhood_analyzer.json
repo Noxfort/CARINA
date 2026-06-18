@@ -1,0 +1,20 @@
+{
+  "childhood_analyzer": {
+    "init": {
+      "analyzer_created": "[CHILDHOOD_ANALYZER] Environment Analyzer created."
+    },
+    "cache": {
+      "found": "[CHILDHOOD] Childhood analysis cache found in: {path}",
+      "loading": "[CHILDHOOD] Loading traffic profiles and baseline from cache.",
+      "load_error": "[CHILDHOOD] Error loading childhood analysis cache: {error}",
+      "saving": "[CHILDHOOD] Saving traffic profiles and baseline to cache.",
+      "save_error": "[CHILDHOOD] Error saving childhood analysis cache: {error}"
+    },
+    "run": {
+      "no_rules_warning": "[CHILDHOOD] No schedule rules found in settings. Returning default profiles.",
+      "start": "[CHILDHOOD] 'Childhood' traffic analysis started...",
+      "analyzing_episodes": "   L- Analyzing {count} episodes.",
+      "complete": "[CHILDHOOD] Childhood analysis completed. Baseline mean reward: {reward}"
+    }
+  }
+}

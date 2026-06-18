@@ -1,0 +1,42 @@
+{
+  "sds_processor": {
+    "init": {
+      "processor_created": "[SDS_PROCESSOR] Processador de Dados (modo Canvas/JSON) criado."
+    }
+  },
+  "sds_orchestrator": {
+    "init": {
+      "orchestrator_created": "[SDS_ORCH] Orquestrador do SDS criado e especialistas instanciados."
+    },
+    "run": {
+      "ws_thread_started": "[SDS_ORCH] Thread do servidor WebSocket iniciada.",
+      "main_loop_start": "[SDS_ORCH] Entrando no loop principal de processamento de dados.",
+      "interrupt_received": "[SDS_ORCH] Sinal de interrupção recebido. Encerrando o orquestrador.",
+      "fatal_error": "[SDS_ORCH] Erro fatal no loop do orquestrador: {error}",
+      "orchestrator_finished": "[SDS_ORCH] Orquestrador do SDS finalizado."
+    }
+  },
+  "sds_websocket": {
+    "register": {
+      "client_connected": "[SDS_WS] Novo cliente conectado: {address}"
+    },
+    "unregister": {
+      "client_disconnected": "[SDS_WS] Cliente {address} desconectado."
+    },
+    "handler": {
+      "command_received": "[SDS_WS] Comando recebido da UI: {command}",
+      "invalid_json": "[SDS_WS] Mensagem inválida (não-JSON) recebida de {address}",
+      "queue_full": "[SDS_WS] Fila de comandos da UI está cheia. Comando da UI foi descartado."
+    },
+    "main_loop": {
+      "server_started": "[SDS_WS] Servidor WebSocket do SDS iniciado em ws://{host}:{port}"
+    }
+  },
+  "sds_worker": {
+    "run": {
+      "user_interrupt": "[SDS_WORKER] Processo do SDS encerrado pelo usuário.",
+      "fatal_error": "[SDS_WORKER] Erro fatal e não tratado no worker do SDS: {error}",
+      "worker_finished": "[SDS_WORKER] Processo do SDS finalizado."
+    }
+  }
+}

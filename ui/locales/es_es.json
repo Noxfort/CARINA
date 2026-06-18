@@ -228,5 +228,43 @@
     },
     "explanation_viewer": {
         "no_data": "Ningún informe detallado disponible."
+    },
+    "security": {
+        "auth_required": "Autenticación Requerida",
+        "username": "Nombre de Usuario",
+        "password": "Contraseña",
+        "cancel": "Cancelar",
+        "authenticate": "Autenticar",
+        "superuser": "Súper Usuario",
+        "system_locked": "SISTEMA BLOQUEADO",
+        "system_locked_lockdown": "SISTEMA BLOQUEADO (LOCKDOWN)",
+        "system_locked_desc1": "Demasiados intentos fallidos. Infraestructura física aislada.",
+        "system_locked_desc2": "Múltiples intentos de acceso inválidos. Control autónomo y conexiones de hardware deshabilitadas.",
+        "system_locked_desc3": "Los semáforos están operando en sus planes locales seguros.",
+        "unlock_system": "DESBLOQUEAR SISTEMA",
+        "auth_superuser": "AUTENTICAR COMO SÚPER USUARIO",
+        "err_fill_fields": "Llene ambos campos.",
+        "err_superuser_only": "Solo los Súper Usuarios pueden desbloquear el sistema."
+    },
+    "accounts": {
+        "title": "Gestión de Cuentas",
+        "access_level": "Nivel de Acceso",
+        "operator": "Operador (Acceso Estándar)",
+        "superuser": "Súper Usuario (Acceso Total)",
+        "add_user": "Añadir Usuario",
+        "refresh_list": "Actualizar Lista",
+        "add_new_account": "Añadir Nueva Cuenta:",
+        "registered_accounts": "Cuentas Registradas:",
+        "remove_user": "Eliminar",
+        "success_action": "¡Acción ({action_type}) completada con éxito!",
+        "fail_action": "Falló la acción ({action_type}). Verifique los datos o si el usuario ya existe."
+    },
+    "audit": {
+        "title": "Registros de Auditoría",
+        "date_time": "Fecha/Hora",
+        "user": "Usuario",
+        "action": "Acción",
+        "details": "Detalles",
+        "refresh": "Actualizar"
     }
 }

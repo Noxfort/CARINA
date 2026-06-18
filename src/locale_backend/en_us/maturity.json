@@ -1,0 +1,47 @@
+{
+  "maturity_manager": {
+    "init": {
+      "manager_created": "[MATURITY_MANAGER] Piloting School Director created.",
+      "performance_target": "   L- Graduation Performance Target (Baseline): Reward > {target}"
+    },
+    "register": {
+      "agents_registered": "[MATURITY_MANAGER] {count} agents registered in phase: {phase}."
+    },
+    "calibration": {
+      "thresholds_updated": "[MATURITY_MANAGER] Confidence limits for ADULT received from Calibrator and activated."
+    },
+    "save": {
+      "success": "[MATURITY_MANAGER] Maturity state successfully saved in: {path}",
+      "error": "[MATURITY_MANAGER] Error saving maturity state: {error}"
+    },
+    "load": {
+      "not_found": "[MATURITY_MANAGER] Maturity state file not found at '{path}'. Starting from scratch.",
+      "success": "[MATURITY_MANAGER] Maturity state successfully loaded from '{path}'.",
+      "error": "[MATURITY_MANAGER] Error loading maturity state: {error}"
+    },
+    "phase_child": "Childhood",
+    "phase_teen": "Adolescence",
+    "phase_adult": "Adult",
+    "criterion_time": "Criterion: Time in Service",
+    "criterion_performance": "Criterion: Performance",
+    "criterion_confidence": "Criterion: Confidence",
+    "time_details": "{episodes_in_phase} of {required_episodes} episodes completed",
+    "performance_details": "Average {mean_performance:.2f} > Target {baseline_target:.2f}",
+    "confidence_details": "Entropy {agent_entropy:.2f} < Limit {entropy_threshold:.2f}",
+    "new_phase_message": "New Phase: {phase_name}",
+    "criteria_met_header": "Criteria Met:",
+    "promotion_not_met_message": "did not meet the requirements for promotion to phase {target_phase_name}",
+    "criteria_status_header": "Criteria Status:"
+  },
+  "maturity_reporter": {
+    "promotion": {
+      "title_graduated": "GRADUATED",
+      "title_promoted": "PROMOTED",
+      "header": "🎓 {title} | Agent: {agent_id}"
+    },
+    "rejection": {
+      "title": "Evaluation Report Card",
+      "header": "📝 {title} | Agent: {agent_id} (Phase: {current_phase_name})"
+    }
+  }
+}

@@ -40,43 +40,66 @@ class DriverFactory:
     """
 
     @staticmethod
-    def create_and_connect_driver(ip_address: str, port: int, community_string: str = 'public') -> Optional[BaseTrafficDriver]:
+    def create_and_connect_driver(ip_address: str, port: int, community_string: str = 'public', intersection_id: str = "Desconhecido", green_stages: list = None) -> Optional[BaseTrafficDriver]:
         """
         Attempts a handshake with the target IP and Port to discover its protocol.
-        If successful, starts the heartbeat failsafe and returns the driver instance.
+        First sends an SNMP GET for sysDescr (1.3.6.1.2.1.1.1.0) to ask which protocol the controller speaks.
+        If unrecognized, falls back to probing protocol-specific telemetry OIDs.
         """
         logger.info(f"[{ip_address}:{port}] Starting protocol discovery (Handshake)...")
 
         # ---------------------------------------------------------
-        # 1. First Attempt: Test NTCIP
+        # 1. Ask the controller directly what protocol it speaks via sysDescr
         # ---------------------------------------------------------
-        logger.debug(f"[{ip_address}:{port}] Sending Handshake using NTCIP...")
-        ntcip_driver = NtcipDriver(ip_address, port, community_string)
-        
-        # Test a basic NTCIP read (e.g., fetching active greens)
-        success_ntcip, _ = ntcip_driver.snmp_get(NtcipDriver.OID_PHASE_STATUS_GREENS)
+        logger.debug(f"[{ip_address}:{port}] Querying sysDescr (1.3.6.1.2.1.1.1.0) for protocol discovery...")
+        temp_driver = NtcipDriver(ip_address, port, intersection_id, community_string, green_stages=green_stages)
+        success_descr, descr_val = temp_driver.snmp_get("1.3.6.1.2.1.1.1.0")
+
+        if success_descr:
+            descr_upper = str(descr_val).upper()
+            logger.info(f"[{ip_address}:{port}] Controller returned sysDescr: '{descr_val}'")
+            
+            if "NTCIP" in descr_upper:
+                logger.info(f"[{ip_address}:{port}] Protocol identified as NTCIP 1202 via sysDescr.")
+                ntcip_driver = NtcipDriver(ip_address, port, intersection_id, community_string, green_stages=green_stages)
+                ntcip_driver.start_heartbeat()
+                return ntcip_driver
+            elif "UTMC" in descr_upper:
+                logger.info(f"[{ip_address}:{port}] Protocol identified as UTMC2 via sysDescr.")
+                utmc_driver = UtmcDriver(ip_address, port, intersection_id, community_string, green_stages=green_stages)
+                utmc_driver.start_heartbeat()
+                return utmc_driver
+            else:
+                logger.warning(f"[{ip_address}:{port}] Unrecognized protocol in sysDescr. Falling back to active probing.")
+        else:
+            logger.warning(f"[{ip_address}:{port}] Direct protocol query failed ({descr_val}). Falling back to active probing.")
+
+        # ---------------------------------------------------------
+        # 2. Probe Fallback: Test NTCIP
+        # ---------------------------------------------------------
+        logger.debug(f"[{ip_address}:{port}] Probing NTCIP 1202...")
+        ntcip_driver = NtcipDriver(ip_address, port, intersection_id, community_string, green_stages=green_stages)
+        success_ntcip, _ = ntcip_driver.snmp_get(ntcip_driver.oids["telemetry"].get("status_greens"))
         
         if success_ntcip:
-            logger.info(f"[{ip_address}:{port}] Handshake successful! Protocol identified as NTCIP 1202.")
+            logger.info(f"[{ip_address}:{port}] Probe successful! Protocol identified as NTCIP 1202.")
             ntcip_driver.start_heartbeat()
             return ntcip_driver
 
         # ---------------------------------------------------------
-        # 2. Second Attempt: Test UTMC2 (If NTCIP failed)
+        # 3. Probe Fallback: Test UTMC2
         # ---------------------------------------------------------
-        logger.debug(f"[{ip_address}:{port}] NTCIP failed. Sending Handshake using UTMC2...")
-        utmc_driver = UtmcDriver(ip_address, port, community_string)
-        
-        # Test a basic UTMC read (e.g., fetching active stages)
-        success_utmc, _ = utmc_driver.snmp_get(UtmcDriver.OID_STAGE_STATUS_ACTIVE)
+        logger.debug(f"[{ip_address}:{port}] Probing UTMC2...")
+        utmc_driver = UtmcDriver(ip_address, port, intersection_id, community_string, green_stages=green_stages)
+        success_utmc, _ = utmc_driver.snmp_get(utmc_driver.oids["telemetry"].get("status_active"))
 
         if success_utmc:
-            logger.info(f"[{ip_address}:{port}] Handshake successful! Protocol identified as UTMC2.")
+            logger.info(f"[{ip_address}:{port}] Probe successful! Protocol identified as UTMC2.")
             utmc_driver.start_heartbeat()
             return utmc_driver
 
         # ---------------------------------------------------------
-        # 3. Fallback: Both attempts failed
+        # 4. Fallback: Both attempts failed
         # ---------------------------------------------------------
-        logger.error(f"[{ip_address}:{port}] Discovery failed. The controller did not respond to NTCIP or UTMC2 OIDs.")
+        logger.error(f"[{ip_address}:{port}] Discovery failed. The controller did not respond to protocol queries or probes.")
         return None

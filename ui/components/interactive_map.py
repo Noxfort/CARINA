@@ -21,10 +21,11 @@
 import flet as ft
 import flet.canvas as cv
 import math
+import time
 
 from ui.handlers.map_interaction_handler import MapInteractionHandler
-from ui.handlers.map_asset_loader import MapAssetLoader
-from ui.handlers.planning_map_renderer import PlanningMapRenderer
+from ui.loader.map_asset_loader import MapAssetLoader
+from ui.renderers.planning_map_renderer import PlanningMapRenderer
 
 class InteractiveMap(ft.Container):
     """
@@ -41,6 +42,7 @@ class InteractiveMap(ft.Container):
         
         self.topology = None
         self.drawn_nodes_cache = [] 
+        self.recommendations = {}
         
         self.base_width = 1200
         self.base_height = 800
@@ -72,6 +74,13 @@ class InteractiveMap(ft.Container):
              self.last_mouse_x = e.local_x
              self.last_mouse_y = e.local_y
 
+        self._last_right_click_time = 0.0
+        def _on_secondary_tap_down(e):
+            current_time = time.time()
+            if current_time - self._last_right_click_time < 0.3:
+                self.interaction_handler.center_and_reset_zoom()
+            self._last_right_click_time = current_time
+
         self.gesture_detector = ft.GestureDetector(
             content=ft.Container(
                 content=self.map_stack, 
@@ -82,6 +91,7 @@ class InteractiveMap(ft.Container):
             on_pan_update=self.interaction_handler.handle_pan_update,
             on_scroll=lambda e: self.interaction_handler.handle_zoom(e, self.last_mouse_x, self.last_mouse_y),
             on_double_tap=lambda e: self.interaction_handler.center_and_reset_zoom(),
+            on_secondary_tap_down=_on_secondary_tap_down,
             on_tap_down=self._handle_tap,
             drag_interval=10
         )
@@ -108,13 +118,21 @@ class InteractiveMap(ft.Container):
         else:
             print(f"[InteractiveMap Orchestrator] Map Asset Loader failed to find topology.")
 
+    def set_recommendations(self, recs: dict):
+        """Atualiza as recomendações e re-renderiza o mapa com as novas cores."""
+        self.recommendations = recs
+        if self.topology:
+            self._draw()
+            self.update()
+
     def _draw(self):
         """Requests PlanningMapRenderer to flush pixels onto the Stack Canvas."""
         self.renderer.draw_topology(
             topology=self.topology,
             canvas_static=self.canvas_static,
             canvas_dynamic=self.canvas_dynamic,
-            drawn_nodes_cache=self.drawn_nodes_cache
+            drawn_nodes_cache=self.drawn_nodes_cache,
+            recommendations=self.recommendations
         )
 
     def _handle_tap(self, e: ft.TapEvent):

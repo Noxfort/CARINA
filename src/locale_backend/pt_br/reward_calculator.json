@@ -1,0 +1,8 @@
+{
+  "reward_calculator": {
+    "init": {
+      "judge_created": "O 'Juiz' do ambiente (RewardCalculator) foi criado.",
+      "weights_loaded": "Pesos de recompensa carregados: {weights}"
+    }
+  }
+}

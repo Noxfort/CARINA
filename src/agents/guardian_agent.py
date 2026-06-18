@@ -48,19 +48,20 @@ class GuardianAgent:
     """
     
     # Action Constants
-    ACTION_KEEP_PHASE = 0
-    ACTION_CHANGE_PHASE = 1
+    ACTION_KEEP_STAGE = 0
+    ACTION_CHANGE_STAGE = 1
     
     # Temporal depth for spillback projection
     TEMPORAL_SEQ_LEN = 8
 
-    def __init__(self, aiconfig: Any, traffic_rules_config: Any, locale_manager: 'LocaleManagerBackend', shared_pae: Optional[PredictiveAutoencoder] = None) -> None:
+    def __init__(self, aiconfig: Any, traffic_rules_config: Any, locale_manager: 'LocaleManagerBackend', shared_pae: Optional[PredictiveAutoencoder] = None, n_observations: int = 2) -> None:
         """
         Args:
             aiconfig: Configuration section for AI hyperparameters.
             traffic_rules_config: Configuration section [TRAFFIC_RULES] from settings.ini.
             locale_manager: Backend locale manager.
             shared_pae: Reference to the shared Universal PAE (may be None).
+            n_observations: Observation space size.
         """
         self.locale_manager = locale_manager
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -74,14 +75,15 @@ class GuardianAgent:
         self.state_deques: Dict[str, deque] = {}
         
         # --- Configurable Safety Rules (Symbolic Layer) ---
-        self.min_green_time = SafetyRules.get_min_green()
+        self.green_time = SafetyRules.get_green()
         self.yellow_time = SafetyRules.get_yellow()
         self.all_red_time = SafetyRules.get_all_red()
+        self.red_time = SafetyRules.get_red()
         
-        logging.info(f"[GUARDIAN] Initialized with Safety Rules -> Min Green: {self.min_green_time}s | Yellow: {self.yellow_time}s | All-Red: {self.all_red_time}s")
+        logging.info(f"[GUARDIAN] Initialized with Safety Rules -> Green: {self.green_time}s | Yellow: {self.yellow_time}s | All-Red: {self.all_red_time}s | Red: {self.red_time}s")
 
         # --- Neural Layer (D3QN + TCN + PAE Fusion) ---
-        self.n_observations = 2  # Default observation size for guardian
+        self.n_observations = n_observations
         self.policy_net = D3QN_TCN(
             n_observations=self.n_observations,
             n_actions=2,
@@ -162,46 +164,50 @@ class GuardianAgent:
         
         # 1. Symbolic layer (Hard constraints)
         sym_action, sym_reason = self.symbolic_audit(context)
-        if sym_action == self.ACTION_KEEP_PHASE:
+        if sym_action == self.ACTION_KEEP_STAGE:
             return sym_action, sym_reason
             
         # 2. Neural layer (Spillback projection)
         risk_level = self.evaluate_spillback_risk(state, tl_id)
         if risk_level >= 1.0:
-            return self.ACTION_KEEP_PHASE, "High spillback risk detected (Neural)"
+            return self.ACTION_KEEP_STAGE, "High spillback risk detected (Neural)"
             
-        return self.ACTION_CHANGE_PHASE, "Neuro-Symbolic audit passed"
+        return self.ACTION_CHANGE_STAGE, "Neuro-Symbolic audit passed"
 
     def symbolic_audit(self, context: Dict[str, Any]) -> Tuple[int, str]:
         """
         Executes the instantaneous safety firewall rules.
         Returns: Tuple of (Action, Reason String). Action 0 = Veto. Action 1 = Allow.
         """
-        current_phase_duration = context.get('current_phase_duration', 0.0)
-        current_phase_state = context.get('current_phase_state', 'G').upper()
-        next_phase_has_flow = context.get('next_phase_has_flow', True)
+        current_stage_duration = context.get('current_stage_duration', 0.0)
+        current_stage_state = context.get('current_stage_state', 'G').upper()
+        next_stage_has_flow = context.get('next_stage_has_flow', True)
         
-        has_y = 'Y' in current_phase_state
-        has_g = 'G' in current_phase_state
+        has_y = 'Y' in current_stage_state
+        has_g = 'G' in current_stage_state
         
         if has_y:
             # Rule: Yellow Time Violation
-            if current_phase_duration < self.yellow_time:
-                return self.ACTION_KEEP_PHASE, "Yellow clearance rule"
+            if current_stage_duration < self.yellow_time:
+                return self.ACTION_KEEP_STAGE, "Minimum Yellow limits"
         elif has_g:
             # Rule: Minimum Green Time Violation
-            if current_phase_duration < self.min_green_time:
-                return self.ACTION_KEEP_PHASE, "Minimum Green limits"
+            if current_stage_duration < self.green_time:
+                return self.ACTION_KEEP_STAGE, "Minimum Green limits"
             # Rule 2: No Flow / Empty Road (Ghost Green)
-            if not next_phase_has_flow:
-                return self.ACTION_KEEP_PHASE, "Ghost Green constraint"
+            if not next_stage_has_flow:
+                return self.ACTION_KEEP_STAGE, "Ghost Green constraint"
         else:
-            # If it has neither Y nor G, it's an All-Red phase
-            # Rule: All-Red Time Violation
-            if current_phase_duration < self.all_red_time:
-                return self.ACTION_KEEP_PHASE, "All-Red clearance rule"
+            # If it has neither Y nor G, it's a Red stage
+            is_clearance_red = context.get('is_clearance_red', True)
+            threshold = self.all_red_time if is_clearance_red else self.red_time
+            
+            # Rule: Red Time Violation
+            if current_stage_duration < threshold:
+                reason = "Minimum All Red limits" if is_clearance_red else "Minimum Red limits"
+                return self.ACTION_KEEP_STAGE, reason
 
-        return self.ACTION_CHANGE_PHASE, "Symbolic audit passed"
+        return self.ACTION_CHANGE_STAGE, "Symbolic audit passed"
 
     def evaluate_spillback_risk(self, state: List[float], tl_id: str) -> float:
         """
@@ -225,13 +231,13 @@ class GuardianAgent:
                 # We return the Q-value difference. If KEEP_PHASE (0) is much higher than CHANGE_PHASE (1), risk is high.
                 # Actually, returning the chosen action is simpler.
                 neural_action = q_values.max(1)[1].item()
-                if neural_action == self.ACTION_KEEP_PHASE:
+                if neural_action == self.ACTION_KEEP_STAGE:
                     return 1.0 # High risk (Veto)
                 return 0.0 # Low risk (Allow)
         else:
             # Random exploration
             rand_action = random.randrange(2)
-            if rand_action == self.ACTION_KEEP_PHASE:
+            if rand_action == self.ACTION_KEEP_STAGE:
                 return 1.0
             return 0.0
 

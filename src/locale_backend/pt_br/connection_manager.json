@@ -1,0 +1,24 @@
+{
+  "connection_manager": {
+    "import": {
+      "sumo_tools_path": "Caminho para as ferramentas do SUMO adicionado: {path}",
+      "traci_loaded": "Módulo TraCI carregado com sucesso de: {path}",
+      "traci_critical_fail": "FALHA CRÍTICA: Não foi possível importar o TraCI. Verifique se a variável de ambiente 'SUMO_HOME' está configurada corretamente."
+    },
+    "init": {
+      "manager_created": "[CONN_MANAGER] Gerenciador de Conexão com SUMO criado."
+    },
+    "connect": {
+      "waiting_for_sumo": "Aguardando o SUMO carregar um cenário na porta {port}...",
+      "open_sumocfg_prompt": "Por favor, abra o SUMO e o seu arquivo .sumocfg.",
+      "success": "✅ SUCESSO: Conexão com SUMO estabelecida.",
+      "scenario_loaded": "   L- Cenário Carregado: {scenario}",
+      "fatal_error": "[CONN_MANAGER] Falha fatal ao conectar com o SUMO."
+    },
+    "close": {
+      "closing": "[CONN_MANAGER] Fechando conexão com o SUMO...",
+      "already_lost": "[CONN_MANAGER] Conexão com o SUMO já estava perdida ao tentar fechar.",
+      "no_connection": "[CONN_MANAGER] Nenhuma conexão ativa para fechar."
+    }
+  }
+}

@@ -122,7 +122,7 @@ class LocalAgent:
             'hyperparameters': self.hyperparams,
             'xai_memory': self.xai_memory,
             'n_observations': self.n_observations,
-            'maturity_stage': maturity_stage  # Maturity phase persistence
+            'maturity_stage': maturity_stage  # Maturity stage persistence
         }
         torch.save(checkpoint, filepath)
 
@@ -151,6 +151,22 @@ class LocalAgent:
             
             # Retrieves the saved maturity (default CHILD if it does not exist)
             saved_maturity = checkpoint.get('maturity_stage', "CHILD")
+            
+            # --- Dynamic Dimension Fallback ---
+            # If the checkpoint was trained with PAE but we don't have it,
+            # the state_dict will have a larger input dimension.
+            try:
+                state_dict = checkpoint['policy_net_state_dict']
+                # TCN first layer weight shape: [out_channels, in_channels, kernel_size]
+                in_channels = state_dict['tcn.network.0.conv1.weight_v'].shape[1]
+                if in_channels != (self.n_observations + self.pae_latent_dim):
+                    logging.warning(lm.get_string("local_agent.load.dim_mismatch", default="Dimension mismatch detected (Expected {exp}, found {fnd}). Rebuilding network.", exp=(self.n_observations + self.pae_latent_dim), fnd=in_channels))
+                    self.pae_latent_dim = in_channels - self.n_observations
+                    self._build_network()
+                    self._create_optimizer()
+            except KeyError:
+                pass
+
             
             self.update_hyperparameters(checkpoint['hyperparameters'])
             self.policy_net.load_state_dict(checkpoint['policy_net_state_dict'])

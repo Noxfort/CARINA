@@ -1,6 +1,22 @@
-# File: ui/dialogs/confirmation_dialog_manager.py (MODIFIED TO SUPPORT INFORMATIONAL DIALOGUE)
+# CARINA (Controlled Artificial Road-traffic Intelligence Network Architecture) is an open-source AI ecosystem for real-time, adaptive control of urban traffic light networks.
+# Copyright (C) 2026 Gabriel Moraes - Noxfort Systems
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+# File: ui/dialogs/confirmation_dialog_manager.py
 # Author: Gabriel Moraes
-# Date: September 29, 2025
+# Date: 2026-06-09
 
 import flet as ft
 from typing import Callable
@@ -24,13 +40,15 @@ class ConfirmationDialogManager:
         
         self._dialog_title_text = ft.Text(weight=ft.FontWeight.BOLD, size=24)
         
+        self._content_text = ft.Text(size=16)
+        
         self._dialog = ft.AlertDialog(
             modal=True,
             title=ft.Row([
                 ft.Icon(ft.Icons.WARNING_AMBER_ROUNDED, color=ft.Colors.AMBER, size=30),
                 self._dialog_title_text,
             ]),
-            content=ft.Text(size=16),
+            content=self._content_text,
             actions=[], # Actions will be defined dynamically
             actions_alignment=ft.MainAxisAlignment.END,
         )
@@ -52,7 +70,7 @@ class ConfirmationDialogManager:
         self._on_confirm_callback = on_confirm
         
         self._dialog_title_text.value = title
-        self._dialog.content.value = content
+        self._content_text.value = content
         
         # --- CHANGE 2: Define the actions for a confirmation dialog ---
         self._dialog.actions = [self._cancel_button, self._confirm_button]
@@ -69,7 +87,7 @@ class ConfirmationDialogManager:
         self._on_confirm_callback = None # No confirmation action
         
         self._dialog_title_text.value = title
-        self._dialog.content.value = content
+        self._content_text.value = content
         
         # Defines the actions for an informative dialog
         self._dialog.actions = [self._close_button]

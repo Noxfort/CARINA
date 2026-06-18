@@ -1,26 +1,42 @@
-# File: ui/handlers/map_interaction_handler.py (FIXED IMPORT PATH)
+# CARINA (Controlled Artificial Road-traffic Intelligence Network Architecture) is an open-source AI ecosystem for real-time, adaptive control of urban traffic light networks.
+# Copyright (C) 2026 Gabriel Moraes - Noxfort Systems
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# File: ui/handlers/map_interaction_handler.py
 # Author: Gabriel Moraes
 # Date: September 24, 2025
 
 """
-Define o MapInteractionHandler.
+Defines the MapInteractionHandler.
 
-Esta versão foi corrigida para usar o caminho de importação correto para as
-classes de transformação do Flet (ft.Offset, ft.Scale).
+This handler manages the state and logic of pan and zoom interactions on the map.
+It calculates scale and offsets based on user inputs.
 """
 
 import flet as ft
 
 class MapInteractionHandler:
-    """Gerencia o estado e a lógica das interações de pan e zoom do mapa."""
+    """Manages the state and logic of map pan and zoom interactions."""
 
     def __init__(self, base_width: float, base_height: float, on_update_callback):
         """
-        Inicializa o handler de interação.
+        Initializes the interaction handler.
         """
         self.base_width = base_width
         self.base_height = base_height
-        # --- CORRECTION APPLIED HERE ---
+        
         # Classes are called directly from 'ft'
         self.offset = ft.Offset(0, 0)
         self.scale = ft.Scale(scale=1.0, alignment=ft.alignment.center)
@@ -32,24 +48,24 @@ class MapInteractionHandler:
         self.on_update = on_update_callback
 
     def center_and_reset_zoom(self):
-        """Reseta o estado para a visualização inicial."""
+        """Resets the state to the initial view."""
         self.scale.scale = 1.0
         self.offset.x = 0.0
         self.offset.y = 0.0
         self.on_update()
 
     def handle_pan_update(self, e: ft.DragUpdateEvent):
-        """Calcula o novo deslocamento do mapa durante um evento de pan."""
+        """Calculates the new map offset during a pan event."""
         effective_scale = self.scale.scale if self.scale.scale > 0 else 1.0
         
-        # Ancoragem exata do vetor Panning mantendo aderência absoluta de mouse sob qualquer zoom (1:1 Tracking)
+        # Exact vector anchoring maintaining absolute mouse grip under any zoom (1:1 Tracking)
         self.offset.x += e.delta_x / (self.base_width * effective_scale)
         self.offset.y += e.delta_y / (self.base_height * effective_scale)
         
         self.on_update()
 
     def handle_zoom(self, e: ft.ScrollEvent, mouse_x: float = None, mouse_y: float = None):
-        """Calcula a nova escala do mapa e alinha o Vector Offset (Zoom to Pointer)."""
+        """Calculates the new map scale and aligns the Vector Offset (Zoom to Pointer)."""
         old_scale = self.scale.scale
         
         if mouse_x is None: mouse_x = self.base_width / 2.0
@@ -65,9 +81,9 @@ class MapInteractionHandler:
             
         self.scale.scale = new_scale
         
-        # Matemática de Zoom Fiel (Ancoragem no Ponteiro)
-        # O Flet Scale com alignment=center cresce em ambas as direções a partir do centro
-        # Translada o offset para compensar a magnitude direcional visual do mouse
+        # True Zoom Math (Pointer Anchoring)
+        # Flet Scale with alignment=center grows in both directions from the center.
+        # Translates the offset to compensate for the visual directional magnitude of the mouse.
         center_x = self.base_width / 2.0
         center_y = self.base_height / 2.0
         
@@ -79,3 +95,23 @@ class MapInteractionHandler:
         self.offset.y -= (dy * (new_scale - old_scale)) / (self.base_height * new_scale)
 
         self.on_update()
+
+    def get_map_coordinates(self, local_x: float, local_y: float) -> tuple[float, float]:
+        """
+        Converts raw screen pixel coordinates into map-space coordinates 
+        based on current zoom and pan.
+        """
+        scale = self.scale.scale
+        offset = self.offset
+        center_x, center_y = self.base_width / 2, self.base_height / 2
+        
+        offset_x_px = offset.x * self.base_width
+        offset_y_px = offset.y * self.base_height
+        
+        unpanned_x = local_x - offset_x_px
+        unpanned_y = local_y - offset_y_px
+        
+        map_space_x = ((unpanned_x - center_x) / scale) + center_x
+        map_space_y = ((unpanned_y - center_y) / scale) + center_y
+        
+        return map_space_x, map_space_y

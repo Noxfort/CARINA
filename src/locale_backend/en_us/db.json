@@ -1,0 +1,29 @@
+{
+  "db_manager": {
+    "init": {
+      "manager_created": "[DB_MANAGER] Database Manager pointing to: {path}",
+      "db_error": "[DB_MANAGER] Error initializing database: {error}"
+    },
+    "create_run": {
+      "success": "[DB_MANAGER] New run successfully registered (Scenario: {scenario}).",
+      "error": "[DB_MANAGER] Error creating run record: {error}"
+    },
+    "log_episode": {
+      "error": "[DB_MANAGER] Error saving scenario metrics {episode}: {error}"
+    },
+    "log_report": {
+      "error": "[DB_MANAGER] Error saving analysis report: {error}"
+    }
+  },
+  "db_worker": {
+    "run": {
+      "worker_started": "[DB_WORKER] Database Worker process started and ready to receive data.",
+      "shutdown_signal": "[DB_WORKER] Shutdown signal received.",
+      "unknown_log_type": "[DB_WORKER] Received unknown log type: {type}",
+      "processing_error": "[DB_WORKER] Error processing data packet: {packet}",
+      "user_interrupt": "[DB_WORKER] Process terminated by user.",
+      "fatal_error": "[DB_WORKER] Fatal and unhandled error in worker: {error}",
+      "worker_finished": "[DB_WORKER] Database Worker process finished."
+    }
+  }
+}

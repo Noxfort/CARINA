@@ -25,7 +25,6 @@ import argparse
 import logging
 from datetime import datetime
 from typing import Dict, Any, List
-from xai.resource_manager import ResourceManager
 
 # Configure basic logging to console (will be captured by the parent process)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - [TRANSDUCER] - %(levelname)s - %(message)s')
@@ -42,24 +41,31 @@ class SemanticTransducer:
     def __init__(self, model_path: str, use_gpu: bool = False, offload_to_cpu: bool = True) -> None:
         # Force exclusive CPU usage
         self.model_path = model_path
-        self.resource_manager = ResourceManager(model_path, use_gpu=False, offload_to_cpu=True)
-        self.device = self.resource_manager.get_device()
+        self.device = "cpu"
+        self.model = None
         
         logging.info(f"Initializing Transducer on device: {self.device} (GPU disabled)")
 
     def load_resources(self) -> None:
-        """Loads the frozen model and tokenizer from the Model Vault using ResourceManager."""
+        """Loads the frozen model and tokenizer from the Model Vault."""
         if not os.path.exists(self.model_path):
             raise FileNotFoundError(f"Model Vault not found at: {self.model_path}")
 
-        success = self.resource_manager.load_resources()
-        if not success:
+        try:
+            from llama_cpp import Llama
+            logging.info(f"Carregando modelo GGUF via llama.cpp: {self.model_path}")
+            self.model = Llama(
+                model_path=self.model_path,
+                n_ctx=2048,
+                n_threads=4, # Optimize for CPU execution
+                verbose=False
+            )
+            logging.info("Modelo GGUF carregado com sucesso.")
+        except ImportError:
+            raise RuntimeError("llama-cpp-python is not installed. Please install it to use GGUF models.")
+        except Exception as e:
+            logging.error(f"Falha ao carregar modelo: {e}")
             raise RuntimeError("Failed to load model resources.")
-            
-        self.model = self.resource_manager.get_model()
-        
-        if self.model is None:
-            raise RuntimeError("Model or tokenizer failed to load.")
 
     def _build_prompt(self, input_data: Dict[str, Any]) -> List[Dict[str, str]]:
         """
@@ -74,17 +80,25 @@ class SemanticTransducer:
         # Extract attribution map (The "Tensor" part)
         attributions = input_data.get("attributions", {})
         
+        # Load external prompts (OCP Compliance)
+        prompts_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts", "slm_prompts.json")
+        try:
+            with open(prompts_file, "r", encoding="utf-8") as f:
+                prompts_db = json.load(f)
+        except Exception as e:
+            logging.error(f"[XAI] Erro ao carregar slm_prompts.json: {e}")
+            prompts_db = {}
+            
+        # Fallback resolution
+        mode_prompts = prompts_db.get(mode, prompts_db.get("AUTO", {}))
+        instruction = mode_prompts.get(language, mode_prompts.get("en", "You are an AI assistant analyzing traffic data."))
+        
         # Create the Context String
         input_str = (
             f"CTX: [{timestamp}] | "
             f"MODE: [{mode}] | "
             f"TENSOR: {json.dumps(attributions)}"
         )
-        
-        if language == "pt_br":
-            instruction = "Você é um especialista em tráfego urbano. Analise o contexto operacional e o vetor de sensores para gerar um laudo técnico curto e objetivo em Português. Você DEVE pensar antes de responder, colocando seu raciocínio lógico envolto em tags <think> e </think>."
-        else:
-            instruction = "You are an urban traffic expert. Analyze the operational context and sensor vector to generate a short, objective technical report in English. You MUST think before responding by wrapping your logical reasoning within <think> and </think> tags."
         
         messages = [
             {"role": "system", "content": instruction},

@@ -82,6 +82,9 @@ class DataProcessor:
             
             if msg_type == "initial_map_geometry":
                 self.geometry_sent = True
+                net_file = payload.get("net_file")
+                if net_file:
+                    TlsStateFormatter.load_network_topology(net_file)
                 return { "type": "initial_map_geometry", "payload": {} }
             
             elif msg_type == "update_heatmap":
@@ -102,13 +105,19 @@ class DataProcessor:
                 # Delegate to the specialized formatter (clean call)
                 panel_data = TlsStateFormatter.prepare_panel_data(raw_data=payload)
                 
+                # If edges_data is empty, it is a fast update to skip congestion flickering
+                update_type = "congestion_update" if edges_data else "fast_update"
+                
                 return {
-                    "type": "congestion_update", 
+                    "type": update_type, 
                     "payload": congestion_map,
                     "street_data": street_info_map,     
                     "panel_data": panel_data,           
                     "maturity_phases": maturity_data    
                 }
+            
+            elif msg_type in ["auth_response", "lockdown_event", "account_response", "users_list", "audit_logs_response"]:
+                return { "type": msg_type, "payload": payload }
             
             return None
 
@@ -156,6 +165,10 @@ class DataProcessor:
     def _lazy_load_map_data(self, net_file_path: str, scenario_name: str):
         if self.map_data and self.lane_to_edge_map: return
         lm = self.locale_manager
+        
+        if net_file_path:
+            TlsStateFormatter.load_network_topology(net_file_path)
+            
         try:
             from src.utils.paths import get_base_output_dir
             results_dir = os.path.join(get_base_output_dir(), "results", scenario_name)

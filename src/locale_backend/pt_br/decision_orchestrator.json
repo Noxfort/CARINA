@@ -1,0 +1,7 @@
+{
+  "decision_orchestrator": {
+    "init": {
+      "created": "[DECISION_ORCHESTRATOR] Orquestrador de Decisões criado."
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "global_modes": {
+    "automatic": "Automatic",
+    "semi_automatic": "Semi-Automatic",
+    "manual": "Manual"
+  }
+}

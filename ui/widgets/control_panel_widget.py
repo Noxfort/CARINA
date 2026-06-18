@@ -1,6 +1,22 @@
-# File: ui/widgets/control_panel_widget.py (FIXED TO USE ABSOLUTE IMPORTS)
+# CARINA (Controlled Artificial Road-traffic Intelligence Network Architecture) is an open-source AI ecosystem for real-time, adaptive control of urban traffic light networks.
+# Copyright (C) 2026 Gabriel Moraes - Noxfort Systems
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+# File: ui/widgets/control_panel_widget.py
 # Author: Gabriel Moraes
-# Date: September 29, 2025
+# Date: 2026-06-09
 
 """
 Define o widget do Painel de Controle.
@@ -25,18 +41,29 @@ class ControlPanelWidget(ft.Container):
         self,
         control_client: ControlClient,
         locale_manager: LocaleManager,
+        security_ui=None,
         on_specific_command: Callable[[str, str], None] = None,
+        on_street_override: Callable[[str, str], None] = None,
         on_details_close: Callable[[], None] = None,
         on_mode_change: Callable[[str], None] = None
     ):
         super().__init__(
-            width=300,
-            bgcolor=ft.Colors.BLUE_GREY_900,
-            border_radius=10,
-            padding=15
+            width=320,
+            bgcolor=ft.Colors.with_opacity(0.85, "#1E293B"),
+            border_radius=16,
+            border=ft.border.all(1, "#334155"),
+            padding=15,
+            shadow=ft.BoxShadow(
+                spread_radius=1,
+                blur_radius=15,
+                color=ft.Colors.with_opacity(0.3, "#000000"),
+                offset=ft.Offset(0, 5)
+            )
         )
         
         self.on_details_close = on_details_close
+
+        self.on_street_override = on_street_override
 
         self.global_controls = GlobalControlsWidget(
             control_client=control_client,
@@ -47,13 +74,17 @@ class ControlPanelWidget(ft.Container):
         self.specific_controls = SpecificControlsWidget(
             control_client=control_client,
             locale_manager=locale_manager,
+            security_ui=security_ui,
             on_close=self.ocultar_todos_detalhes,
             on_specific_command=on_specific_command
         )
         
         self.street_info = StreetInfoWidget(
             locale_manager=locale_manager,
-            on_close=self.ocultar_todos_detalhes
+            control_client=control_client,
+            security_ui=security_ui,
+            on_close=self.ocultar_todos_detalhes,
+            on_street_override=self._handle_street_override
         )
 
         self.content = ft.Column(
@@ -77,6 +108,10 @@ class ControlPanelWidget(ft.Container):
         self.street_info.visible = False
         self.specific_controls.exibir_controles_semaforo(semaphore_id, semaphore_data, phase, mode)
         if self.page: self.update()
+
+    def _handle_street_override(self, street_id: str, state: str):
+        if self.on_street_override:
+            self.on_street_override(street_id, state)
 
     def exibir_info_rua(self, street_id: str, street_data: dict):
         self.specific_controls.visible = False

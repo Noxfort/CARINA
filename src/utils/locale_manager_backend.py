@@ -29,11 +29,12 @@ class LocaleManagerBackend:
     Manages loading and mapping of translated strings in the Backend (Headless).
     Updated to support 'default' parameters and robust fallback.
     """
-    def __init__(self):
+    def __init__(self, locales_dir_name="locale_backend", file_suffix="_backend"):
         # Determines the path based on the location of this file
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        # Go up one level (src/utils -> src) and enter locale_backend
-        self.locales_dir = os.path.join(base_dir, "..", "locale_backend")
+        # Go up one level (src/utils -> src) and enter the specified dir
+        self.locales_dir = os.path.join(base_dir, "..", locales_dir_name)
+        self.file_suffix = file_suffix
         
         self.fallback_lang_code = "en_us"
         self.current_lang_data: Dict[str, Any] = {}
@@ -50,9 +51,23 @@ class LocaleManagerBackend:
         self.load_language(initial_lang_code)
 
     def _load_file(self, lang_code: str) -> Dict[str, Any]:
-        """Reads a JSON translation file."""
-        # File name in the backend follows the pattern 'pt_br_backend.json'
-        file_name = f"{lang_code}_backend.json"
+        """Reads a JSON translation file or directory of files."""
+        dir_path = os.path.join(self.locales_dir, lang_code)
+        
+        if os.path.isdir(dir_path):
+            merged_data = {}
+            for filename in os.listdir(dir_path):
+                if filename.endswith(".json"):
+                    file_path = os.path.join(dir_path, filename)
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            merged_data.update(json.load(f))
+                    except Exception as e:
+                        logging.error(f"[LocaleManagerBackend] Erro ao ler '{file_path}': {e}")
+            return merged_data
+
+        # File name follows the pattern 'pt_br_backend.json' or 'pt_br.json' depending on suffix
+        file_name = f"{lang_code}{self.file_suffix}.json"
         file_path = os.path.join(self.locales_dir, file_name)
         
         if not os.path.exists(file_path):
@@ -61,7 +76,7 @@ class LocaleManagerBackend:
             if os.path.exists(file_path_alt):
                 file_path = file_path_alt
             else:
-                logging.error(f"[LocaleManagerBackend] Arquivo não encontrado: {file_path}")
+                logging.error(f"[LocaleManagerBackend] Arquivo/Diretório não encontrado: {dir_path} ou {file_path}")
                 return {}
         
         try:
@@ -80,8 +95,14 @@ class LocaleManagerBackend:
         else:
             self.current_lang_data = self._load_file(lang_code)
         
+        self.current_lang_code = lang_code
+        
         if self.current_lang_data:
             logging.info(f"Arquivo do idioma '{lang_code}' carregado com sucesso para o backend.")
+
+    def get_language(self) -> str:
+        """Retorna o código do idioma atual."""
+        return getattr(self, 'current_lang_code', self.fallback_lang_code)
 
     def _get_nested_value(self, data: Dict, keys: List[str]) -> str | None:
         temp_dict = data

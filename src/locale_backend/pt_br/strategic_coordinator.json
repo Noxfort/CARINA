@@ -1,0 +1,15 @@
+{
+  "strategic_coordinator": {
+    "init": {
+      "created": "[STRATEGIC_COORD] Coordenador Estratégico (GAT) criado."
+    },
+    "initialize": {
+      "start": "[STRATEGIC_COORD] Inicializando o subsistema estratégico...",
+      "max_state_dim": "[STRATEGIC_COORD] Dimensão máxima do estado local (para padding): {size}",
+      "model_created": "[STRATEGIC_COORD] Modelo GAT Estrategista criado e movido para o dispositivo: {device}."
+    },
+    "update": {
+      "running": "[STRATEGIC_COORD] A executar atualização do GAT (Tempo: {time}s)"
+    }
+  }
+}

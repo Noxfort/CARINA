@@ -80,6 +80,9 @@ def parse_map_data(plain_xml_prefix: str) -> Tuple[Dict, List, Dict] | None:
                 if lane_id:
                     lane_to_edge_map[lane_id] = edge_id
 
+            from_node_id = edge.get('from')
+            to_node_id = edge.get('to')
+            
             shape_str = edge.get('shape')
             shape_points = []
             if shape_str:
@@ -89,8 +92,6 @@ def parse_map_data(plain_xml_prefix: str) -> Tuple[Dict, List, Dict] | None:
                     py = float(py_str)
                     shape_points.append((px, py))
             else:
-                from_node_id = edge.get('from')
-                to_node_id = edge.get('to')
                 if from_node_id in nodes and to_node_id in nodes:
                     start_node = nodes[from_node_id]
                     end_node = nodes[to_node_id]
@@ -99,7 +100,9 @@ def parse_map_data(plain_xml_prefix: str) -> Tuple[Dict, List, Dict] | None:
             if shape_points:
                 edges.append({
                     'id': edge_id,
-                    'shape': shape_points
+                    'shape': shape_points,
+                    'from': from_node_id,
+                    'to': to_node_id
                 })
 
         if not edges:

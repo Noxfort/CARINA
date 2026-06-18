@@ -1,0 +1,27 @@
+{
+  "request_processor": {
+    "init": {
+      "processor_created": "[REQ_PROCESSOR] Request Processor (Dispatcher mode) created."
+    },
+    "ui_command": {
+      "received": "[REQ_PROCESSOR] UI Command received: TYPE={type}",
+      "processing_save": "-> Processing command 'save_settings'...",
+      "save_success": "-> Settings successfully saved by SettingsManager.",
+      "processing_error": "[REQ_PROCESSOR] Error processing UI command: {error}"
+    },
+    "batch_collect": {
+      "error": "[REQ_PROCESSOR] Error during batch data collection: {error}"
+    },
+    "ai_request": {
+      "queue_full_warning": "[REQ_PROCESSOR] One of the service queues (SDS/SAS) is full.",
+      "processing_error": "[REQ_PROCESSOR] Error processing AI request: {error}"
+    },
+    "watchdog": {
+      "processing_error": "[REQ_PROCESSOR] Error processing Watchdog command: {error}"
+    },
+    "override": {
+      "ai_ignored": "\u001b[97mControle Global\u001b[0m AI suggestion for '{tl_id}' ignored. Traffic light is under operator intervention (State: {state}).",
+      "manual_intervention": "[MANUAL INTERVENTION] Traffic light '{semaphore_id}' placed into '{state}' mode by user."
+    }
+  }
+}

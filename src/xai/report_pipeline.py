@@ -108,7 +108,11 @@ class ReportPipeline:
             with open(report_path, 'r', encoding='utf-8') as f:
                 content = f.read()
                 
-            pattern = re.compile(r"Sensor:\s+(.+?)\n.*?Importance:.*?\((\d+\.\d+)\)", re.DOTALL)
+            # Use localized strings for the regex to match the generated file
+            sensor_str = re.escape(self.locale_manager.get_string('xai_report.section_sensor', default="Sensor"))
+            imp_str = re.escape(self.locale_manager.get_string('xai_report.section_importance', default="Importance"))
+            
+            pattern = re.compile(rf"{sensor_str}:\s+(.+?)\n.*?{imp_str}:.*?\((\d+\.\d+)\)", re.DOTALL)
             for name, value in pattern.findall(content):
                 try: attributions[name.strip()] = float(value)
                 except ValueError: continue

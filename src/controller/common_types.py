@@ -37,7 +37,7 @@ class SignalState(Enum):
 
 
 @dataclass
-class PhaseDefinition:
+class StageDefinition:
     """
     A single signal phase extracted from the SUMO TLS program.
     

@@ -32,10 +32,12 @@ import paho.mqtt.client as mqtt
 from typing import Dict, Any
 
 from utils.settings_manager import SettingsManager
+from utils.locale_manager_backend import LocaleManagerBackend
 
 class MonitorClient:
-    def __init__(self, settings_manager: SettingsManager):
+    def __init__(self, settings_manager: SettingsManager, locale_manager: LocaleManagerBackend = None):
         self.settings = settings_manager.load_settings()
+        self.locale_manager = locale_manager if locale_manager else LocaleManagerBackend()
         self.enabled = str(self.settings.get("monitor_enabled", "False")).lower() == "true"
         
         host_str = self.settings.get("monitor_mqtt_host", "localhost")
@@ -87,7 +89,8 @@ class MonitorClient:
 
     def _create_payload(self, category: str, level: str, message: str) -> str:
         """Constructs the strict JSON payload expected by the Monitor."""
-        current_time = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        # Usa a hora do computador mas formata estritamente com 'Z' no final
+        current_time = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
         payload = {
             "category": category, # HARDWARE or SOFTWARE
             "origin": "Carina",
@@ -122,7 +125,7 @@ class MonitorClient:
             try:
                 self.report_incident(
                     category="SOFTWARE",
-                    level="INFO",
+                    level="CRITICAL",
                     message=shutdown_message
                 )
                 # Give MQTT a brief moment to flush the QoS 1 packet
@@ -159,7 +162,8 @@ class MonitorClient:
     def disconnect_manual(self):
         """Called by the UI to explicitly disconnect immediately."""
         self.enabled = False
-        self.stop(shutdown_message="Operator explicitly disconnected CARINA from Monitor.")
+        msg = self.locale_manager.get_string("monitor.manual_disconnect", default="Operator explicitly disconnected CARINA from Monitor.")
+        self.stop(shutdown_message=msg)
 
     def _heartbeat_loop(self):
         """Periodically publishes the heartbeat message."""
@@ -176,14 +180,12 @@ class MonitorClient:
         if not self.enabled or not self.client:
             return
         try:
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            payload = {
-                "origin": "Carina",
-                "level": "info",
-                "message": "heartbeat",
-                "timestamp": current_time
-            }
-            self.client.publish(self.topic_telemetry, json.dumps(payload), qos=0)
+            payload = self._create_payload(
+                category="SOFTWARE",
+                level="INFO",
+                message=self.locale_manager.get_string("monitor.heartbeat", default="Heartbeat: Sistema online e operando normalmente.")
+            )
+            self.client.publish(self.topic_telemetry, payload, qos=0)
         except Exception as e:
             logging.error(f"[{self.__class__.__name__}] Failed to send heartbeat: {e}")
 

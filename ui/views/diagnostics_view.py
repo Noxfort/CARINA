@@ -36,6 +36,7 @@ from utils.paths import get_base_output_dir # <--- THE MAGIC FIX
 from ui.handlers.locale_manager import LocaleManager
 from ui.widgets.log_viewer_widget import LogViewerWidget
 from ui.widgets.xai_viewer_widget import XaiViewerWidget
+from ui.widgets.audit_log_widget import AuditLogWidget
 
 class DiagnosticsView(ft.Column):
     """
@@ -67,6 +68,7 @@ class DiagnosticsView(ft.Column):
             locale_manager, 
             results_dir=self.results_dir
         )
+        self.audit_viewer = AuditLogWidget(locale_manager)
         
         # Control
         self.watching = False
@@ -90,6 +92,14 @@ class DiagnosticsView(ft.Column):
                     icon=ft.Icons.PSYCHOLOGY_ROUNDED,
                     content=ft.Container(
                         content=self.xai_viewer,
+                        padding=10
+                    )
+                ),
+                ft.Tab(
+                    text="Auditoria (Audit Logs)",
+                    icon=ft.Icons.POLICY_ROUNDED,
+                    content=ft.Container(
+                        content=self.audit_viewer,
                         padding=10
                     )
                 ),

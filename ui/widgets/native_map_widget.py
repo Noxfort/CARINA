@@ -1,6 +1,22 @@
-# File: ui/widgets/native_map_widget.py (FIXED)
+# CARINA (Controlled Artificial Road-traffic Intelligence Network Architecture) is an open-source AI ecosystem for real-time, adaptive control of urban traffic light networks.
+# Copyright (C) 2026 Gabriel Moraes - Noxfort Systems
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+# File: ui/widgets/native_map_widget.py
 # Author: Gabriel Moraes
-# Date: October 1, 2025
+# Date: 2026-06-09
 
 """
 Define o NativeMapWidget.
@@ -15,11 +31,12 @@ import logging
 import os
 import base64
 import threading
+import time
 
 from ui.handlers.locale_manager import LocaleManager
 from ui.widgets.map_legend_widget import MapLegendWidget
 from ui.handlers.map_interaction_handler import MapInteractionHandler
-from ui.clients.planning_map_loader import PlanningMapLoader
+from ui.loader.planning_map_loader import PlanningMapLoader
 
 
 class NativeMapWidget(ft.Container):
@@ -58,11 +75,19 @@ class NativeMapWidget(ft.Container):
             alignment=ft.alignment.center
         )
         
+        self._last_right_click_time = 0
+        def _on_secondary_tap_down(e):
+            current_time = time.time()
+            if current_time - self._last_right_click_time < 0.3:
+                self.interaction_handler.center_and_reset_zoom()
+            self._last_right_click_time = current_time
+
         self.interactive_map = ft.GestureDetector(
             content=image_container,
             on_pan_update=self.interaction_handler.handle_pan_update,
             on_scroll=self.interaction_handler.handle_zoom,
             on_double_tap=lambda e: self.interaction_handler.center_and_reset_zoom(),
+            on_secondary_tap_down=_on_secondary_tap_down,
             drag_interval=5,
         )
         

@@ -39,7 +39,7 @@ class TrafficFrameProcessor:
     """
     def __init__(self, ai_pipe_conn: Connection, watchdog_queue: Queue, sds_data_queue: Queue, 
                  failsafe_manager: FailsafeManager, topology_manager: TopologyManager, telemetry_aggregator: Any,
-                 traffic_data_recorder: Any = None):
+                 override_manager: Any, traffic_data_recorder: Any = None):
         self.ai_pipe_conn = ai_pipe_conn
         self.watchdog_queue = watchdog_queue
         self.sds_data_queue = sds_data_queue
@@ -47,6 +47,7 @@ class TrafficFrameProcessor:
         self.failsafe_manager = failsafe_manager
         self.topology_manager = topology_manager
         self.telemetry_aggregator = telemetry_aggregator
+        self.override_manager = override_manager
         self.traffic_data_recorder = traffic_data_recorder
         
         # --- Two-Stage Readiness Latch ---
@@ -71,8 +72,9 @@ class TrafficFrameProcessor:
         """
         t_start = time.perf_counter()
         
-        # 0. RECORD FRAME ARRIVAL (for in-process Synapse silence detection)
-        self.failsafe_manager.record_frame_received()
+        # 0. RECORD FRAME ARRIVAL
+        # REMOVED: Frame arrival is now recorded in hft_server.py (HOT path)
+        # to prevent false timeouts due to processing latency.
         
         # 1. FAILSAFE RECOVERY
         # If we were in failsafe mode and a frame just arrived, Synapse is back.
@@ -94,11 +96,33 @@ class TrafficFrameProcessor:
         
         # Prepare data for AI (still manual as it is control logic, not visualization)
         for edge_id, state in frame.edges.items():
-            traffic_data['edges'][edge_id] = {
-                'occupancy': state.occupancy,
-                'mean_speed': state.mean_speed,
-                'queue_length': state.queue_length
-            }
+            # Check if this street is manually blocked by the operator
+            # Consider potential sibling/reverse mappings or direct ID
+            is_blocked = False
+            if self.override_manager and self.override_manager.active_street_overrides:
+                if edge_id in self.override_manager.active_street_overrides and self.override_manager.active_street_overrides[edge_id] == "BLOCKED":
+                    is_blocked = True
+                else:
+                    # Also check for base or reverse edge IDs to ensure accurate blocking
+                    base_sibling = edge_id[1:] if edge_id.startswith('-') else edge_id
+                    reverse_sibling = '-' + base_sibling if not edge_id.startswith('-') else base_sibling
+                    if (base_sibling in self.override_manager.active_street_overrides and self.override_manager.active_street_overrides[base_sibling] == "BLOCKED") or \
+                       (reverse_sibling in self.override_manager.active_street_overrides and self.override_manager.active_street_overrides[reverse_sibling] == "BLOCKED"):
+                        is_blocked = True
+
+            if is_blocked:
+                # If blocked, inform the AI that there is no traffic/flow here
+                traffic_data['edges'][edge_id] = {
+                    'occupancy': 0.0,
+                    'mean_speed': 0.0,
+                    'queue_length': 0.0
+                }
+            else:
+                traffic_data['edges'][edge_id] = {
+                    'occupancy': state.occupancy,
+                    'mean_speed': state.mean_speed,
+                    'queue_length': state.queue_length
+                }
 
         # AGREEMENT: This is the ONLY place triggering the HFT Step.
         # SAFETY: Do NOT send AI commands while FixedTimeController is active.
@@ -132,7 +156,7 @@ class TrafficFrameProcessor:
                 'edges': {} # Empty edges skips congestion update, preventing flickering
             }
             try:
-                self.sds_data_queue.put(('hft_rich_update', fast_payload))
+                self.sds_data_queue.put(('hft_rich_update', fast_payload), block=False)
             except Exception:
                 pass
         
@@ -149,7 +173,7 @@ class TrafficFrameProcessor:
             rich_payload['tls_phases'] = getattr(self.topology_manager, 'tls_phases_cache', {})
             
             try:
-                self.sds_data_queue.put(('hft_rich_update', rich_payload))
+                self.sds_data_queue.put(('hft_rich_update', rich_payload), block=False)
             except Exception as e:
                 logger.error(f"Error putting rich update on SDS queue: {e}")
         

@@ -29,6 +29,7 @@ from multiprocessing.connection import Connection
 import threading
 import psutil
 import traceback
+import socket
 
 # --- Paths and Variables Setup ---
 IS_FROZEN = getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
@@ -82,7 +83,7 @@ try:
         from utils.paths import resource_path, get_base_output_dir
         from central_controller import CentralController
         from main import run_ai_process
-        from watchdog import run_watchdog
+        from watchdog.watchdog_process import run_watchdog
         from utils.logging_setup import setup_logging
         from sds.dashboard_worker import run_sds_worker
         from sas.analysis_worker import run_analysis_worker
@@ -218,6 +219,28 @@ def main():
             logging.info("[Tray] Encerramento solicitado via bandeja do sistema.")
             shutdown_requested.set()
         
+        # Start single instance listener thread to catch restore requests
+        def run_single_instance_listener():
+            while not shutdown_requested.is_set():
+                try:
+                    _single_instance_socket.settimeout(1.0)
+                    try:
+                        conn, addr = _single_instance_socket.accept()
+                    except socket.timeout:
+                        continue
+                    data = conn.recv(1024)
+                    if data == b"restore_ui":
+                        logging.info("[Launcher] Recebida solicitação de restauração de outra instância.")
+                        restore_requested.set()
+                    conn.close()
+                except Exception as e:
+                    if not shutdown_requested.is_set():
+                        logging.error(f"[Launcher] Erro no listener de instância única: {e}")
+                    time.sleep(0.5)
+
+        t_listener = threading.Thread(target=run_single_instance_listener, name="SingleInstanceListenerThread", daemon=True)
+        t_listener.start()
+
         def _launch_flet_ui():
             """Launch or re-launch the Flet UI window."""
             assets_dir = os.path.join(bundle_root, "ui", "assets")
@@ -251,8 +274,8 @@ def main():
                 _launch_flet_ui()
                 
                 # Flet fell through (window closed/crashed)
-                if tray_handler and tray_handler.is_available and not shutdown_requested.is_set():
-                    logging.info("[Launcher] Janela fechada. Aguardando wake/quit da bandeja do sistema.")
+                if not shutdown_requested.is_set():
+                    logging.info("[Launcher] Janela fechada. Aguardando wake/quit ou restauração...")
                     while not shutdown_requested.is_set():
                         if restore_requested.is_set():
                             restore_requested.clear()
@@ -272,15 +295,16 @@ def main():
     finally:
         logging.info("Iniciando desligamento gracioso (Graceful Shutdown)...")
         
-        # 1. Avisar o CentralController para finalizar serviços (ex: MonitorClient)
+        # 1. Avisar o CentralController e a AI_Process para finalizar serviços (ex: MonitorClient)
         try:
             controller_conn.send(("system", "shutdown", (), {}))
-            logging.info("Sinal de desligamento enviado ao CentralController.")
+            ai_conn.send(("system", "shutdown", (), {}))
+            logging.info("Sinal de desligamento enviado ao CentralController e AI_Process.")
             
             # Dar um breve momento para o MQTT enviar a mensagem de morte (QoS 1)
             p_cc.join(timeout=2.0)
         except Exception as e:
-            logging.error(f"Erro ao desligar CentralController: {e}")
+            logging.error(f"Erro ao desligar: {e}")
             
         logging.info("Encerrando filas e processos secundários...")
         try: queues['db'].put(None)
@@ -303,6 +327,24 @@ if __name__ == "__main__":
     except Exception as e: 
         print(f"Error setting multiprocessing start method: {e}")
         pass
+        
+    # --- 2. Single-Instance Lock & UI Restore Trigger ---
+    import socket
+    _single_instance_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        _single_instance_socket.bind(('127.0.0.1', 42123))
+        _single_instance_socket.listen(5)
+    except socket.error:
+        try:
+            # We are the second instance. Connect to the first instance to restore its UI.
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(('127.0.0.1', 42123))
+            s.sendall(b"restore_ui")
+            s.close()
+        except Exception as e:
+            print(f"Erro ao comunicar restauração: {e}")
+        print("Outra instância da CARINA já está em execução! Solicitando restauração...")
+        sys.exit(0)
         
     print(f"[LAUNCHER STARTING] Project Root: {project_root}")
     main()

@@ -1,0 +1,27 @@
+{
+  "warrant_evaluator": {
+    "init": {
+      "evaluator_created": "[WARRANT_EVALUATOR] Analysis Engineer created."
+    },
+    "evaluate": {
+      "diagnostics_start": "[DIAGNOSTIC] Evaluating Junction '{id}'. Is it a real traffic light? {is_real}",
+      "diagnostics_final": "[FINAL DIAGNOSTIC] Result for '{id}': \n{result}"
+    },
+    "has_tl": "Controlled by traffic light",
+    "no_tl": "Not signaled",
+    "status_with_tl": "Controlled by traffic light",
+    "status_without_tl": "Not signaled (type: {type})",
+    "rec_remove": "REMOVE Traffic Light",
+    "rec_keep": "KEEP Traffic Light",
+    "rec_add": "ADD Traffic Light",
+    "just_remove": "No warrants satisfied and volume is below the removal threshold.",
+    "just_keep": "At least one warrant satisfied or volume justifies keeping.",
+    "just_add": "At least one warrant (volume, delay, or safety) satisfied.",
+    "justify_remove_no_warrants": "None of the 4 traffic engineering warrants were satisfied. The traffic light is unnecessary.",
+    "justify_remove_low_volume": "Volume below removal threshold and insufficient warrants satisfied.",
+    "justify_keep": "{count} warrant(s) satisfied. Justifies keeping the traffic light.",
+    "justify_add": "{count} warrants satisfied. Traffic light installation is mathematically justified.",
+    "justify_add_saturation": "Degree of saturation (X > 0.85) indicates technical collapse. Intervention is a necessity.",
+    "justify_keep_no_tl": "Only {count} warrant(s) satisfied. Insufficient to justify installation."
+  }
+}

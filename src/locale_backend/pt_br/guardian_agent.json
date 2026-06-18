@@ -1,0 +1,7 @@
+{
+  "guardian_agent": {
+    "init": {
+      "success": "   -> [GUARDIÃO] Cérebro de IA (Dueling DQN) criado. AMP ativado: {enabled}"
+    }
+  }
+}

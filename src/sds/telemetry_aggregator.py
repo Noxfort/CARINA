@@ -108,6 +108,11 @@ class TelemetryAggregator:
         periodic_payload = self.periodic_collector.compute_aggregated_payload(current_time, maturity_cache)
         if periodic_payload:
             logging.debug(f"[TelemetryAggregator] Using periodic collector data with {len(periodic_payload['edges'])} edges")
+            # CRITICAL FIX: Sync the legacy timer and buffer so that should_update()
+            # does not return True again immediately, which would cause a phantom
+            # second payload from the stale legacy heatmap_buffer.
+            self.last_update_time = current_time
+            self.heatmap_buffer.clear()
             return periodic_payload
             
         # Fallback to legacy method if periodic collector didn't produce data

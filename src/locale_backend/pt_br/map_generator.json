@@ -1,0 +1,14 @@
+{
+  "map_generator": {
+    "run": {
+      "net_file_not_found": "[MapGenerator] Arquivo de rede não encontrado em: {path}",
+      "netconvert_not_found": "[MapGenerator] CRÍTICO: Executável 'netconvert' não encontrado. Verifique a variável de ambiente SUMO_HOME.",
+      "generating_files": "[MapGenerator] Gerando arquivos de dados de mapa (.nod.xml, .edg.xml)...",
+      "success": "[MapGenerator] Arquivos de dados gerados com sucesso com o prefixo: {prefix}",
+      "files_not_found_after_run": "[MapGenerator] Comando 'netconvert' executado, mas os arquivos de dados não foram encontrados.",
+      "netconvert_error": "Erro ao executar 'netconvert'. O SUMO retornou um erro.",
+      "stderr_output": "Saída de Erro (stderr):\n{stderr}",
+      "unexpected_error": "Erro inesperado no MapGenerator: {error}"
+    }
+  }
+}

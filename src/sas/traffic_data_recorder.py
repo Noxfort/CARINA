@@ -31,6 +31,7 @@ occupancy). The recorder enriches each sample with topology metadata
 """
 
 import logging
+import threading
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -60,10 +61,30 @@ class TrafficDataRecorder:
         self._batch_buffer = []
         self._batch_size = batch_size
         self._total_recorded = 0
+        
+        # Dedicated worker thread for DB inserts to prevent thread explosion
+        import queue
+        self._flush_queue = queue.Queue(maxsize=1000)
+        self._worker_thread = threading.Thread(target=self._db_worker_loop, daemon=True)
+        self._worker_thread.start()
+        
         logger.info(
             f"[TrafficDataRecorder] Initialized. "
             f"Topology edges: {len(self.topology)}, batch_size: {self._batch_size}"
         )
+
+    def _db_worker_loop(self):
+        """Background thread loop to process database inserts sequentially."""
+        while True:
+            try:
+                samples = self._flush_queue.get()
+                if samples is None:
+                    break
+                count_val = len(samples)
+                self.db.insert_synapse_fluid_dynamics(samples)
+                self._total_recorded += count_val
+            except Exception as e:
+                logger.error(f"[TrafficDataRecorder] Async flush failed: {e}")
 
     def set_topology(self, topology_edges: Dict[str, dict]):
         """
@@ -104,18 +125,17 @@ class TrafficDataRecorder:
             self.flush()
 
     def flush(self):
-        """Flushes the buffered samples to the database."""
+        """Flushes the buffered samples to the database asynchronously via queue."""
         if not self._batch_buffer:
             return
-        count = len(self._batch_buffer)
+            
+        samples_to_flush = list(self._batch_buffer)
+        self._batch_buffer.clear()
+        
         try:
-            self.db.insert_synapse_fluid_dynamics(self._batch_buffer)
-            self._total_recorded += count
-            logger.debug(f"[TrafficDataRecorder] Flushed {count} synapse fluid dynamics samples (total: {self._total_recorded}).")
-        except Exception as e:
-            logger.error(f"[TrafficDataRecorder] Failed to flush {count} samples: {e}")
-        finally:
-            self._batch_buffer.clear()
+            self._flush_queue.put_nowait(samples_to_flush)
+        except queue.Full:
+            logger.error("[TrafficDataRecorder] DB flush queue is FULL! Dropping samples.")
 
     @property
     def total_recorded(self) -> int:

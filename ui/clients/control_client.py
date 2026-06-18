@@ -1,6 +1,22 @@
-# File: ui/clients/control_client.py (WITH CONNECTION TO DATAPROVIDER)
+# CARINA (Controlled Artificial Road-traffic Intelligence Network Architecture) is an open-source AI ecosystem for real-time, adaptive control of urban traffic light networks.
+# Copyright (C) 2026 Gabriel Moraes - Noxfort Systems
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+# File: ui/clients/control_client.py
 # Author: Gabriel Moraes
-# Date: September 24, 2025
+# Date: 2026-06-09
 
 """
 Define o ControlClient.
@@ -15,7 +31,7 @@ from typing import TYPE_CHECKING
 
 # We use TYPE_CHECKING to avoid circular import, a good practice
 if TYPE_CHECKING:
-    from handlers.live_data_provider import LiveDataProvider
+    from ui.providers.live_data_provider import LiveDataProvider
 
 class ControlClient:
     """
@@ -46,22 +62,29 @@ class ControlClient:
         """
         print(f">>> [COMANDO UI]: Override no semáforo '{semaphore_id}' para o estado '{state.upper()}'")
         logging.info(f"--- [CONTROL_CLIENT] ---> COMANDO ENVIADO: Aplicar override no semáforo '{semaphore_id}' para o estado '{state.upper()}'")
-        pass
-        
-    def set_semaphore_timings(self, semaphore_id: str, green_time: str, yellow_time: str):
-        """
-        Envia um comando para definir novos tempos de fase para um semáforo.
-        """
-        print(f">>> [COMANDO UI]: Novos tempos para '{semaphore_id}': Verde={green_time}s, Amarelo={yellow_time}s")
-        logging.info(f"--- [CONTROL_CLIENT] ---> COMANDO ENVIADO: Novos tempos para '{semaphore_id}': Verde={green_time}s, Amarelo={yellow_time}s")
-        
-        # --- FEEDBACK LOOP FOR UI SIMULATOR ---
         if self.live_data_provider:
-            try:
-                # Convert times to float before sending
-                gt_float = float(green_time)
-                yt_float = float(yellow_time)
-                self.live_data_provider.update_timing_override(semaphore_id, gt_float, yt_float)
-            except (ValueError, TypeError):
-                logging.warning(f"[ControlClient] Valores de tempo inválidos recebidos: G={green_time}, Y={yellow_time}. Não foi possível atualizar o simulador.")
-        pass
+            command = {
+                "type": "set_semaphore_override",
+                "payload": {
+                    "semaphore_id": semaphore_id,
+                    "state": state
+                }
+            }
+            self.live_data_provider.send_command_to_backend(command)
+
+    def set_street_override(self, street_id: str, state: str):
+        """
+        Envia um comando para bloquear ou desbloquear uma rua.
+        """
+        print(f">>> [COMANDO UI]: Override na rua '{street_id}' para o estado '{state.upper()}'")
+        logging.info(f"--- [CONTROL_CLIENT] ---> COMANDO ENVIADO: Aplicar override na rua '{street_id}' para o estado '{state.upper()}'")
+        if self.live_data_provider:
+            command = {
+                "type": "set_street_override",
+                "payload": {
+                    "street_id": street_id,
+                    "state": state
+                }
+            }
+            self.live_data_provider.send_command_to_backend(command)
+        

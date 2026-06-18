@@ -77,7 +77,7 @@ class AgentManager:
         Returns:
             Tuple containing:
             - agents (Dict): Map of 'tl_id' to LocalAgent instances.
-            - current_phases (Dict): Initial phase indices for each traffic light.
+            - current_stages (Dict): Initial phase indices for each traffic light.
             - strategist (StrategistAgent): The global network controller (or None).
             - guardians (Dict): Map of 'tl_id' to GuardianAgent instances.
         """
@@ -95,7 +95,7 @@ class AgentManager:
         # -----------------------------------------------------------------------
 
         # 1. Load Local Agents via Topology Manager (with PAE injection)
-        agents, current_phases = topology_manager.load_topology(
+        agents, current_stages = topology_manager.load_topology(
             map_path, state_extractor, maturity_manager, self.shared_pae
         )
         
@@ -107,18 +107,19 @@ class AgentManager:
         guardian_config = self.settings['GUARDIAN_AGENT'] if 'GUARDIAN_AGENT' in self.settings else {}
         traffic_rules_config = self.settings['TRAFFIC_RULES'] if 'TRAFFIC_RULES' in self.settings else guardian_config
         lm = LocaleManagerBackend()
-        for tl_id in agents.keys():
+        for tl_id, agent in agents.items():
             guardians[tl_id] = GuardianAgent(
                 aiconfig=guardian_config,
                 traffic_rules_config=traffic_rules_config,
                 locale_manager=lm,
-                shared_pae=self.shared_pae
+                shared_pae=self.shared_pae,
+                n_observations=agent.n_observations
             )
         
         # 4. Restore State (Load Checkpoints)
         self.restore_system_state(map_path, agents, strategist, guardians)
         
-        return agents, current_phases, strategist, guardians
+        return agents, current_stages, strategist, guardians
 
     def _create_strategist(self, map_path: str) -> Optional[StrategistAgent]:
         """

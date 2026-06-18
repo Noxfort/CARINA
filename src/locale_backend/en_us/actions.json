@@ -1,0 +1,7 @@
+{
+  "actions": {
+    "change_stage": "NEXT STAGE",
+    "keep_stage": "KEEP STAGE",
+    "unknown": "UNKNOWN ({action})"
+  }
+}

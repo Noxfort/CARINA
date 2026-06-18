@@ -1,0 +1,19 @@
+{
+  "threshold_calibrator": {
+    "init": {
+      "created": "[THRESHOLD_CALIBRATOR] Confidence Calibrator created.",
+      "window_info": "   L- Will monitor stability in a window of {window} episodes."
+    },
+    "step": {
+      "collecting_data": "[CALIBRATOR] Collecting entropy data... ({current}/{total})",
+      "std_dev_check": "[CALIBRATOR] Standard deviation of current entropy: {std_dev} (Threshold: {threshold})"
+    },
+    "calibrate": {
+      "plateau_detected": "[THRESHOLD_CALIBRATOR] Entropy plateau detected! The confidence learning curve has stabilized.",
+      "stable_value": "   L- Calculated stable entropy value: {value}",
+      "complete": "[THRESHOLD_CALIBRATOR] Calibration completed!",
+      "teen_threshold": "   L- Threshold for Teen set to: Entropy < {threshold}",
+      "adult_threshold": "   L- Threshold for Adult set to: Entropy < {threshold}"
+    }
+  }
+}

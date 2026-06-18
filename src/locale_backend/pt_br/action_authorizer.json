@@ -1,0 +1,11 @@
+{
+  "action_authorizer": {
+    "reason": {
+      "child": "Fase de aprendizado (CRIANÇA)",
+      "adult": "Controle total (ADULTO)",
+      "teen_peak": "Horário de pico na adolescência",
+      "teen_offpeak": "Controle permitido (ADOLESCENTE)",
+      "unknown": "Maturidade desconhecida"
+    }
+  }
+}

@@ -11,13 +11,10 @@
             "id": "a944cb090db698f0",
             "type": "leaf",
             "state": {
-              "type": "bases",
-              "state": {
-                "file": "Sem título.base",
-                "viewName": "Tabela"
-              },
-              "icon": "lucide-table",
-              "title": "Sem título"
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "Nova aba"
             }
           }
         ]
@@ -179,11 +176,15 @@
       "daily-notes:Abrir a nota de hoje": false,
       "templates:Inserir modelo": false,
       "command-palette:Abrir paleta de comandos": false,
-      "bases:Criar nova base": false
+      "bases:Criar nova base": false,
+      "bmo-chatbot:BMO Chatbot": false
     }
   },
   "active": "a944cb090db698f0",
   "lastOpenFiles": [
+    "BMO/Profiles/BMO.md",
+    "BMO/Profiles",
+    "BMO",
     "2026-05-31.md",
     "Sem título 1.base",
     "Sem título.base",

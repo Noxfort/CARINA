@@ -21,18 +21,7 @@
 import sys
 import pytest
 from unittest.mock import MagicMock, patch
-import pytest
-import sys
 import torch
-for submod in ['nn', 'optim', 'distributions', 'amp']:
-    mock_obj = MagicMock()
-    if f'torch.{submod}' not in sys.modules:
-        sys.modules[f'torch.{submod}'] = mock_obj
-    if not hasattr(torch, submod):
-        setattr(torch, submod, mock_obj)
-
-sys.modules['torch.nn.functional'] = MagicMock()
-setattr(sys.modules['torch.nn'], 'functional', sys.modules['torch.nn.functional'])
 
 import src.agents.guardian_agent as ga
 from src.agents.guardian_agent import GuardianAgent
@@ -68,7 +57,11 @@ def mock_locale():
 def guardian_agent(base_aiconfig, traffic_rules_config, mock_locale):
     with patch.object(ga, 'D3QN_TCN') as mock_tcn, \
          patch.object(ga.optim, 'AdamW') as mock_optim, \
-         patch.object(ga.torch.amp, 'GradScaler') as mock_scaler:
+         patch.object(ga.torch.amp, 'GradScaler') as mock_scaler, \
+         patch.object(ga.SafetyRules, 'get_green', return_value=15.0), \
+         patch.object(ga.SafetyRules, 'get_yellow', return_value=4.0), \
+         patch.object(ga.SafetyRules, 'get_all_red', return_value=2.0), \
+         patch.object(ga.SafetyRules, 'get_red', return_value=15.0):
         
         agent = GuardianAgent(
             aiconfig=base_aiconfig,
@@ -80,41 +73,46 @@ def guardian_agent(base_aiconfig, traffic_rules_config, mock_locale):
 
 def test_guardian_initialization(guardian_agent):
     """Tests if Guardian rules were inferred from traffic configs."""
-    assert guardian_agent.min_green_time == 15.0
+    assert guardian_agent.green_time == 15.0
     assert guardian_agent.yellow_time == 4.0
     assert guardian_agent.all_red_time == 2.0
-    assert guardian_agent.ACTION_KEEP_PHASE == 0
+    assert guardian_agent.ACTION_KEEP_STAGE == 0
 
 def test_symbolic_barrier_min_green_violation(guardian_agent):
     """Tests if The Guardian VETOES changes if the minimum green is not met."""
     context = {
-        'current_phase_duration': 10.0,  # Below the 15s minimum
-        'next_phase_has_flow': True,
+        'current_stage_duration': 10.0,  # Below the 15s minimum
+        'current_stage_state': 'G',
+        'next_stage_has_flow': True,
         'tl_id': 'TL_TEST'
     }
     
     # Independent of neural network, due to barriers, it must keep (0)
-    decision = guardian_agent.select_action([0,0], context)
-    assert decision == guardian_agent.ACTION_KEEP_PHASE
+    decision, reason = guardian_agent.select_action([0,0], context)
+    assert decision == guardian_agent.ACTION_KEEP_STAGE
+    assert "Minimum Green limits" in reason
 
 def test_symbolic_barrier_ghost_green(guardian_agent):
     """Tests if The Guardian VETOES changes (saving ghost green) if no one requests green."""
     context = {
-        'current_phase_duration': 50.0, # Green can change
-        'next_phase_has_flow': False,   # But nobody needs it! (Avoidable Ghost Green)
+        'current_stage_duration': 50.0, # Green can change
+        'current_stage_state': 'G',
+        'next_stage_has_flow': False,   # But nobody needs it! (Avoidable Ghost Green)
         'tl_id': 'TL_TEST'
     }
     
     # The guardian holds the phase
-    decision = guardian_agent.select_action([0,0], context)
-    assert decision == guardian_agent.ACTION_KEEP_PHASE
+    decision, reason = guardian_agent.select_action([0,0], context)
+    assert decision == guardian_agent.ACTION_KEEP_STAGE
+    assert "Ghost Green constraint" in reason
 
 @patch.object(ga, 'random')
 def test_neural_inference_path(mock_random, guardian_agent):
     """Tests free path where symbolic barrier does not act and AI takes over."""
     context = {
-        'current_phase_duration': 20.0, # Ok
-        'next_phase_has_flow': True,    # Flow exists on crossing
+        'current_stage_duration': 20.0, # Ok
+        'current_stage_state': 'G',
+        'next_stage_has_flow': True,    # Flow exists on crossing
         'tl_id': 'TL_FREE'
     }
     
@@ -133,9 +131,9 @@ def test_neural_inference_path(mock_random, guardian_agent):
     guardian_agent.policy_net.return_value = mock_q_values
     
     with patch.object(ga.torch, 'tensor'):
-        decision = guardian_agent.select_action([0,0], context)
+        decision, reason = guardian_agent.select_action([0,0], context)
     
-    assert decision == 1 # Neural action for change
+    assert decision == guardian_agent.ACTION_CHANGE_STAGE # Neural action for change (1)
 
 def test_temporal_sequence_padding(guardian_agent):
     """Tests if agent's Deque manages and does PADDING of state vector."""

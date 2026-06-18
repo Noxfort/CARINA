@@ -1,0 +1,115 @@
+{
+  "profiles": {
+    "profile": "BMO.md",
+    "profileFolderPath": "BMO/Profiles",
+    "lastLoadedChatHistoryPath": null,
+    "lastLoadedChatHistory": [
+      null
+    ]
+  },
+  "general": {
+    "model": "",
+    "system_role": "You are a helpful assistant.",
+    "max_tokens": null,
+    "temperature": "1.00",
+    "enableReferenceCurrentNote": false
+  },
+  "appearance": {
+    "userName": "YOU",
+    "chatbotName": "BMO",
+    "chatbotContainerBackgroundColor": "#--background-secondary",
+    "messageContainerBackgroundColor": "#--background-secondary",
+    "userMessageFontColor": "#--text-normal",
+    "userMessageBackgroundColor": "#--background-primary",
+    "botMessageFontColor": "#--text-normal",
+    "botMessageBackgroundColor": "#--background-secondary",
+    "chatBoxFontColor": "#--text-normal",
+    "chatBoxBackgroundColor": "#--interactive-accent",
+    "enableHeader": true,
+    "enableScrollBar": false,
+    "bmoGenerateBackgroundColor": "#0c0a12",
+    "bmoGenerateFontColor": "#--text-normal"
+  },
+  "prompts": {
+    "prompt": "",
+    "promptFolderPath": "BMO/Prompts"
+  },
+  "editor": {
+    "systen_role": "You are a helpful assistant."
+  },
+  "chatHistory": {
+    "chatHistoryPath": "BMO/History",
+    "templateFilePath": "",
+    "allowRenameNoteTitle": false
+  },
+  "OllamaConnection": {
+    "RESTAPIURL": "http://localhost:11434",
+    "enableStream": true,
+    "ollamaParameters": {
+      "mirostat": "0",
+      "mirostat_eta": "0.10",
+      "mirostat_tau": "5.00",
+      "num_ctx": "2048",
+      "num_gqa": null,
+      "num_thread": null,
+      "repeat_last_n": "64",
+      "repeat_penalty": "1.10",
+      "seed": null,
+      "stop": [],
+      "tfs_z": "1.00",
+      "top_k": "40",
+      "top_p": "0.90",
+      "min_p": "0.00",
+      "keep_alive": ""
+    },
+    "ollamaModels": []
+  },
+  "RESTAPIURLConnection": {
+    "APIKey": "",
+    "RESTAPIURL": "",
+    "enableStream": false,
+    "RESTAPIURLModels": []
+  },
+  "APIConnections": {
+    "anthropic": {
+      "APIKey": "",
+      "anthropicModels": []
+    },
+    "googleGemini": {
+      "APIKey": "",
+      "enableStream": false,
+      "geminiModels": []
+    },
+    "mistral": {
+      "APIKey": "",
+      "enableStream": false,
+      "mistralModels": []
+    },
+    "openAI": {
+      "APIKey": "",
+      "openAIBaseUrl": "https://api.openai.com/v1",
+      "enableStream": true,
+      "openAIBaseModels": []
+    },
+    "openRouter": {
+      "APIKey": "",
+      "enableStream": false,
+      "openRouterModels": []
+    }
+  },
+  "toggleGeneralSettings": false,
+  "toggleAppearanceSettings": false,
+  "togglePromptSettings": false,
+  "toggleEditorSettings": false,
+  "toggleChatHistorySettings": false,
+  "toggleProfileSettings": false,
+  "toggleAPIConnectionSettings": true,
+  "toggleOpenAISettings": false,
+  "toggleMistralSettings": false,
+  "toggleGoogleGeminiSettings": false,
+  "toggleAnthropicSettings": false,
+  "toggleRESTAPIURLSettings": true,
+  "toggleOpenRouterSettings": false,
+  "toggleOllamaSettings": true,
+  "toggleAdvancedSettings": false
+}

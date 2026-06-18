@@ -60,9 +60,17 @@ class AIRequestHandler:
                         self.topology_manager.tls_phases_cache = {}
                     self.topology_manager.tls_phases_cache.update(payload["tls_phases"])
                 
-                # Routes directly to SAS (Analysis) for metric logging, but NOT to SDS (UI)
+                # Routes to SAS (Analysis) for metric logging AND to SDS (UI) for Traffic Light updates!
                 try:
                     self.sas_queue.put_nowait(("hft_rich_update", payload))
+                    
+                    # Prevent raw 'edges' data from overwriting UI telemetry
+                    # Keep 'tls_phases', 'tls_lanes_state', and 'maturity' for fast UI updates
+                    ui_payload = payload.copy()
+                    if "edges" in ui_payload:
+                        del ui_payload["edges"]
+                        
+                    self.sds_queue.put_nowait(("hft_rich_update", ui_payload))
                 except Full:
                     pass
                     

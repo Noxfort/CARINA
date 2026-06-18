@@ -1,0 +1,18 @@
+{
+  "action_supervisor": {
+    "init": {
+      "actuator_created": "O 'Atuador' do ambiente (ActionSupervisor) foi criado.",
+      "min_green_time_rule": "Regra de segurança ativada: Tempo mínimo de verde = {time}s."
+    },
+    "reset": {
+      "success": "Supervisor de Ações resetado com sucesso."
+    },
+    "veto": {
+      "received": "[SUPERVISOR] Veto do Guardião recebido para o semáforo {tl_id}. Ação {action} será bloqueada."
+    },
+    "apply": {
+      "action_blocked": "[SUPERVISOR] Ação {action} bloqueada pelo Guardião para o semáforo {tl_id}.",
+      "min_time_not_met": "Tempo mínimo de verde ainda não atingido para o semáforo {tl_id}. Ação ignorada."
+    }
+  }
+}

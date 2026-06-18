@@ -1,6 +1,22 @@
-# File: ui/widgets/traffic_light_widget.py (FINAL SIMPLIFIED VERSION)
+# CARINA (Controlled Artificial Road-traffic Intelligence Network Architecture) is an open-source AI ecosystem for real-time, adaptive control of urban traffic light networks.
+# Copyright (C) 2026 Gabriel Moraes - Noxfort Systems
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+# File: ui/widgets/traffic_light_widget.py
 # Author: Gabriel Moraes
-# Date: September 24, 2025
+# Date: 2026-06-09
 
 """
 Define a classe TrafficLightWidget.
@@ -89,3 +105,19 @@ class TrafficLightWidget(ft.Container):
         if self.current_state != visual_state:
             self.current_state = visual_state
             self._update_visuals()
+
+    def apply_telemetry(self, telemetry_data: dict, overrides: dict, blink_toggle: bool):
+        """
+        Applies new telemetry data ensuring OCP. The MapAnimator doesn't need to know
+        how a traffic light processes its data.
+        """
+        override_state = overrides.get(self.semaphore_id)
+        if override_state:
+            if override_state == 'ALERT':
+                self.set_state('YELLOW' if blink_toggle else 'OFF')
+            elif override_state == 'OFF':
+                self.set_state('OFF')
+        else:
+            semaforo_data = telemetry_data.get(self.semaphore_id, {})
+            new_state = semaforo_data.get("display_state", "RED")
+            self.set_state(new_state)

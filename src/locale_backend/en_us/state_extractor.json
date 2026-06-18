@@ -1,0 +1,7 @@
+{
+  "state_extractor": {
+    "init": {
+      "sensor_created": "The environment's 'Sensor' (StateExtractor) was created."
+    }
+  }
+}

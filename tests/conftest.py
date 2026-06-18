@@ -28,18 +28,104 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 # --- MOCK HEAVY IMPORTS BEFORE THEY HAPPEN ---
 # This prevents PyTorch, OpenCV, or PyQt from attempting to start heavy contexts 
 # (like CUDA or X11) just because a file imported them at the top.
+from unittest.mock import MagicMock
+
+mock_nn = MagicMock()
+class Module: pass
+mock_nn.Module = Module
+
+class DummyTensor:
+    def __init__(self, data, shape=None):
+        self._data = data
+        if shape is not None:
+            self.shape = shape
+        else:
+            try:
+                if isinstance(data, list):
+                    if len(data) > 0 and isinstance(data[0], list):
+                        self.shape = (len(data), len(data[0]))
+                    else:
+                        self.shape = (len(data),)
+                elif hasattr(data, 'shape'):
+                    self.shape = data.shape
+                else:
+                    self.shape = ()
+            except Exception:
+                self.shape = ()
+
+    def to(self, *args, **kwargs):
+        return self
+
+    def item(self):
+        return self._data
+
+    def max(self, *args, **kwargs):
+        return DummyTensor(None, shape=()), DummyTensor(0, shape=())
+
+    def __getitem__(self, idx):
+        if isinstance(idx, tuple):
+            return DummyTensor(0)
+        try:
+            sub = self._data[idx]
+            return DummyTensor(sub)
+        except Exception:
+            return DummyTensor(0)
+
 class DummyTorch:
     class cuda:
         @staticmethod
         def is_available(): return False
         @staticmethod
         def get_device_name(idx): return 'Mock CPU'
-    class nn:
-        class Module: pass
+    
+    nn = mock_nn
+    optim = MagicMock()
+    distributions = MagicMock()
+    amp = MagicMock()
+    
+    float32 = 'float32'
+    long = 'long'
+    int64 = 'int64'
+    bool = 'bool'
+    float = 'float'
+    double = 'double'
+    int = 'int'
+    
+    @staticmethod
+    def zeros(shape, *args, **kwargs):
+        return DummyTensor(None, shape=shape)
+        
+    @staticmethod
+    def tensor(data, *args, **kwargs):
+        return DummyTensor(data)
+        
+    @staticmethod
+    def cat(*args, **kwargs):
+        return DummyTensor(None)
+        
+    @staticmethod
+    def rand(shape, *args, **kwargs):
+        return DummyTensor(None, shape=shape)
+        
+    @staticmethod
+    def save(*args, **kwargs):
+        return MagicMock()
+        
+    @staticmethod
+    def load(*args, **kwargs):
+        return MagicMock()
+        
+    class DeviceMock:
+        def __init__(self, type_str):
+            self.type = type_str
+        def __str__(self):
+            return self.type
+            
     class Tensor: pass
     
     @staticmethod
-    def device(name): return name
+    def device(name): 
+        return DummyTorch.DeviceMock(name)
     
     @staticmethod
     def no_grad():
@@ -49,6 +135,14 @@ class DummyTorch:
         return NoGradContext()
 
 sys.modules['torch'] = DummyTorch()
+sys.modules['torch.nn'] = DummyTorch.nn
+sys.modules['torch.nn.functional'] = MagicMock()
+sys.modules['torch.nn.utils'] = MagicMock()
+sys.modules['torch.optim'] = DummyTorch.optim
+sys.modules['torch.distributions'] = DummyTorch.distributions
+sys.modules['torch.amp'] = DummyTorch.amp
+sys.modules['torch_geometric'] = MagicMock()
+sys.modules['torch_geometric.nn'] = MagicMock()
 sys.modules['torchvision'] = type('Mock', (object,), {})()
 sys.modules['psutil'] = type('Mock', (object,), {'Process': lambda: type('P', (object,), {'cpu_percent': lambda self, *a, **k: 0, 'memory_percent': lambda self: 0})()})()
 sys.modules['cv2'] = type('Mock', (object,), {})()

@@ -53,32 +53,19 @@ class TlsStateFormatter:
     _map_loaded = False
 
     @classmethod
-    def _load_network_topology(cls):
+    def load_network_topology(cls, net_file_path: str):
         """
-        Searches for the static .net.xml file in the fixed hft_live_session/maps directory
-        and extracts the exact incoming edges (streets) for each traffic light junction.
+        Extracts the exact incoming edges (streets) for each traffic light junction.
         Initializes the Map Extractor to learn phase strings.
         """
-        if cls._map_loaded: 
+        if cls._map_loaded or not net_file_path: 
             return
             
         cls._map_loaded = True
         try:
-            from src.utils.paths import get_base_output_dir
-            maps_dir = os.path.join(get_base_output_dir(), "results", "hft_live_session", "maps")
-            
-            if not os.path.exists(maps_dir): 
-                logging.warning(f"[TlsStateFormatter] Pasta {maps_dir} não encontrada.")
-                return
-            
-            net_file_path = None
-            for file in os.listdir(maps_dir):
-                if file.endswith('.net.xml') or file.endswith('.net.xml.gz'):
-                    net_file_path = os.path.join(maps_dir, file)
-                    break
-
-            if not net_file_path: 
-                logging.warning(f"[TlsStateFormatter] Arquivo .net.xml não encontrado na pasta {maps_dir}.")
+            if not os.path.exists(net_file_path): 
+                logging.warning(f"[TlsStateFormatter] Arquivo .net.xml não encontrado: {net_file_path}")
+                cls._map_loaded = False
                 return
 
             # INJECTION OF THE KNOWLEDGE EXTRACTOR
@@ -121,8 +108,6 @@ class TlsStateFormatter:
         Generates the visual state dictionary for Semaphores (Phase + Colors).
         Retrieves the state dynamically from the TlsStateProvider using the real telemetry phase.
         """
-        TlsStateFormatter._load_network_topology()
-        
         tls_phases = raw_data.get('tls_phases', {})
         panel_data = {}
         

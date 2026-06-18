@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from utils.locale_manager_backend import LocaleManagerBackend
 
 from core.dynamic_entropy_calculator import DynamicEntropyCalculator
+from promotion.promotion_evaluator import PromotionEvaluator
 
 
 class MaturityManager:
@@ -101,6 +102,7 @@ class MaturityManager:
         self.teen_phase_min_duration = get_int_setting('teen_phase_min_episodes', 50)
         
         self.entropy_calculator = DynamicEntropyCalculator(e_max=1.8, e_ideal=0.1)
+        self.promotion_evaluator = PromotionEvaluator()
         
         # Internal State
         self.is_calibrated = True # Dynamic calibration is always ready
@@ -189,9 +191,9 @@ class MaturityManager:
         # Entropy thresholds are now calculated dynamically based on configured time.
         logging.info(self.locale_manager.get_string("maturity_manager.calibration.thresholds_updated", default="[MATURITY] Note: Static calibration is disabled in favor of dynamic time-based entropy."))
 
-    def check_and_promote_agents(self, agent_metrics: dict) -> bool:
+    def check_and_promote_agents(self, agent_metrics: dict, mfd_efficiency: float = 0.0) -> bool:
         """
-        Checks and promotes agents. Returns True if any promotion occurred.
+        Checks and promotes agents using the MFD-based dynamic threshold. Returns True if any promotion occurred.
         """
         lm = self.locale_manager
         promotion_happened = False
@@ -207,55 +209,61 @@ class MaturityManager:
             agent_entropy = metrics.get('entropy', float('inf'))
 
             if current_phase == Maturity.CHILD:
-                if episodes_in_phase >= self.child_phase_duration:
-                    dynamic_child_threshold = self.entropy_calculator.calculate_threshold(self.child_phase_duration, is_adult_transition=False)
-                    confidence_ok = agent_entropy < dynamic_child_threshold
-                    if confidence_ok:
-                        details = { 
-                            lm.get_string("maturity_manager.criterion_time"): lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=self.child_phase_duration),
-                            lm.get_string("maturity_manager.criterion_confidence"): lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_child_threshold)
-                        }
-                        self._promote_agent(agent_id, Maturity.TEEN)
-                        self.reporter.report_promotion(agent_id, Maturity.TEEN, details)
-                        promotion_happened = True
-                    else:
-                        rejection_details = {
-                            lm.get_string("maturity_manager.criterion_time"): {"ok": True, "msg": lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=self.child_phase_duration)},
-                            lm.get_string("maturity_manager.criterion_confidence"): {"ok": False, "msg": lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_child_threshold)}
-                        }
-                        self.reporter.report_rejection(agent_id, current_phase, Maturity.TEEN, rejection_details)
+                # 1. Base checks (legacy entropy check for safety)
+                dynamic_child_threshold = self.entropy_calculator.calculate_threshold(self.child_phase_duration, is_adult_transition=False)
+                confidence_ok = agent_entropy < dynamic_child_threshold
+                
+                # 2. MFD Dynamic Threshold evaluation
+                is_promoted, reason, current_threshold, required_episodes = self.promotion_evaluator.evaluate_agent(
+                    agent_id=agent_id,
+                    current_phase=current_phase,
+                    episodes_in_phase=episodes_in_phase,
+                    recent_mfd_efficiency=mfd_efficiency
+                )
+
+                if confidence_ok and is_promoted:
+                    details = { 
+                        lm.get_string("maturity_manager.criterion_time"): lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=required_episodes),
+                        lm.get_string("maturity_manager.criterion_confidence"): lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_child_threshold),
+                        "MFD Efficiency": {"ok": True, "msg": reason}
+                    }
+                    self._promote_agent(agent_id, Maturity.TEEN)
+                    self.reporter.report_promotion(agent_id, Maturity.TEEN, details)
+                    promotion_happened = True
+                else:
+                    rejection_details = {
+                        lm.get_string("maturity_manager.criterion_time"): {"ok": episodes_in_phase >= required_episodes, "msg": lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=required_episodes)},
+                        lm.get_string("maturity_manager.criterion_confidence"): {"ok": confidence_ok, "msg": lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_child_threshold)},
+                        "MFD Efficiency": {"ok": is_promoted, "msg": reason}
+                    }
+                    self.reporter.report_rejection(agent_id, current_phase, Maturity.TEEN, rejection_details)
 
             elif current_phase == Maturity.TEEN:
-                time_ok = episodes_in_phase >= self.teen_phase_min_duration
-                if not time_ok: continue
-
                 dynamic_adult_threshold = self.entropy_calculator.calculate_threshold(self.teen_phase_min_duration, is_adult_transition=True)
                 confidence_ok = agent_entropy < dynamic_adult_threshold
                 
-                performance_ok = False
-                mean_performance = 0
-                rewards_buffer = self.agent_recent_rewards[agent_id]
-                if len(rewards_buffer) >= self._rewards_window_size:
-                    mean_performance = np.mean(list(rewards_buffer))
-                    # Streak consistency check: all rewards must be at least above the baseline performance
-                    streak_ok = all(r > self.baseline_performance for r in rewards_buffer)
-                    if mean_performance > self.baseline_target and streak_ok:
-                        performance_ok = True
+                # MFD Dynamic Threshold evaluation
+                is_promoted, reason, current_threshold, required_episodes = self.promotion_evaluator.evaluate_agent(
+                    agent_id=agent_id,
+                    current_phase=current_phase,
+                    episodes_in_phase=episodes_in_phase,
+                    recent_mfd_efficiency=mfd_efficiency
+                )
 
-                if confidence_ok and performance_ok:
+                if confidence_ok and is_promoted:
                     details = {
-                        lm.get_string("maturity_manager.criterion_time"): lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=self.teen_phase_min_duration),
-                        lm.get_string("maturity_manager.criterion_performance"): lm.get_string("maturity_manager.performance_details", mean_performance=mean_performance, baseline_target=self.baseline_target),
-                        lm.get_string("maturity_manager.criterion_confidence"): lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_adult_threshold)
+                        lm.get_string("maturity_manager.criterion_time"): lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=required_episodes),
+                        lm.get_string("maturity_manager.criterion_confidence"): lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_adult_threshold),
+                        "MFD Efficiency": {"ok": True, "msg": reason}
                     }
                     self._promote_agent(agent_id, Maturity.ADULT)
                     self.reporter.report_promotion(agent_id, Maturity.ADULT, details)
                     promotion_happened = True
-                elif episodes_in_phase % self.teen_phase_min_duration == 0:
+                else:
                     rejection_details = {
-                        lm.get_string("maturity_manager.criterion_time"): {"ok": True, "msg": lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=self.teen_phase_min_duration)},
-                        lm.get_string("maturity_manager.criterion_performance"): {"ok": performance_ok, "msg": lm.get_string("maturity_manager.performance_details", mean_performance=mean_performance, baseline_target=self.baseline_target)},
-                        lm.get_string("maturity_manager.criterion_confidence"): {"ok": confidence_ok, "msg": lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_adult_threshold)}
+                        lm.get_string("maturity_manager.criterion_time"): {"ok": episodes_in_phase >= required_episodes, "msg": lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=required_episodes)},
+                        lm.get_string("maturity_manager.criterion_confidence"): {"ok": confidence_ok, "msg": lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_adult_threshold)},
+                        "MFD Efficiency": {"ok": is_promoted, "msg": reason}
                     }
                     self.reporter.report_rejection(agent_id, current_phase, Maturity.ADULT, rejection_details)
         

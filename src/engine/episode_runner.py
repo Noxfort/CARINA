@@ -1,3 +1,23 @@
+# CARINA (Controlled Artificial Road-traffic Intelligence Network Architecture) is an open-source AI ecosystem for real-time, adaptive control of urban traffic light networks.
+# Copyright (C) 2026 Gabriel Moraes - Noxfort Systems
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+# File: src/engine/episode_runner.py
+# Author: Gabriel Moraes
+# Date: 2026-06-09
+
 # Copyright (C) 2026 Gabriel Moraes - Noxfort Systems
 #
 # This program is free software: you can redistribute it and/or modify
@@ -238,6 +258,8 @@ class EpisodeRunner:
                         state = command.get("state")
                         if semaphore_id and state:
                             self.decision_coordinator.override_states[semaphore_id] = state
+                            if self.env.action_supervisor:
+                                self.env.action_supervisor.apply_hardware_override(semaphore_id, state)
                 if "active_overrides" in next_states_dict:
                      self.decision_coordinator.override_states.clear()
                      self.decision_coordinator.override_states.update(next_states_dict.get("active_overrides", {}))

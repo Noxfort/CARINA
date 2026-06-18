@@ -1,0 +1,7 @@
+{
+  "asset_manager": {
+    "init": {
+      "created": "[ASSET_MANAGER] Gestor de Ativos (Facade) criado e especialistas instanciados."
+    }
+  }
+}

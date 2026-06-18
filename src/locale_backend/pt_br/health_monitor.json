@@ -1,0 +1,14 @@
+{
+  "health_monitor": {
+    "init": {
+      "monitor_created": "[HEALTH_MONITOR] Monitor de Saúde da IA criado com timeout de {timeout}s."
+    },
+    "activity": {
+      "communication_reestablished": "[HEALTH_MONITOR] Comunicação com a IA reestabelecida."
+    },
+    "health_check": {
+      "failure": "[HEALTH_MONITOR] FALHA: Sem comunicação da IA por mais de {timeout}s.",
+      "switching_to_watchdog": "[HEALTH_MONITOR] Sinalizando para o controlador mudar para o modo de segurança (Watchdog)."
+    }
+  }
+}

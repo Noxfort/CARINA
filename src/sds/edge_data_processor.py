@@ -113,8 +113,14 @@ class EdgeDataProcessor:
         avg_occ = statistics.mean(occ_values)
         median_occ = statistics.median(occ_values)
         
-        avg_spd = statistics.mean(spd_values) if spd_values else 0.0
-        median_spd = statistics.median(spd_values) if spd_values else 0.0
+        # Safely compute harmonic mean for space-mean speed
+        if spd_values:
+            # Epsilon prevents division by zero for stopped vehicles
+            epsilon = 0.1
+            sum_inv = sum(1.0 / max(v, epsilon) for v in spd_values)
+            harmonic_spd = len(spd_values) / sum_inv
+        else:
+            harmonic_spd = 0.0
         
         avg_q = statistics.mean(q_values) if q_values else 0.0
         median_q = statistics.median(q_values) if q_values else 0.0
@@ -129,14 +135,23 @@ class EdgeDataProcessor:
         elif avg_occ > 0.7:
             free_flow_speed = 11.11  # 40 km/h for high occupancy roads
             
-        # Calculate speed ratio using median for robustness
-        if median_spd > 0:
-            speed_ratio = min(median_spd / free_flow_speed, 1.0)
+        # Calculate speed ratio using harmonic mean (space-mean speed) for robustness
+        # Handle potential edge cases where simulators might send km/h instead of m/s
+        if harmonic_spd > 35.0: # 35 m/s = 126 km/h, very likely it's already in km/h
+            harmonic_spd = harmonic_spd / 3.6
+            
+        if harmonic_spd > 0:
+            speed_ratio = min(harmonic_spd / free_flow_speed, 1.0)
         else:
             speed_ratio = 0.0
             
-        # Base congestion on velocity loss (using median for robustness)
-        velocity_congestion = 1.0 - speed_ratio
+        # Base congestion on velocity loss (using harmonic mean for space-mean precision)
+        # Se a velocidade cai para menos de 30% do limite (ex: 15km/h numa via de 50km/h), é 100% congestionado.
+        if speed_ratio < 0.3:
+            velocity_congestion = 1.0
+        else:
+            # Escala suavemente de 0.3 até 1.0
+            velocity_congestion = (1.0 - speed_ratio) / 0.7
         
         # Improved queue saturation calculation
         # Use 90th percentile queue length to account for peaks
@@ -157,18 +172,23 @@ class EdgeDataProcessor:
         # Weight velocity and queue factors differently
         congestion_percent = (0.7 * velocity_congestion + 0.3 * q_ratio) * 100.0
         
-        # Enhanced ghost jam filtering
-        # Consider both occupancy and queue length, plus speed
-        if (avg_occ < 0.02 and avg_q < 1) or (median_spd < 0.1 and avg_q < 0.5):
+        # Log to debug mock data inputs vs computed congestion
+        logging.debug(f"[EdgeDataProcessor] Computed Congestion: {congestion_percent:.2f}% | Spd: {harmonic_spd:.2f} | Occ: {avg_occ:.2f} | Q: {q_90th:.2f}")
+        
+        # Additional filtering for very low congestion (reduced threshold)
+        if congestion_percent < 1.0:
             congestion_percent = 0.0
-            
-        # Additional filtering for very low congestion
-        if congestion_percent < 5.0:
-            congestion_percent = 0.0
+        # Mathematical Flow Calculation (Flow - vehicles per hour)
+        # From the fundamental equation of traffic flow: q = k * v (Flow = Density * Speed)
+        # We estimate Density (vehicles/km) using the occupancy ratio.
+        # Assuming maximum capacity of an average urban road as ~200 vehicles/km at full congestion (occupancy=1.0)
+        estimated_density = avg_occ * 200.0 
+        speed_kmh = harmonic_spd * 3.6
+        calculated_flow = int(estimated_density * speed_kmh)
             
         return {
             'congestion': congestion_percent,
-            'speed': median_spd * 3.6,  # Convert m/s to km/h using median
+            'speed': speed_kmh,  # Convert m/s to km/h using harmonic mean
             'vehicles': int(median_q),   # Use median queue length
-            'flow': 0  # Flow computed separately if needed
+            'flow': calculated_flow
         }

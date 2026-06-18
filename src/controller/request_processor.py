@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 from src.handlers.ui_command_handler import UICommandHandler
 from src.handlers.ai_request_handler import AIRequestHandler
 from src.handlers.watchdog_command_handler import WatchdogCommandHandler
+from src.utils.security_manager import SecurityManager
 
 class EnvironmentConnectionException(Exception):
     pass
@@ -59,7 +60,8 @@ class RequestProcessor:
                  locale_manager: 'LocaleManagerBackend',
                  override_manager: 'OverrideManager',
                  failsafe_manager: 'FailsafeManager',
-                 topology_manager: 'TopologyManager'):
+                 topology_manager: 'TopologyManager',
+                 db_manager: Any = None):
 
         self.ai_pipe_conn = ai_pipe_conn
         self.watchdog_q = watchdog_q
@@ -69,7 +71,8 @@ class RequestProcessor:
         self.override_commands_buffer = []
 
         # Initialize Specialized Handlers
-        self.ui_handler = UICommandHandler(locale_manager, override_manager, failsafe_manager)
+        self.security_manager = SecurityManager(db_manager)
+        self.ui_handler = UICommandHandler(locale_manager, override_manager, failsafe_manager, self.security_manager, sds_data_queue)
         self.ai_handler = AIRequestHandler(locale_manager, topology_manager, sds_data_queue, sas_data_queue, health_monitor, override_manager)
         self.watchdog_handler = WatchdogCommandHandler(locale_manager)
 
@@ -79,13 +82,32 @@ class RequestProcessor:
         self.ui_handler.set_ui_ready_callback(ui_cb)
         self.ai_handler.set_backend_ready_callback(backend_cb)
 
+    def handle_single_request(self, request: Any, sumo_conn: Any):
+        try:
+            collect_func = getattr(self, '_collect_batched_step_data', None)
+            self.ai_handler.process(request, sumo_conn, self.ai_pipe_conn, self.override_commands_buffer, collect_func)
+        except EnvironmentConnectionException as e_conn:
+            logging.error(f"[RequestProcessor] Erro de Conexão com Ambiente: {e_conn}", exc_info=True)
+            if self.ai_pipe_conn and not self.ai_pipe_conn.closed:
+                self.ai_pipe_conn.send(e_conn)
+        except Exception as e:
+            logging.error(f"[RequestProcessor] AI Request Handler throwed unexpected error: {e}", exc_info=True)
+            if self.ai_pipe_conn and not self.ai_pipe_conn.closed:
+                try: self.ai_pipe_conn.send(e)
+                except Exception: pass
+
     def process_queues(self, sumo_conn: Any, is_ai_healthy: bool):
         # UI Commands (Flet Interface)
         try:
             while True:
                 command = self.ui_command_queue.get_nowait()
                 if isinstance(command, dict):
-                    self.ui_handler.process(command, sumo_conn, self.override_commands_buffer)
+                    if command.get("type") == "set_hardware_connection":
+                        payload = command.get("payload", {})
+                        if self.ai_pipe_conn and not self.ai_pipe_conn.closed:
+                            self.ai_pipe_conn.send(('hardware', 'toggle_connection', (payload.get("intersection_id"), payload.get("ip_address")), {}))
+                    else:
+                        self.ui_handler.process(command, sumo_conn, self.override_commands_buffer)
         except Empty:
             pass
         except EnvironmentConnectionException as e_conn:
@@ -94,25 +116,7 @@ class RequestProcessor:
             logging.error(f"[RequestProcessor] Erro critico no UI Handler: {e}", exc_info=True)
 
         if is_ai_healthy:
-            # AI Commands (PyTorch Trainer / Guardian)
-            try:
-                if self.ai_pipe_conn.poll():
-                    request = self.ai_pipe_conn.recv()
-                    collect_func = getattr(self, '_collect_batched_step_data', None)
-                    self.ai_handler.process(request, sumo_conn, self.ai_pipe_conn, self.override_commands_buffer, collect_func)
-            except EOFError:
-                logging.warning("[RequestProcessor] Pipe de comunicação com a IA fechado.")
-            except OSError as e_os:
-                logging.error(f"[RequestProcessor] Erro de OS no Pipe da IA: {e_os}", exc_info=True)
-            except EnvironmentConnectionException as e_conn:
-                logging.error(f"[RequestProcessor] Erro de Conexão com Ambiente: {e_conn}", exc_info=True)
-                if self.ai_pipe_conn and not self.ai_pipe_conn.closed:
-                    self.ai_pipe_conn.send(e_conn)
-            except Exception as e:
-                logging.error(f"[RequestProcessor] AI Request Handler throwed unexpected error: {e}", exc_info=True)
-                if self.ai_pipe_conn and not self.ai_pipe_conn.closed:
-                    try: self.ai_pipe_conn.send(e)
-                    except Exception: pass
+            pass # Previously we polled ai_pipe_conn here, now handled by HftEventLoop
             
             # NOTE: Watchdog queue is NO LONGER drained here.
             # The watchdog_queue is exclusively owned by the Watchdog process

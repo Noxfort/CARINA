@@ -228,5 +228,43 @@
     },
     "explanation_viewer": {
         "no_data": "Aucun rapport détaillé disponible."
+    },
+    "security": {
+        "auth_required": "Authentification Requise",
+        "username": "Nom d'utilisateur",
+        "password": "Mot de passe",
+        "cancel": "Annuler",
+        "authenticate": "S'authentifier",
+        "superuser": "Super Utilisateur",
+        "system_locked": "SYSTÈME VERROUILLÉ",
+        "system_locked_lockdown": "SYSTÈME VERROUILLÉ (VERROUILLAGE)",
+        "system_locked_desc1": "Trop de tentatives échouées. Infrastructure physique isolée.",
+        "system_locked_desc2": "Multiples tentatives d'accès invalides. Contrôle autonome et connexions matérielles désactivés.",
+        "system_locked_desc3": "Les feux de circulation fonctionnent sur leurs plans locaux sûrs.",
+        "unlock_system": "DÉVERROUILLER LE SYSTÈME",
+        "auth_superuser": "S'AUTHENTIFIER EN TANT QUE SUPER UTILISATEUR",
+        "err_fill_fields": "Remplissez les deux champs.",
+        "err_superuser_only": "Seuls les Super Utilisateurs peuvent déverrouiller le système."
+    },
+    "accounts": {
+        "title": "Gestion des Comptes",
+        "access_level": "Niveau d'accès",
+        "operator": "Opérateur (Accès standard)",
+        "superuser": "Super Utilisateur (Accès complet)",
+        "add_user": "Ajouter un utilisateur",
+        "refresh_list": "Actualiser la liste",
+        "add_new_account": "Ajouter un nouveau compte:",
+        "registered_accounts": "Comptes enregistrés:",
+        "remove_user": "Retirer",
+        "success_action": "Action ({action_type}) terminée avec succès!",
+        "fail_action": "Échec de l'action ({action_type}). Vérifiez les données ou si l'utilisateur existe déjà."
+    },
+    "audit": {
+        "title": "Journaux d'audit",
+        "date_time": "Date/Heure",
+        "user": "Utilisateur",
+        "action": "Action",
+        "details": "Détails",
+        "refresh": "Actualiser"
     }
 }

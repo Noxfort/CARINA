@@ -1,0 +1,31 @@
+{
+  "xai_worker": {
+    "run": {
+      "start": "[XAI_WORKER] XAI Worker process started. Watching folder: {path}",
+      "request_received": "[XAI_WORKER] Analysis request received for agent: '{agent_id}'",
+      "analysis_failed": "Failed to generate analysis files.",
+      "processing_error": "[XAI_WORKER] Error processing request: {error}",
+      "response_file_error": "[XAI_WORKER] Critical failure writing response file: {error}",
+      "response_sent": "[XAI_WORKER] Response sent for '{filename}'.",
+      "critical_loop_error": "[XAI_WORKER] Critical error in watcher loop: {error}",
+      "finished": "[XAI_WORKER] XAI Worker process finished."
+    }
+  },
+  "xai_report": {
+    "chart_xlabel": "Importance",
+    "chart_title": "Feature Importance Analysis - Agent {agent_id}",
+    "title": "XAI Analysis Report - Agent {agent_id}",
+    "subtitle": "Generated on: {timestamp}",
+    "header_description": "This report presents the importance of each sensor (feature) for the agent's decision making, based on the Integrated Gradients method.",
+    "section_sensor": "Sensor",
+    "section_importance": "Importance",
+    "section_description": "Description"
+  },
+  "captum_analyzer": {
+    "run": {
+      "empty_memory_warning": "[CAPTUM_ANALYZER] XAI memory for agent {agent_id} is empty. Analysis cannot be generated.",
+      "text_report_success": "[CAPTUM_ANALYZER] Text analysis saved at: {path}",
+      "analysis_error": "[CAPTUM_ANALYZER] Failed to generate analysis: {error}"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "monitor": {
+    "watchdog_trigger": "Watchdog timeout triggered (> {timeout}ms silence). Switching to Fixed-Time fallback. Event #{event}.",
+    "synapse_restored": "Synapse signal restored after {elapsed}s. Watchdog mode disabled, resuming AI Neural Network.",
+    "auth_failure": "Authentication failure detected for user: {username}",
+    "lockdown_active": "Security LOCKDOWN activated due to multiple login failures.",
+    "manual_override": "Operator manually disabled AI control. Switched to Fixed-Time fallback.",
+    "manual_disconnect": "Operator explicitly disconnected CARINA from Monitor.",
+    "shutdown": "CARINA System Shutting Down...",
+    "heartbeat": "Heartbeat: System online and operating normally."
+  }
+}

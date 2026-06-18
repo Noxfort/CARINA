@@ -1,0 +1,29 @@
+{
+  "db_manager": {
+    "init": {
+      "manager_created": "[DB_MANAGER] Gerenciador de Banco de Dados apontando para: {path}",
+      "db_error": "[DB_MANAGER] Erro ao inicializar o banco de dados: {error}"
+    },
+    "create_run": {
+      "success": "[DB_MANAGER] Nova execução registrada com sucesso (Cenário: {scenario}).",
+      "error": "[DB_MANAGER] Erro ao criar registro de execução: {error}"
+    },
+    "log_episode": {
+      "error": "[DB_MANAGER] Erro ao salvar métricas do episódio {episode}: {error}"
+    },
+    "log_report": {
+      "error": "[DB_MANAGER] Erro ao salvar relatório de análise: {error}"
+    }
+  },
+  "db_worker": {
+    "run": {
+      "worker_started": "[DB_WORKER] Processo do Database Worker iniciado e pronto para receber dados.",
+      "shutdown_signal": "[DB_WORKER] Sinal de encerramento recebido.",
+      "unknown_log_type": "[DB_WORKER] Recebido tipo de log desconhecido: {type}",
+      "processing_error": "[DB_WORKER] Erro ao processar pacote de dados: {packet}",
+      "user_interrupt": "[DB_WORKER] Processo encerrado pelo usuário.",
+      "fatal_error": "[DB_WORKER] Erro fatal e não tratado no worker: {error}",
+      "worker_finished": "[DB_WORKER] Processo do Database Worker finalizado."
+    }
+  }
+}

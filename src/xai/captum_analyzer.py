@@ -58,6 +58,15 @@ class CaptumModelWrapper(nn.Module):
                 latent = self.shared_pae.encode(original_frame)
                 latent_expanded = latent.unsqueeze(1).expand(-1, x.size(1), -1)
                 x = torch.cat([x, latent_expanded], dim=-1)
+        else:
+            # Fallback: if model expects more features than x provides, pad with zeros
+            # This happens when the agent was trained with PAE but PAE is lost.
+            expected_dim = self.model.tcn.network[0].conv1.in_channels
+            if x.shape[-1] < expected_dim:
+                padding_dim = expected_dim - x.shape[-1]
+                zeros = torch.zeros(*x.shape[:-1], padding_dim, device=x.device, dtype=x.dtype)
+                x = torch.cat([x, zeros], dim=-1)
+                
         return self.model(x)[0]
 
 class CaptumAnalyzer:
@@ -138,19 +147,12 @@ class CaptumAnalyzer:
             self.agent.policy_net.eval()
             
             # Retrieve recent experiences
-            recent_experiences = self.agent.xai_memory.memory
-            if not recent_experiences:
+            if self.agent.xai_memory.size == 0:
                 logging.warning(lm.get_string("captum_analyzer.run.empty_memory_warning", default="Memory empty for agent {agent_id}", agent_id=self.agent.id))
                 return None
 
-            # Prepare tensioners
-            input_list = [torch.from_numpy(exp.state).float() for exp in recent_experiences]
-            if not input_list:
-                 logging.warning(f"Failed to convert experiences to tensor list for Agent {self.agent.id}")
-                 return None
-            
-            # Stack and move to CPU (Optimization)
-            input_tensors = torch.stack(input_list).to(self.device)
+            # Get valid states directly from the pre-allocated tensor and move to CPU
+            input_tensors = self.agent.xai_memory.states[:self.agent.xai_memory.size].to(self.device)
 
             baselines = torch.zeros_like(input_tensors)
             

@@ -19,22 +19,11 @@
 # Date: 2026-04-16
 
 import sys
-import sys
 import pytest
 from unittest.mock import MagicMock, patch
-import sys
 import torch
-for submod in ['nn', 'optim', 'distributions', 'amp']:
-    mock_obj = MagicMock()
-    if f'torch.{submod}' not in sys.modules:
-        sys.modules[f'torch.{submod}'] = mock_obj
-    if not hasattr(torch, submod):
-        setattr(torch, submod, mock_obj)
-
-sys.modules['torch.nn.functional'] = MagicMock()
-setattr(sys.modules['torch.nn'], 'functional', sys.modules['torch.nn.functional'])
-
 import numpy as np
+
 import src.agents.local_agent as la
 from src.agents.local_agent import LocalAgent
 

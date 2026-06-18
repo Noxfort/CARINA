@@ -46,10 +46,10 @@ class StateExtractor:
         self.lm = locale_manager
         
         self.tl_incoming_edges: Dict[str, List[str]] = {}
-        self.tl_green_phases: Dict[str, List[int]] = {}
+        self.tl_green_stages: Dict[str, List[int]] = {}
         
         # Maps ID_SEMAFORO -> { ID_FASE: STRING_ESTADO }
-        self.tl_phase_codes: Dict[str, Dict[int, str]] = {}
+        self.tl_stage_codes: Dict[str, Dict[int, str]] = {}
         
         # NEW: Maps ID_SEMAFORO -> List of Lane Lists by Index
         # Ex: 'C1' -> [ ['edge1_0', 'edge1_1'], ['edge2_0'] ]
@@ -69,8 +69,8 @@ class StateExtractor:
             net = sumolib.net.readNet(net_file_path, withInternal=False)
             
             self.tl_incoming_edges.clear()
-            self.tl_green_phases.clear()
-            self.tl_phase_codes.clear()
+            self.tl_green_stages.clear()
+            self.tl_stage_codes.clear()
             self.tl_controlled_lanes_map.clear()
             
             for tls in net.getTrafficLights():
@@ -114,23 +114,20 @@ class StateExtractor:
                 
                 # Program Extraction (Phases and Colors)
                 programs = tls.getPrograms()
-                self.tl_phase_codes[tl_id] = {}
+                self.tl_stage_codes[tl_id] = {}
                 
                 if programs:
-                    logic = next(iter(programs.values())) 
-                    green_phases = []
-                    
-                    for i, phase in enumerate(logic.getPhases()):
-                        state = phase.state
-                        self.tl_phase_codes[tl_id][i] = state
-                        
-                        lower_state = state.lower()
-                        if 'g' in lower_state and 'y' not in lower_state:
-                            green_phases.append(i)
+                    logic = next(iter(programs.values()))
+                    green_stages = []
+                    for i, stage in enumerate(logic.getPhases()):
+                        state = stage.state
+                        self.tl_stage_codes[tl_id][i] = state
+                        green_stages.append(i)
                             
-                    self.tl_green_phases[tl_id] = green_phases
+                    self.tl_green_stages[tl_id] = green_stages
                 else:
-                    self.tl_green_phases[tl_id] = [0, 2]
+                    self.tl_green_stages[tl_id] = [0, 2]
+                    self.tl_stage_codes[tl_id] = {0: "G", 1: "y", 2: "G", 3: "y"}
 
             self.topology_loaded = True
             logging.info(f"Topologia carregada. {len(self.tl_incoming_edges)} semáforos mapeados.")
@@ -139,7 +136,7 @@ class StateExtractor:
             logging.error(f"Erro fatal ao ler topologia com sumolib: {e}", exc_info=True)
             self.topology_loaded = False
 
-    def extract_state(self, traffic_frame: Dict[str, Any], tl_id: str, current_phase_idx: int) -> np.ndarray:
+    def extract_state(self, traffic_frame: Dict[str, Any], tl_id: str, current_stage_idx: int) -> np.ndarray:
         """
         Extracts the state using HFT-vectorized comprehension arrays, avoiding slow python .extend() loops.
         """
@@ -161,13 +158,13 @@ class StateExtractor:
             for val in (state['occupancy'], min(state['mean_speed'] / 13.89, 1.0), min(state['queue_length'] / 20.0, 1.0))
         ]
 
-        valid_green_phases = self.tl_green_phases.get(tl_id, [])
+        valid_green_phases = self.tl_green_stages.get(tl_id, [])
         num_green_phases = max(len(valid_green_phases), 1)
 
         phase_one_hot = [0.0] * num_green_phases
-        if current_phase_idx in valid_green_phases:
+        if current_stage_idx in valid_green_phases:
             try:
-                phase_one_hot[valid_green_phases.index(current_phase_idx)] = 1.0
+                phase_one_hot[valid_green_phases.index(current_stage_idx)] = 1.0
             except ValueError: pass
         
         # Pedestrian Call status (from hardware telemetry)
@@ -181,7 +178,7 @@ class StateExtractor:
     def get_observation_space_size(self, tl_id: str) -> int:
         if not self.topology_loaded: return 0
         num_edges = len(self.tl_incoming_edges.get(tl_id, []))
-        num_phases = len(self.tl_green_phases.get(tl_id, []))
+        num_phases = len(self.tl_green_stages.get(tl_id, []))
         if num_phases == 0: num_phases = 1
         return (num_edges * 3) + num_phases + 1 # +1 for pedestrian calls
 
@@ -192,7 +189,7 @@ class StateExtractor:
         """
         if not self.topology_loaded: return {}
         
-        state_string = self.tl_phase_codes.get(tl_id, {}).get(phase_index, "")
+        state_string = self.tl_stage_codes.get(tl_id, {}).get(phase_index, "")
         lanes_map = self.tl_controlled_lanes_map.get(tl_id, [])
         
         result = {}

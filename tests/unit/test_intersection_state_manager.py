@@ -26,7 +26,8 @@ import pytest
 import time
 from unittest.mock import patch, MagicMock
 
-from src.controller.intersection_state_manager import IntersectionStateManager, IntersectionState, SignalState, PhaseDefinition
+from src.controller.intersection_state_manager import IntersectionStateManager, IntersectionState
+from src.controller.common_types import SignalState, StageDefinition
 
 
 class MockClock:
@@ -57,8 +58,8 @@ def state_manager():
 def simple_intersection():
     """Create a simple intersection with two phases."""
     phases = [
-        PhaseDefinition(state_string="GGrr", yellow_string="yyrr", all_red_string="rrrr"),
-        PhaseDefinition(state_string="rrGG", yellow_string="rryy", all_red_string="rrrr")
+        StageDefinition(state_string="GGrr", yellow_string="yyrr", all_red_string="rrrr"),
+        StageDefinition(state_string="rrGG", yellow_string="rryy", all_red_string="rrrr")
     ]
     return IntersectionState(tls_id="test_intersection", phases=phases)
 
@@ -216,7 +217,7 @@ class TestStateTransitions:
         
         # Now complete the cycle for the second phase
         clock.increment(state_manager.all_red_duration + 0.1)
-        state_manager.tick(clock.time())  # -> GREEN (second phase)
+        changes = state_manager.tick(clock.time())  # -> GREEN (second phase)
         
         intersections = state_manager.get_all_intersections()
         intersection = intersections["test_intersection"]
@@ -249,7 +250,7 @@ class TestSafetyFeatures:
         # through the tick method which calls it.
         
         # Create a phase with invalid characters
-        invalid_phase = PhaseDefinition(
+        invalid_phase = StageDefinition(
             state_string="GGxrr",  # 'x' is invalid
             yellow_string="yyxrr",
             all_red_string="rrxrr"
@@ -261,19 +262,15 @@ class TestSafetyFeatures:
         )
         
         state_manager.add_intersection(invalid_intersection)
-        state_manager.reset_all_intersections(time.perf_counter())
+        state_manager.reset_all_intersections(0.0)
         
         # Try to transition to the invalid state
-        # We'll simulate this by patching the time and forcing a transition
-        with patch('src.controller.intersection_state_manager.time') as mock_time:
-            mock_time.perf_counter.return_value = 100.0  # Far enough to trigger transition
-            
-            # The safety check should prevent the invalid state from being returned
-            changes = state_manager.tick(100.0)
-            
-            # Should still get a change, but it should be all red due to safety check
-            assert "invalid_intersection" in changes
-            assert changes["invalid_intersection"] == "rrrr"  # Forced all-red due to safety violation
+        # The safety check should prevent the invalid state from being returned
+        changes = state_manager.tick(state_manager.all_red_duration + 0.1)
+        
+        # Should still get a change, but it should be all red due to safety check
+        assert "invalid_intersection" in changes
+        assert changes["invalid_intersection"] == "rrrrr"  # Forced all-red of length 5
 
 
 class TestResetAndAllRed:

@@ -1,0 +1,6 @@
+{
+  "connector": {
+    "connecting": "[CONNECTOR] Connecting to TraCI Proxy...",
+    "connection_established": "✅ [CONNECTOR] 'Connection' with TraCI Proxy established."
+  }
+}

@@ -19,47 +19,36 @@
 # Date: 2026-02-22
 
 """
-Base abstraction for traffic light controllers. 
-Implements modern asyncio-wrapped SNMP client functionality (PySNMP v7+) 
-and Heartbeat (Failsafe) mechanisms.
+Base abstraction for traffic light controllers.
+Delegates SNMP networking, incident reporting, and heartbeat monitoring
+to separate classes to respect SRP and OCP.
 """
 
-import time
 import logging
-import threading
-import asyncio
 import re
 import ipaddress
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Tuple, Dict, Union
+from typing import Any, Dict, Optional, Tuple
 
-# Modern PySNMP (v7+) compatibility for Python 3.12+
-try:
-    from pysnmp.hlapi.v3arch.asyncio import (
-        SnmpEngine, CommunityData, UdpTransportTarget, ContextData,
-        ObjectType, ObjectIdentity, get_cmd, set_cmd
-    )
-except ImportError:
-    # Fallback for PySNMP v6.x
-    from pysnmp.hlapi.v3arch.asyncio import (
-        SnmpEngine, CommunityData, UdpTransportTarget, ContextData,
-        ObjectType, ObjectIdentity, getCmd as get_cmd, setCmd as set_cmd
-    )
+from src.drivers.snmp_client import SnmpClient
+from src.drivers.incident_reporter import IncidentReporter
+from src.drivers.heartbeat_manager import HeartbeatManager
 
 logger = logging.getLogger(__name__)
 
 class BaseTrafficDriver(ABC):
     """
     Abstract base class for all traffic controller drivers (NTCIP, UTMC2, etc.).
-    Provides built-in SNMP communication and a background heartbeat mechanism.
+    Delegates SNMP communication, incident reporting, and heartbeat monitoring 
+    to dedicated helper classes to satisfy SRP and OCP.
     """
 
-    def __init__(self, ip_address: str, port: int, community_string: str = 'public', timeout: int = 2, retries: int = 1) -> None:
-        # Robust IP sanitization: extract a valid IPv4 address from any input,
-        # even if garbage text (e.g. log output) was accidentally pasted.
-        ip_address = str(ip_address).strip()
+    def __init__(self, ip_address: str, port: int, intersection_id: str = "Desconhecido", community_string: str = 'public', timeout: int = 2, retries: int = 1, green_stages: list = None) -> None:
+        self.intersection_id = intersection_id
+        self.green_stages = green_stages if green_stages is not None else []
         
-        # Search for the first valid IPv4 pattern (optionally followed by :port)
+        # Robust IP sanitization: extract a valid IPv4 address from any input
+        ip_address = str(ip_address).strip()
         ip_port_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::(\d{1,5}))?', ip_address)
         if ip_port_match:
             candidate_ip = ip_port_match.group(1)
@@ -69,140 +58,51 @@ class BaseTrafficDriver(ABC):
                 if ip_port_match.group(2):
                     port = int(ip_port_match.group(2))
             except ValueError:
-                pass  # Keep original ip_address if validation fails
+                pass
 
         self.ip_address = ip_address
         self.port = port
-        self.community_string = community_string
-        self.timeout = timeout
-        self.retries = retries
         
-        # Note: SnmpEngine is instantiated per-call to avoid Asyncio Event Loop
-        # closure errors across different Flet/Heartbeat threads.
+        # 1. Delegate SNMP communication to SnmpClient
+        self.snmp_client = SnmpClient(ip_address, port, community_string, timeout, retries)
 
-        # Heartbeat control variables
-        self._heartbeat_thread: Optional[threading.Thread] = None
-        self._stop_heartbeat_event = threading.Event()
-        self.heartbeat_interval_seconds = 2.0
+        # 2. Delegate Heartbeat lifecycle to HeartbeatManager
+        self.heartbeat_manager = HeartbeatManager(
+            ip_address=ip_address,
+            port=port,
+            send_pulse_cb=self.send_heartbeat_pulse,
+            on_loss_cb=self._report_connection_loss,
+            on_restore_cb=self._report_connection_restored,
+            interval=2.0
+        )
 
     def snmp_get(self, oid: str) -> Tuple[bool, Any]:
-        """
-        Performs a synchronous SNMP GET request by wrapping the async PySNMP API.
-        Returns a tuple: (Success Boolean, Value or Error Message)
-        """
-        async def _async_get():
-            engine = SnmpEngine()
-            try:
-                transport = await UdpTransportTarget.create(
-                    (self.ip_address, self.port),
-                    timeout=self.timeout,
-                    retries=self.retries
-                )
-                error_ind, error_stat, error_idx, binds = await get_cmd(
-                    engine,
-                    CommunityData(self.community_string, mpModel=1), # SNMPv2c
-                    transport,
-                    ContextData(),
-                    ObjectType(ObjectIdentity(oid))
-                )
-                return error_ind, error_stat, error_idx, binds
-            finally:
-                # Safely release sockets to prevent memory leaks in the new API
-                if hasattr(engine, 'close_dispatcher'):
-                    engine.close_dispatcher()
-                elif hasattr(engine, 'transportDispatcher') and engine.transportDispatcher:
-                    engine.transportDispatcher.closeDispatcher()
-
-        try:
-            error_indication, error_status, error_index, var_binds = asyncio.run(_async_get())
-            
-            if error_indication:
-                logger.error(f"[{self.ip_address}:{self.port}] SNMP GET Error: {error_indication}")
-                return False, str(error_indication)
-            elif error_status:
-                err_msg = f"{error_status.prettyPrint()} at {error_index and var_binds[int(error_index) - 1][0] or '?'}"
-                logger.error(f"[{self.ip_address}:{self.port}] SNMP GET Status Error: {err_msg}")
-                return False, err_msg
-            else:
-                for var_bind in var_binds:
-                    return True, var_bind[1].prettyPrint()
-                    
-        except Exception as e:
-            logger.error(f"[{self.ip_address}:{self.port}] SNMP GET Exception: {e}")
-            return False, str(e)
-
-        return False, "Unknown Error"
+        """Delegates OID reading to SnmpClient."""
+        return self.snmp_client.get(oid)
 
     def snmp_set(self, oid: str, value: Any, value_type: Any) -> Tuple[bool, Any]:
-        """
-        Performs a synchronous SNMP SET request by wrapping the async PySNMP API.
-        """
-        async def _async_set():
-            engine = SnmpEngine()
-            try:
-                transport = await UdpTransportTarget.create(
-                    (self.ip_address, self.port),
-                    timeout=self.timeout,
-                    retries=self.retries
-                )
-                error_ind, error_stat, error_idx, binds = await set_cmd(
-                    engine,
-                    CommunityData(self.community_string, mpModel=1),
-                    transport,
-                    ContextData(),
-                    ObjectType(ObjectIdentity(oid), value_type(value))
-                )
-                return error_ind, error_stat, error_idx, binds
-            finally:
-                if hasattr(engine, 'close_dispatcher'):
-                    engine.close_dispatcher()
-                elif hasattr(engine, 'transportDispatcher') and engine.transportDispatcher:
-                    engine.transportDispatcher.closeDispatcher()
-
-        try:
-            error_indication, error_status, error_index, var_binds = asyncio.run(_async_set())
-            
-            if error_indication:
-                logger.error(f"[{self.ip_address}:{self.port}] SNMP SET Error: {error_indication}")
-                return False, str(error_indication)
-            elif error_status:
-                err_msg = f"{error_status.prettyPrint()} at {error_index and var_binds[int(error_index) - 1][0] or '?'}"
-                logger.error(f"[{self.ip_address}:{self.port}] SNMP SET Status Error: {err_msg}")
-                return False, err_msg
-            else:
-                for var_bind in var_binds:
-                    return True, var_bind[1].prettyPrint()
-                    
-        except Exception as e:
-            logger.error(f"[{self.ip_address}:{self.port}] SNMP SET Exception: {e}")
-            return False, str(e)
-
-        return False, "Unknown Error"
+        """Delegates OID writing to SnmpClient."""
+        return self.snmp_client.set(oid, value, value_type)
 
     def start_heartbeat(self) -> None:
-        """Starts the background heartbeat thread to maintain the failsafe mechanism."""
-        if self._heartbeat_thread is not None and self._heartbeat_thread.is_alive():
-            return
-
-        self._stop_heartbeat_event.clear()
-        self._heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True, name=f"Heartbeat-{self.ip_address}")
-        self._heartbeat_thread.start()
-        logger.info(f"[{self.ip_address}:{self.port}] Heartbeat started.")
+        """Delegates heartbeat start to HeartbeatManager."""
+        self.heartbeat_manager.start()
 
     def stop_heartbeat(self) -> None:
-        """Stops the background heartbeat thread cleanly."""
-        if self._heartbeat_thread is not None:
-            self._stop_heartbeat_event.set()
-            self._heartbeat_thread.join(timeout=3.0)
-            logger.info(f"[{self.ip_address}:{self.port}] Heartbeat stopped.")
+        """Delegates heartbeat stop to HeartbeatManager."""
+        self.heartbeat_manager.stop()
 
-    def _heartbeat_loop(self) -> None:
-        while not self._stop_heartbeat_event.is_set():
-            success = self.send_heartbeat_pulse()
-            if not success:
-                logger.warning(f"[{self.ip_address}:{self.port}] Heartbeat pulse failed. Controller might revert to local fallback.")
-            
-            self._stop_heartbeat_event.wait(self.heartbeat_interval_seconds)
+    def _publish_incident(self, level: str, message: str) -> None:
+        """Delegates incident reporting to IncidentReporter."""
+        IncidentReporter.report(self.intersection_id, level, message)
+
+    def _report_connection_loss(self) -> None:
+        logger.critical(f"[{self.ip_address}:{self.port}] Connection LOST to intersection {self.intersection_id} after 3 failures.")
+        self._publish_incident("CRITICAL", f"CARINA perdeu conexão com o controlador: {self.intersection_id}.")
+
+    def _report_connection_restored(self) -> None:
+        logger.info(f"[{self.ip_address}:{self.port}] Connection RESTORED to intersection {self.intersection_id}.")
+        self._publish_incident("INFO", f"CARINA restabeleceu conexão com o controlador: {self.intersection_id}.")
 
     # =========================================================================
     # Abstract Methods to be implemented by specific protocols (NTCIP / UTMC2)
@@ -222,4 +122,8 @@ class BaseTrafficDriver(ABC):
 
     @abstractmethod
     def send_heartbeat_pulse(self) -> bool:
+        pass
+
+    @abstractmethod
+    def apply_logical_action(self, action: int, current_stage_idx: int, green_stages: list, stage_codes: dict = None) -> bool:
         pass

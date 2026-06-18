@@ -1,0 +1,20 @@
+{
+  "trainer": {
+    "shutdown": {
+      "signal_received": "[TRAINER] Graceful shutdown signal received from CentralController.",
+      "connection_lost": "[TRAINER] Connection with CentralController was lost. Initiating shutdown.",
+      "reason": "Shutdown"
+    },
+    "run": {
+      "new_run_id": "--- NEW RUN REGISTERED WITH RUN_ID: {run_id} ---",
+      "db_error": "Could not create a run record in the database. Terminating.",
+      "cache_not_found": "[TRAINER] Analysis cache not found. Executing analysis phase..."
+    },
+    "main": {
+      "keyboard_interrupt": "\n[TRAINER] Keyboard interrupt detected. Shutting down...",
+      "fatal_error": "Fatal error in Trainer loop: {error}",
+      "final_checkpoint": "Saving final AI state before shutting down...",
+      "service_finished": "[TRAINER] AI Training Service finished."
+    }
+  }
+}

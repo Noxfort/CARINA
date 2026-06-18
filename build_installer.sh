@@ -27,8 +27,8 @@ OUTPUT_DIR="${SCRIPT_DIR}/dist"
 
 echo -e "${CYAN}"
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║       CARINA .deb Installer Builder                 ║"
-echo "║       Docker + PyInstaller + dpkg-deb               ║"
+echo "║       CARINA .deb Installer Builder                  ║"
+echo "║       Docker + PyInstaller + dpkg-deb                ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -168,7 +168,7 @@ if [ "${ALL_OK}" = true ]; then
     echo -e "${GREEN}╚══════════════════════════════════════════════════════╝${NC}"
 else
     echo -e "${RED}╔══════════════════════════════════════════════════════╗${NC}"
-    echo -e "${RED}║  BUILD COM AVISOS — verifique os erros acima        ║${NC}"
+    echo -e "${RED}║  BUILD COM AVISOS — verifique os erros acima         ║${NC}"
     echo -e "${RED}╚══════════════════════════════════════════════════════╝${NC}"
     exit 1
 fi

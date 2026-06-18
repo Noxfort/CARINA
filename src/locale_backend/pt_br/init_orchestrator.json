@@ -1,0 +1,20 @@
+{
+  "init_orchestrator": {
+    "init": {
+      "created": "[INIT_ORCHESTRATOR] Engenheiro de Setup criado."
+    },
+    "summary": {
+      "success": "[INIT_ORCHESTRATOR] Ficheiro de sumário 'status.json' criado com sucesso em: {path}",
+      "critical_error": "[INIT_ORCHESTRATOR] FALHA CRÍTICA ao escrever 'status.json': {error}"
+    },
+    "run": {
+      "start": "[INIT_ORCHESTRATOR] Orquestrador de Inicialização assumindo o controle...",
+      "scenario_path_error": "Caminho do cenário do SUMO não foi obtido.",
+      "assets_dashboard": "[INIT_ORCHESTRATOR] Comandando o AssetManager para gerar os ativos do Dashboard...",
+      "coords_file_error": "[INIT_ORCHESTRATOR] Não foi possível gerar o arquivo de coordenadas pois os dados do mapa não foram retornados.",
+      "assets_planning": "[INIT_ORCHESTRATOR] Gerando mapa inicial para a aba de Planejamento...",
+      "collecting_summary": "[INIT_ORCHESTRATOR] Coletando dados para o sumário do sistema (topologia de semáforos)...",
+      "complete": "[INIT_ORCHESTRATOR] Fase de Setup concluída. A entregar o controle para o Trainer."
+    }
+  }
+}

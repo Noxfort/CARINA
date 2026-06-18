@@ -1,0 +1,10 @@
+{
+  "watchdog": {
+    "run": {
+      "process_started": "Processo do Watchdog iniciado. Enviando sinal de segurança contínuo.",
+      "shutdown_signal": "Watchdog recebendo sinal para encerrar.",
+      "loop_error": "Erro no loop do Watchdog: {error}",
+      "process_finished": "Processo do Watchdog finalizado."
+    }
+  }
+}

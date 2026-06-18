@@ -1,0 +1,12 @@
+{
+  "service_manager": {
+    "init": {
+      "created": "[SERVICE_MANAGER] Service Manager created."
+    },
+    "start": {
+      "all": "[SERVICE_MANAGER] Starting all support services (Guardian, XAI)...",
+      "guardian_success": " -> Guardian Worker started with PID: {pid}",
+      "xai_success": " -> XAI Worker started with PID: {pid}"
+    }
+  }
+}

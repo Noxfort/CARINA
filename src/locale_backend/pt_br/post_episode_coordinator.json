@@ -1,0 +1,15 @@
+{
+  "post_episode_coordinator": {
+    "init": {
+      "created": "[POST_EPISODE_COORDINATOR] Gerente de Turno (modo IA + DB) criado."
+    },
+    "run": {
+      "no_metrics_warning": "[POST_EPISODE] Nenhuma métrica recebida do episódio. Pulando tarefas.",
+      "db_queue_error": "[POST_EPISODE] Falha ao enviar métricas para a fila do DB: {error}"
+    },
+    "checkpoint": {
+      "reason_promotion": "Promoção de Agente",
+      "reason_periodic": "Episódio {episode}"
+    }
+  }
+}

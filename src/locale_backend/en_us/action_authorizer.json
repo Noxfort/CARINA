@@ -1,0 +1,11 @@
+{
+  "action_authorizer": {
+    "reason": {
+      "child": "Learning phase (CHILD)",
+      "adult": "Full control (ADULT)",
+      "teen_peak": "Teen peak hours",
+      "teen_offpeak": "Control allowed (TEEN)",
+      "unknown": "Unknown maturity"
+    }
+  }
+}

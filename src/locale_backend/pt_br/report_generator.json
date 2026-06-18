@@ -1,0 +1,57 @@
+{
+  "report_generator": {
+    "header": {
+      "title1": "======================================================================",
+      "title2": "==   RELATÓRIO DE ANÁLISE DE INFRAESTRUTURA SEMAFÓRICA - CARINA      ==",
+      "title3": "======================================================================"
+    },
+    "general_data": {
+      "title": "DADOS GERAIS DA ANÁLISE",
+      "scenario": "Cenário Analisado",
+      "date": "Data da Análise",
+      "duration": "Duração da Simulação Base"
+    },
+    "summary": {
+      "title": "SUMÁRIO DAS RECOMENDAÇÕES",
+      "junctions_analyzed": "Total de Junções Relevantes Analisadas",
+      "recommendations": "Recomendações: {add} para ADICIONAR, {remove} para REMOVER, {keep} para MANTER."
+    },
+    "parameters": {
+      "title": "PARÂMETROS UTILIZADOS NA ANÁLISE",
+      "min_vol_primary": "Volume Mínimo (Via Principal)",
+      "min_vol_secondary": "Volume Mínimo (Via Secundária)",
+      "unacceptable_delay": "Atraso Médio Inaceitável",
+      "conflict_threshold": "Limiar de Eventos de Conflito",
+      "removal_threshold": "Limiar para Remoção (% do Vol.)"
+    },
+    "detailed_rec": {
+      "title1": "======================================================================",
+      "title2": "==          RECOMENDAÇÕES DETALHADAS POR JUNÇÃO                     ==",
+      "title3": "======================================================================"
+    },
+    "junction": {
+      "title": "JUNÇÃO ID: {id}",
+      "recommendation": "Recomendação Final",
+      "current_status": "Situação Atual",
+      "justification": "Justificativa Principal",
+      "warrants_analysis": "ANÁLISE DOS WARRANTS",
+      "warrant_satisfied": "SATISFEITO",
+      "warrant_not_satisfied": "NÃO SATISFEITO",
+      "warrant1_volume": "WARRANT 1 (Volume)",
+      "warrant2_delay": "WARRANT 2 (Atraso)",
+      "warrant4_safety": "WARRANT 4 (Segurança)",
+      "observed_data": "DADOS OBSERVADOS",
+      "volume_primary_keep": "Volume (Via Principal):     {value} veículos/hora (necessário > {threshold} para manter)",
+      "volume_primary": "Volume (Via Principal):     {value} veículos/hora (limiar: {threshold})",
+      "volume_secondary": "Volume (Via Secundária):    {value} veículos/hora (limiar: {threshold})",
+      "avg_delay": "Atraso Médio na Secundária: {value} segundos (limiar: {threshold})",
+      "conflict_events": "Eventos de Conflito:        {value} eventos (limiar: {threshold})"
+    },
+    "footer": {
+      "title1": "======================================================================",
+      "title2": "==                      FIM DO RELATÓRIO                           ==",
+      "title3": "======================================================================",
+      "generated_by": "Gerado por: CARINA - Controlled Artificial Road-traffic Intelligence Network Architecture"
+    }
+  }
+}

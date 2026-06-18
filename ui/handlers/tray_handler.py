@@ -101,7 +101,7 @@ class TrayHandler:
 
         try:
             image = Image.open(self._icon_path)
-            # Resize to standard tray icon size for crisp display
+            # Resize is REQUIRED on Linux to prevent AppIndicator GTK deadlock with large 256x256 images
             image = image.resize((64, 64), Image.LANCZOS)
             
             menu = pystray.Menu(

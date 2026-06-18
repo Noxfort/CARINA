@@ -68,6 +68,12 @@ from sas.traffic_data_recorder import TrafficDataRecorder
 from database.database_manager import DatabaseManager
 from utils.safety_rules import SafetyRules
 
+from controller.system_readiness_latch import SystemReadinessLatch
+from communication.grpc_server_manager import GrpcServerManager
+from sas.topology_recorder_bridge import TopologyRecorderBridge
+from core.hft_event_loop import HftEventLoop
+from core.hft_system_facade import HftSystemFacade
+
 # --- CENTRAL CONTROLLER ---
 class CentralController:
     """
@@ -100,24 +106,16 @@ class CentralController:
             locale_manager=self.locale_manager
         )
         
-        self.server = None
-        self.is_running = True
+
         
         # Monitor Integration
-        self.monitor_client = MonitorClient(SettingsManager())
+        self.monitor_client = MonitorClient(SettingsManager(), self.locale_manager)
         self.monitor_client.start()
-        
-        # --- Traffic Rules from Centralized Config (for Fixed-Time Controller / Failsafe) ---
-        green_duration = SafetyRules.get_min_green()
-        yellow_duration = SafetyRules.get_yellow()
-        all_red_duration = SafetyRules.get_all_red()
         
         self.failsafe_manager = FailsafeManager(
             ai_pipe_conn=self.ai_pipe_conn,
             monitor_client=self.monitor_client,
-            green_duration=green_duration,
-            yellow_duration=yellow_duration,
-            all_red_duration=all_red_duration
+            locale_manager=self.locale_manager
         )
         # Wire the Synapse silence timeout to match watchdog
         self.failsafe_manager.set_failsafe_timeout(heartbeat_timeout)
@@ -146,6 +144,7 @@ class CentralController:
             failsafe_manager=self.failsafe_manager,
             topology_manager=self.topology_manager,
             telemetry_aggregator=self.telemetry_aggregator,
+            override_manager=self.override_manager,
             traffic_data_recorder=self.traffic_data_recorder
         )
         
@@ -160,19 +159,52 @@ class CentralController:
             locale_manager=self.locale_manager,
             override_manager=self.override_manager,
             failsafe_manager=self.failsafe_manager,
-            topology_manager=self.topology_manager
+            topology_manager=self.topology_manager,
+            db_manager=self.db_manager
         )
         
         # --- Two-Stage Readiness Latch ---
-        self.is_ui_ready = False
-        self.is_backend_ready = False
-        self.request_processor.set_readiness_callbacks(self.set_ui_ready, self.set_backend_ready)
+        self.readiness_latch = SystemReadinessLatch(self.traffic_frame_processor)
+        self.request_processor.set_readiness_callbacks(
+            self.readiness_latch.set_ui_ready, 
+            self.readiness_latch.set_backend_ready
+        )
+        
+        self.topology_recorder_bridge = TopologyRecorderBridge(
+            traffic_data_recorder=self.traffic_data_recorder,
+            locale_manager=self.locale_manager
+        )
         
         # Try to restore previous state if available
         self.topology_manager.try_restore_state()
         
         # Pre-load topology for failsafe readiness
         self._preload_failsafe_topology()
+        
+        # Create the facade to shield the gRPC server from the rest of the system
+        self.hft_system_facade = HftSystemFacade(
+            topology_manager=self.topology_manager,
+            topology_recorder_bridge=self.topology_recorder_bridge,
+            telemetry_aggregator=self.telemetry_aggregator,
+            watchdog_queue=self.watchdog_queue,
+            ui_command_queue=self.ui_command_queue,
+            traffic_frame_processor=self.traffic_frame_processor,
+            failsafe_manager=self.failsafe_manager
+        )
+
+        self.grpc_server_manager = GrpcServerManager(
+            settings=settings,
+            locale_manager=locale_manager,
+            implementation_instance=self.hft_system_facade
+        )
+        
+        self.hft_event_loop = HftEventLoop(
+            ai_pipe_conn=self.ai_pipe_conn,
+            failsafe_manager=self.failsafe_manager,
+            request_processor=self.request_processor,
+            sds_data_queue=self.sds_data_queue
+        )
+        self.is_running = True
 
     def _preload_failsafe_topology(self):
         """
@@ -182,26 +214,6 @@ class CentralController:
         if self.topology_manager.net_file_path:
             self.failsafe_manager.load_topology(self.topology_manager.net_file_path)
 
-    def set_ui_ready(self):
-        self.is_ui_ready = True
-        self.check_system_readiness()
-
-    def set_backend_ready(self):
-        self.is_backend_ready = True
-        self.check_system_readiness()
-
-    def check_system_readiness(self):
-        if self.is_ui_ready and self.is_backend_ready:
-            logging.info("✅ [LATCH] Fronte-end and API fully loaded. Unlocking AI Engine for decision making.")
-            self.traffic_frame_processor.set_system_ready(True)
-        else:
-            if not self.is_ui_ready:
-                logging.warning("⚠️ [LATCH] AI Engine paused: waiting for Front-End (UI) readiness ('carina_ready'). Frames will be dropped.")
-            if not self.is_backend_ready:
-                logging.warning("⚠️ [LATCH] AI Engine paused: waiting for Backend components to finish loading.")
-
-
-
     def run(self):
         lm = self.locale_manager
         logging.info(f"[DIAGNOSTICS] Starting HFT CentralController.")
@@ -209,57 +221,9 @@ class CentralController:
         max_workers = self.settings.getint('SYNAPSE', 'max_workers', fallback=10)
 
         try:
-            self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
-            if pb2_grpc:
-                # Import CarinaHFTImpl from communication module (delegated logic)
-                pb2_grpc.add_HFTLinkServicer_to_server(CarinaHFTImpl(self), self.server) # type: ignore
-            
-            bind_address = f'[::]:{server_port}'
-            self.server.add_insecure_port(bind_address)
-            
-            logging.info(lm.get_string("central_controller.grpc.starting", port=server_port, fallback=f"gRPC Server listening on {bind_address}"))
-            self.server.start()
-            
+            self.grpc_server_manager.start()
             # --- MAIN HFT LOOP ---
-            logging.info("[CentralController] Entering main HFT processing loop...")
-            while self.is_running:
-                # Check for shutdown signal from launcher
-                if self.ai_pipe_conn.poll():
-                    try:
-                        cmd = self.ai_pipe_conn.recv()
-                        if isinstance(cmd, tuple) and len(cmd) >= 2 and cmd[0] == "system" and cmd[1] == "shutdown":
-                            logging.info("[CentralController] Shutdown signal received. Exiting main loop gracefully...")
-                            self.is_running = False
-                            break
-                    except Exception as e:
-                        logging.error(f"[CentralController] Pipe poll error: {e}")
-
-                # --- FAILSAFE MONITORING (In-Process Synapse Silence Detection) ---
-                if not self.failsafe_manager.failsafe_active:
-                    # Check if Synapse has gone silent beyond the 300ms threshold
-                    if not self.failsafe_manager.check_synapse_health():
-                        self.failsafe_manager.trigger_failsafe()
-                else:
-                    # FAILSAFE IS ACTIVE: Tick the Fixed-Time Controller
-                    phase_changes = self.failsafe_manager.tick()
-                    if phase_changes:
-                        # Send fixed-time state changes to dashboard for visualization
-                        try:
-                            self.sds_data_queue.put(('failsafe_phase_update', {
-                                'changes': phase_changes,
-                                'status': self.failsafe_manager.get_status()
-                            }))
-                        except Exception as e:
-                            logging.error(f"[CentralController] Error sending failsafe update to SDS: {e}")
-
-                try:
-                    # sumo_conn=None because there is no direct SUMO connection here.
-                    self.request_processor.process_queues(sumo_conn=None, is_ai_healthy=not self.failsafe_manager.failsafe_active)
-                except Exception as e_proc:
-                    logging.error(f"[CentralController] Error in processing loop: {e_proc}")
-                
-                # Small sleep to relieve CPU while waiting for events
-                time.sleep(0.05)
+            self.hft_event_loop.run_loop()
                 
         except KeyboardInterrupt:
             logging.info("Manual interruption received.")
@@ -271,67 +235,16 @@ class CentralController:
     def stop(self):
         logging.info("Stopping CentralController...")
         self.is_running = False
+        if hasattr(self, 'hft_event_loop'):
+            self.hft_event_loop.stop()
         
-        # Deactivate fixed-time controller if running
-        if self.failsafe_manager.failsafe_active:
-            self.failsafe_manager.fixed_time_controller.deactivate()
+        # We no longer deactivate local FixedTimeController here since CARINA is agnostic
+        # and delegating it to Edge hardware.
+        pass
         
-        if self.server: self.server.stop(0)
+        if self.grpc_server_manager: self.grpc_server_manager.stop()
         try: self.ai_pipe_conn.send(('system', 'shutdown', (), {}))
         except: pass
         if getattr(self, 'monitor_client', None):
-            self.monitor_client.stop(shutdown_message="CARINA System Shutting Down...")
-
-    # --- MAP LOGIC (Delegated to MapProcessor) ---
-
-    def handle_new_map(self, map_path: str, maps_output_dir: str):
-        self.topology_manager.handle_new_map(map_path, maps_output_dir, self.telemetry_aggregator)
-        # Pre-load topology for failsafe readiness whenever a new map arrives
-        self._preload_failsafe_topology()
-        # Update TrafficDataRecorder with topology edge metadata
-        self._update_recorder_topology(map_path)
-
-    def start_ai_session(self):
-        logging.info("AI Session started.")
-
-    def stop_ai_session(self):
-        logging.info("AI Session stopped.")
-
-    def trigger_failsafe(self):
-        """
-        Forces the system into Fail-Safe (Watchdog) mode.
-        Should be called when external Watchdog process detects silence.
-        """
-        self.failsafe_manager.trigger_failsafe()
-
-    def process_traffic_frame(self, frame):
-        """
-        Processes a single Traffic Frame received from Synapse.
-        This is the TRIGGER for the AI Decision Cycle.
-        """
-        self.traffic_frame_processor.process_traffic_frame(frame)
-
-    def _update_recorder_topology(self, net_file_path: str):
-        """
-        Extracts edge topology (length, lanes, max_speed) from the SUMO net
-        file and pushes it to the TrafficDataRecorder for sample enrichment.
-        """
-        if not self.traffic_data_recorder or not net_file_path:
-            return
-        try:
-            from utils.network_topology_parser import NetworkTopologyParser
-            parser = NetworkTopologyParser(self.locale_manager)
-            _, junction_incoming_edges = parser.build(net_file_path)
-            
-            # Flatten all edges into a single dict of {edge_id: {length, lanes, max_speed}}
-            topology_edges = {}
-            for j_id, edges in junction_incoming_edges.items():
-                for edge_id, edge_data in edges.items():
-                    topology_edges[edge_id] = {
-                        'length': edge_data.get('length', 0),
-                        'lanes': edge_data.get('num_lanes', 1),
-                        'max_speed': edge_data.get('speed_limit', 13.89),
-                    }
-            self.traffic_data_recorder.set_topology(topology_edges)
-        except Exception as e:
-            logging.warning(f"[CentralController] Failed to update recorder topology: {e}")
+            shutdown_msg = self.locale_manager.get_string("monitor.shutdown", default="CARINA System Shutting Down...")
+            self.monitor_client.stop(shutdown_message=shutdown_msg)

@@ -1,0 +1,10 @@
+{
+  "local_agent": {
+    "load": {
+      "obs_mismatch_warning": "[AGENT {agent_id}] Checkpoint observation size ({chk_obs}) matches different than current ({cur_obs}).",
+      "success": "OK [AGENT {agent_id}] Checkpoint loaded from '{path}'. XAI memory with {count} samples.",
+      "not_found_warning": "[AGENT {agent_id}] No checkpoint found in '{path}'. Creating agent from scratch.",
+      "error": "[AGENT {agent_id}] Error loading checkpoint: {error}"
+    }
+  }
+}

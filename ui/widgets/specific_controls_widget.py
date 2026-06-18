@@ -1,30 +1,53 @@
-# File: ui/widgets/specific_controls_widget.py (FIXED FUNCTION CALL)
+# CARINA (Controlled Artificial Road-traffic Intelligence Network Architecture) is an open-source AI ecosystem for real-time, adaptive control of urban traffic light networks.
+# Copyright (C) 2026 Gabriel Moraes - Noxfort Systems
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+# File: ui/widgets/specific_controls_widget.py
 # Author: Gabriel Moraes
-# Date: September 29, 2025
+# Date: 2026-06-09
 
 import flet as ft
 from typing import Callable, Dict
 
 from ui.handlers.locale_manager import LocaleManager
-from ui.widgets.semaphore_info_display import SemaphoreInfoDisplayWidget
-from ui.widgets.semaphore_actions import SemaphoreActionsWidget
+from ui.components.semaphore_info_display import SemaphoreInfoDisplayWidget
+from ui.components.semaphore_actions import SemaphoreActionsWidget
 from ui.dialogs.confirmation_dialog_manager import ConfirmationDialogManager
 from ui.clients.control_client import ControlClient
 from ui.handlers.specific_controls_handler import SpecificControlsHandler
 
-class SpecificControlsWidget(ft.Card):
+class SpecificControlsWidget(ft.Container):
     def __init__(
         self,
         control_client: ControlClient,
         locale_manager: LocaleManager,
+        security_ui=None,
         on_close: Callable[[], None] = None,
         on_specific_command: Callable[[str, str], None] = None
     ):
         super().__init__(
-            elevation=4, visible=False, animate_opacity=300
+            bgcolor=ft.Colors.with_opacity(0.4, "#0F172A"),
+            border_radius=12,
+            border=ft.border.all(1, "#1E293B"),
+            padding=15,
+            visible=False,
+            animate_opacity=300
         )
 
         self.locale_manager = locale_manager
+        self.security_ui = security_ui
         self.on_close = on_close
         self.on_specific_command = on_specific_command
         self.handler: SpecificControlsHandler | None = None
@@ -36,20 +59,17 @@ class SpecificControlsWidget(ft.Card):
             on_action_requested=self._handle_action_request
         )
 
-        self.save_button = ft.ElevatedButton(icon=ft.Icons.SAVE_ROUNDED, on_click=self._save_timings, visible=False)
+        # Save button removed as per request
         self.close_button = ft.IconButton(icon=ft.Icons.CLOSE_ROUNDED, on_click=self.ocultar_controles_semaforo)
 
-        self.content = ft.Container(
-            padding=10,
-            content=ft.Column(
-                [
-                    self.info_display,
-                    self.actions,
-                    self.save_button,
-                    self.close_button,
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER
-            )
+        self.content = ft.Column(
+            [
+                self.info_display,
+                self.actions,
+                ft.Row([self.close_button], alignment=ft.MainAxisAlignment.END),
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=12
         )
 
     def did_mount(self):
@@ -59,6 +79,7 @@ class SpecificControlsWidget(ft.Card):
                 control_client=self.control_client,
                 dialog_manager=dialog_manager,
                 locale_manager=self.locale_manager,
+                security_ui=self.security_ui,
                 on_update_view=self.update,
                 on_specific_command=self.on_specific_command
             )
@@ -66,7 +87,6 @@ class SpecificControlsWidget(ft.Card):
         if self.page: self.update()
 
     def update_translations(self, lm: LocaleManager):
-        self.save_button.text = lm.get_string("dashboard_view.save_timings_button")
         self.close_button.tooltip = lm.get_string("dashboard_view.close_panel_tooltip")
         self.info_display.update_translations(lm)
         self.actions.update_translations(lm)
@@ -77,9 +97,8 @@ class SpecificControlsWidget(ft.Card):
         self.handler.open_for_semaphore(semaphore_id, semaphore_data)
 
         mode_manual_translated = self.locale_manager.get_string("dashboard_view.mode_manual")
-        is_editable = (mode.lower() == mode_manual_translated.lower() and phase.upper() == 'ADULTO')
+        is_editable = True # Emergency overrides (ALERT/OFF) are always allowed
 
-        display_timings = self.handler.get_current_timings()
         override_state = self.handler.get_current_override_state()
 
         # --- MAIN CHANGE HERE ---
@@ -87,27 +106,13 @@ class SpecificControlsWidget(ft.Card):
         self.info_display.update_info(semaphore_id, phase, semaphore_data)
         # --- END OF CHANGE ---
 
-        self.info_display.green_time_field.value = display_timings["green"]
-        self.info_display.yellow_time_field.value = display_timings["yellow"]
         self.actions.set_active_state(override_state)
-
-        self.info_display.green_time_field.read_only = not is_editable
-        self.info_display.yellow_time_field.read_only = not is_editable
-
-        border_color = ft.Colors.CYAN_400 if is_editable else None
-        self.info_display.green_time_field.border_color = border_color
-        self.info_display.yellow_time_field.border_color = border_color
 
         self.actions.alert_button.disabled = not is_editable
         self.actions.deactivate_button.disabled = not is_editable
-        self.save_button.visible = is_editable
 
         self.visible = True
         if self.page: self.update()
-
-    def _save_timings(self, e):
-        #...(internal logic remains the same)
-        pass
 
     def _handle_action_request(self, action: str):
         if not self.handler: return

@@ -1,0 +1,20 @@
+{
+  "trainer": {
+    "shutdown": {
+      "signal_received": "[TRAINER] Sinal de encerramento gracioso recebido do CentralController.",
+      "connection_lost": "[TRAINER] A conexão com o CentralController foi perdida. Iniciando encerramento.",
+      "reason": "Encerramento"
+    },
+    "run": {
+      "new_run_id": "--- NOVA EXECUÇÃO REGISTRADA COM RUN_ID: {run_id} ---",
+      "db_error": "Não foi possível criar um registro de execução no banco de dados. Encerrando.",
+      "cache_not_found": "[TRAINER] Cache de análise não encontrado. A executar fase de análise..."
+    },
+    "main": {
+      "keyboard_interrupt": "\n[TRAINER] Interrupção pelo teclado detectada. Encerrando...",
+      "fatal_error": "Erro fatal no loop do Trainer: {error}",
+      "final_checkpoint": "A guardar o estado final da IA antes de encerrar...",
+      "service_finished": "[TRAINER] Serviço de treino da IA finalizado."
+    }
+  }
+}

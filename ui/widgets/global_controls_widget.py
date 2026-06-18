@@ -1,6 +1,22 @@
-# File: ui/widgets/global_controls_widget.py (FIXED IMPORT)
+# CARINA (Controlled Artificial Road-traffic Intelligence Network Architecture) is an open-source AI ecosystem for real-time, adaptive control of urban traffic light networks.
+# Copyright (C) 2026 Gabriel Moraes - Noxfort Systems
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+# File: ui/widgets/global_controls_widget.py
 # Author: Gabriel Moraes
-# Date: September 29, 2025
+# Date: 2026-06-09
 
 """
 Define o GlobalControlsWidget.
@@ -10,12 +26,12 @@ import flet as ft
 from typing import Callable
 
 # --- CHANGE APPLIED HERE: Corrected the class name on import ---
-from clients.control_client import ControlClient
-from handlers.locale_manager import LocaleManager
+from ui.clients.control_client import ControlClient
+from ui.handlers.locale_manager import LocaleManager
 
-class GlobalControlsWidget(ft.Card):
+class GlobalControlsWidget(ft.Container):
     """
-    Um Card que contém os botões de modo global e sua lógica de interação.
+    Um Container que contém os botões de modo global e sua lógica de interação.
     """
     def __init__(
         self, 
@@ -23,7 +39,12 @@ class GlobalControlsWidget(ft.Card):
         locale_manager: LocaleManager,
         on_mode_change: Callable[[str], None] = None
     ):
-        super().__init__(elevation=4)
+        super().__init__(
+            bgcolor=ft.Colors.with_opacity(0.4, "#0F172A"),
+            border_radius=12,
+            border=ft.border.all(1, "#1E293B"),
+            padding=15
+        )
 
         self.control_client = control_client
         self.locale_manager = locale_manager
@@ -38,18 +59,28 @@ class GlobalControlsWidget(ft.Card):
         self.dialog_confirm_button = ft.ElevatedButton(on_click=self._confirm_action)
         self.dialog_cancel_button = ft.TextButton(on_click=self._cancel_action)
         
+        self._content_text = ft.Text(size=16)
+        self._username_field = ft.TextField(label="Usuário (admin)", width=270)
+        self._password_field = ft.TextField(label="Senha (admin)", password=True, can_reveal_password=True, width=270)
+        
+        self._auth_column = ft.Column([
+            self._content_text,
+            self._username_field,
+            self._password_field
+        ], tight=True)
+        
         self.confirmation_dialog = ft.AlertDialog(
             modal=True,
             title=ft.Row([
                 ft.Icon(ft.Icons.WARNING_AMBER_ROUNDED, color=ft.Colors.AMBER, size=30),
                 self.dialog_title_text,
             ]),
-            content=ft.Text(size=16),
+            content=self._auth_column,
             actions=[self.dialog_confirm_button, self.dialog_cancel_button],
             actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
         )
 
-        self.title_text = ft.Text(size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
+        self.title_text = ft.Text(size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
         
         self.auto_button = ft.ElevatedButton(
             icon=ft.Icons.SMART_TOY_ROUNDED, width=270,
@@ -70,19 +101,16 @@ class GlobalControlsWidget(ft.Card):
             data="manual"
         )
         
-        self.content = ft.Container(
-            padding=10,
-            content=ft.Column([
-                ft.Row([
-                    ft.Icon(ft.Icons.GAMEPAD_ROUNDED),
-                    self.title_text,
-                ], alignment=ft.MainAxisAlignment.CENTER),
-                ft.Divider(height=10),
-                self.auto_button,
-                self.semiauto_button,
-                self.manual_button,
-            ])
-        )
+        self.content = ft.Column([
+            ft.Row([
+                ft.Icon(ft.Icons.GAMEPAD_ROUNDED, color=ft.Colors.BLUE_400),
+                self.title_text,
+            ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
+            ft.Divider(height=10, color="#1E293B"),
+            self.auto_button,
+            self.semiauto_button,
+            self.manual_button,
+        ], spacing=12)
     
     def did_mount(self):
         if self.page and self.confirmation_dialog not in self.page.overlay:
@@ -98,12 +126,23 @@ class GlobalControlsWidget(ft.Card):
         
         translated_mode_name = clicked_button.text
         template = self.locale_manager.get_string("dialogs.change_mode_content")
-        self.confirmation_dialog.content.value = template.format(mode_name=translated_mode_name)
+        self._content_text.value = template.format(mode_name=translated_mode_name)
+        
+        self._username_field.value = ""
+        self._password_field.value = ""
+        self._username_field.error_text = None
+        self._password_field.error_text = None
         
         self.confirmation_dialog.open = True
         if self.page: self.page.update()
 
     def _confirm_action(self, e: ft.ControlEvent):
+        if self._username_field.value != "admin" or self._password_field.value != "admin":
+            self._username_field.error_text = "Inválido"
+            self._password_field.error_text = "Inválido"
+            if self.page: self.page.update()
+            return
+            
         self.confirmation_dialog.open = False
         
         if self.active_mode_button:

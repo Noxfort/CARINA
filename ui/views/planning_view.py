@@ -81,8 +81,36 @@ class PlanningView(ft.Container):
             bgcolor=ft.Colors.WHITE10
         )
         
+        # --- NEW: Map Legend ---
+        self.legend_title = ft.Text(weight=ft.FontWeight.BOLD)
+        self.legend_tl_keep = ft.Text("Manter")
+        self.legend_tl_remove = ft.Text("Tirar")
+        self.legend_tl_add = ft.Text("Por")
+        self.legend_junction = ft.Text()
+        self.legend_street = ft.Text()
+
+        self.legend_bar = ft.Container(
+            content=ft.Row(
+                controls=[
+                    self.legend_title,
+                    ft.Icon(ft.Icons.SQUARE, color=ft.Colors.BLUE_800, size=16),
+                    self.legend_tl_keep,
+                    ft.Icon(ft.Icons.SQUARE, color=ft.Colors.RED_700, size=16),
+                    self.legend_tl_remove,
+                    ft.Icon(ft.Icons.SQUARE, color=ft.Colors.GREEN_700, size=16),
+                    self.legend_tl_add,
+                    ft.Icon(ft.Icons.CIRCLE, color=ft.Colors.ORANGE_600, size=16),
+                    self.legend_junction,
+                    ft.Container(width=20, height=4, bgcolor=ft.Colors.BLACK, border_radius=2),
+                    self.legend_street,
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            padding=ft.padding.symmetric(vertical=5),
+        )
+
         self.content = ft.Column(
-            controls=[self.map_widget, self.command_bar],
+            controls=[self.map_widget, self.legend_bar, self.command_bar],
             expand=True, spacing=10,
             horizontal_alignment=ft.CrossAxisAlignment.STRETCH
         )
@@ -109,6 +137,14 @@ class PlanningView(ft.Container):
         self.dialog_content.value = lm.get_string("planning_view.dialog_no_change_content")
         self.dialog_confirm_button.text = lm.get_string("planning_view.dialog_confirm_button")
         self.dialog_cancel_button.text = lm.get_string("dialogs.cancel_button")
+        
+        # Translations for Legend
+        self.legend_title.value = lm.get_string("planning_view.legend_title", "Legenda:")
+        self.legend_tl_keep.value = lm.get_string("planning_view.legend_tl_keep", "Manter")
+        self.legend_tl_remove.value = lm.get_string("planning_view.legend_tl_remove", "Tirar")
+        self.legend_tl_add.value = lm.get_string("planning_view.legend_tl_add", "Por")
+        self.legend_junction.value = lm.get_string("planning_view.legend_junction", "Cruzamento")
+        self.legend_street.value = lm.get_string("planning_view.legend_street", "Vias")
         # The new widget does not need explicit update_translations as it is visual
 
     def _load_analysis_click(self, e):
@@ -138,6 +174,11 @@ class PlanningView(ft.Container):
             return
 
         self.last_report_content = response.get("report_content")
+        
+        # Pass recommendations to the map to update colors
+        recs = response.get("analysis_results", {})
+        if recs and self.map_widget:
+            self.map_widget.set_recommendations(recs)
         
         if response.get("significant_change") is False:
             self.confirmation_dialog.open = True

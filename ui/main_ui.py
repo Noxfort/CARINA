@@ -34,13 +34,14 @@ import flet as ft
 from ui.views.dashboard_view import DashboardView
 from ui.views.diagnostics_view import DiagnosticsView
 from ui.views.planning_view import PlanningView
-from ui.views.settings_view import SettingsView 
-from ui.handlers.live_data_provider import LiveDataProvider
+from ui.builders.settings_configurator import build_settings_view
+from ui.providers.live_data_provider import LiveDataProvider
 from ui.clients.control_client import ControlClient
 from src.utils.logging_setup import setup_logging
 from ui.handlers.locale_manager import LocaleManager
 from ui.clients.settings_client import SettingsClient
 from src.utils.paths import get_base_output_dir
+from ui.overlays.security_overlay import SecurityUI
 
 def main(page: ft.Page):
     """Função principal que constrói e configura a página da aplicação Flet."""
@@ -66,11 +67,39 @@ def main(page: ft.Page):
     if os.path.exists(caminho_do_icone):
         page.window_favicon_path = caminho_do_icone
 
-    live_data_provider = LiveDataProvider(on_data_received=lambda data: dashboard_view.update_live_data(data))
+    def handle_sds_data(data):
+        msg_type = data.get("type")
+        if msg_type == "auth_response":
+            security_ui.handle_auth_response(data.get("payload", {}))
+        elif msg_type == "lockdown_event":
+            if data.get("payload", {}).get("active", False):
+                security_ui.trigger_lockdown()
+        elif msg_type == "users_list":
+            if hasattr(settings_view, 'account_card') and settings_view.account_card:
+                settings_view.account_card.update_user_list(data.get("payload", {}).get("users", []))
+        elif msg_type == "account_response":
+            payload = data.get("payload", {})
+            action_type = payload.get("action", "")
+            success = payload.get("success", False)
+            if success:
+                msg = locale_manager.get_string("accounts.success_action", "Ação ({action_type}) concluída com sucesso!").replace("{action_type}", action_type)
+            else:
+                msg = locale_manager.get_string("accounts.fail_action", "Falha na ação ({action_type}). Verifique os dados ou se o usuário já existe.").replace("{action_type}", action_type)
+            page.snack_bar = ft.SnackBar(content=ft.Text(msg), bgcolor=ft.Colors.GREEN_700 if success else ft.Colors.RED_700)
+            page.snack_bar.open = True
+            page.update()
+        else:
+            dashboard_view.update_live_data(data)
+
+    live_data_provider = LiveDataProvider(on_data_received=handle_sds_data)
     control_client = ControlClient(live_data_provider=live_data_provider)
     settings_client = SettingsClient(live_data_provider=live_data_provider)
 
-    dashboard_view = DashboardView(control_client=control_client, locale_manager=locale_manager)
+    security_ui = SecurityUI(page, control_client, locale_manager)
+    
+
+
+    dashboard_view = DashboardView(control_client=control_client, locale_manager=locale_manager, security_ui=security_ui)
     planning_view = PlanningView(locale_manager=locale_manager)
     diagnostics_view = DiagnosticsView(locale_manager=locale_manager)
     
@@ -90,28 +119,43 @@ def main(page: ft.Page):
 
         page.update()
 
-    settings_view = SettingsView(
-        locale_manager=locale_manager,
-        settings_client=settings_client
-    )
+    settings_view = build_settings_view(locale_manager, settings_client)
     
     def close_settings_dialog(e=None):
         settings_dialog.open = False
         page.update()
 
+    def hard_kill_app(e):
+        import sys
+        current_module = sys.modules[__name__]
+        if hasattr(current_module, 'shutdown_event') and current_module.shutdown_event is not None:
+            current_module.shutdown_event.set()
+        else:
+            if hasattr(page, 'window') and page.window is not None:
+                page.window.destroy()
+            else:
+                page.window_destroy()
+
     settings_dialog = ft.AlertDialog(
         modal=True,
         title=ft.Row([ft.Icon(ft.Icons.SETTINGS), ft.Text("Configurações")]),
         content=settings_view,
-        actions=[ft.TextButton("Fechar", on_click=close_settings_dialog)],
+        actions=[
+            ft.TextButton(locale_manager.get_string("main_ui.exit_app", "Encerrar CARINA"), icon=ft.Icons.POWER_SETTINGS_NEW, on_click=hard_kill_app, icon_color=ft.Colors.RED_400),
+            ft.TextButton("Fechar", on_click=close_settings_dialog)
+        ],
         actions_alignment=ft.MainAxisAlignment.END,
     )
 
     page.overlay.append(settings_dialog)
 
     def open_settings_dialog(e):
-        settings_dialog.open = True
-        page.update()
+        def _open():
+            settings_dialog.open = True
+            # Request the user list when settings open
+            settings_client.live_data_provider.send_command_to_backend({"type": "list_users"})
+            page.update()
+        security_ui.request_auth(on_success=_open)
 
     # page.on_resized is hooked by LiveCanvasMapWidget for responsive map
     def handle_keyboard(e: ft.KeyboardEvent):
@@ -129,11 +173,19 @@ def main(page: ft.Page):
         title=ft.Text(),
         center_title=False,
         bgcolor=ft.Colors.BLUE_GREY_800,
-        actions=[ft.IconButton(ft.Icons.SETTINGS_ROUNDED, on_click=open_settings_dialog)],
+        actions=[
+            ft.IconButton(ft.Icons.SETTINGS_ROUNDED, on_click=open_settings_dialog, tooltip="Configurações"),
+        ],
     )
     
     def window_event(e):
         if hasattr(e, 'data') and e.data == "close":
+            current_module = sys.modules[__name__]
+            # Se o usuário mandou encerrar pelo tray, nós deixamos a janela fechar de verdade!
+            if hasattr(current_module, 'shutdown_event') and current_module.shutdown_event is not None and current_module.shutdown_event.is_set():
+                return
+                
+            # Caso contrário, estilo Steam: apenas esconde a janela (minimiza para o tray)
             if hasattr(page, 'window') and page.window is not None:
                 page.window.visible = False
             else:
@@ -157,14 +209,44 @@ def main(page: ft.Page):
             if hasattr(current_module, 'restore_event') and current_module.restore_event.is_set():
                 current_module.restore_event.clear()
                 if hasattr(page, 'window') and page.window is not None:
-                    page.window.visible = True
+                    is_visible = getattr(page.window, 'visible', False)
+                    is_minimized = getattr(page.window, 'minimized', False)
+                    
+                    if is_visible and not is_minimized:
+                        page.window.minimized = True
+                    else:
+                        page.window.visible = True
+                        page.window.minimized = False
+                        page.window.focused = True
+                        try:
+                            page.window.to_front()
+                        except Exception:
+                            pass
                 else:
-                    page.window_visible = True
+                    is_visible = getattr(page, 'window_visible', False)
+                    is_minimized = getattr(page, 'window_minimized', False)
+                    
+                    if is_visible and not is_minimized:
+                        page.window_minimized = True
+                    else:
+                        page.window_visible = True
+                        try:
+                            page.window_minimized = False
+                            page.window_focused = True
+                            page.window_to_front()
+                        except Exception:
+                            pass
                 page.update()
+                
             if hasattr(current_module, 'shutdown_event') and current_module.shutdown_event.is_set():
                 if hasattr(page, 'window') and page.window is not None:
+                    page.window.prevent_close = False
                     page.window.destroy()
                 else:
+                    try:
+                        page.window_prevent_close = False
+                    except:
+                        pass
                     page.window_destroy()
                 break
             time.sleep(0.1)

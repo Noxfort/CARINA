@@ -131,6 +131,18 @@ class AnalyzerEngine:
 
         if "analysis_results" in analysis_result and analysis_result["analysis_results"]:
             self._generate_planning_map(analysis_result["analysis_results"], net_file_path)
+            
+            # NOVO: Gerar o relatório profissional em .docx com LLM (Temperature=0.0)
+            try:
+                from sas.report_generator import ReportGenerator
+                report_gen = ReportGenerator(self.locale_manager)
+                report_gen.generate_docx_report(
+                    analysis_results=analysis_result["analysis_results"],
+                    scenario_dir=self.scenario_dir,
+                    net_file_path=net_file_path
+                )
+            except Exception as e:
+                logging.error(f"[ANALYZER_ENGINE] Falha ao invocar o ReportGenerator para o .docx: {e}", exc_info=True)
 
         self._save_cache(analysis_result.get("new_cache_data", {}))
         self._notify_ui(analysis_result)

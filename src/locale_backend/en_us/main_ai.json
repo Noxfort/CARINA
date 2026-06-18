@@ -1,0 +1,16 @@
+{
+  "main_ai": {
+    "hardware_check": {
+      "starting": "STARTING HARDWARE DIAGNOSTIC (PYTORCH)...",
+      "gpu_not_found": "Not detected or no CUDA support",
+      "gpu_success": "✅ SUCCESS: GPU found: {name}",
+      "gpu_not_found_warning": "❌ WARNING: No CUDA-compatible GPU found."
+    },
+    "load_settings": {
+      "critical_error": "CRITICAL FAILURE: Configuration file not found or empty at: {path}"
+    },
+    "run": {
+      "process_started": "[MAIN_IA] AI process started and 'connected' to TraCI Proxy."
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "infra_analyzer": {
+    "init": {
+      "config_error": "A seção [INFRASTRUCTURE_ANALYSIS] não foi encontrada ou está incompleta."
+    },
+    "unknown_scenario": "Cenário Desconhecido",
+    "analyzer_created": "Gestor de Análise de Infraestrutura criado.",
+    "summary_first_run": "Primeira análise executada.",
+    "change_new_junction": "nova junção {id} detectada",
+    "change_metric": "mudança de {percent}% em '{metric}' na junção {id}",
+    "summary_changes_detected": "Mudanças significativas detectadas: {changes}",
+    "summary_no_changes": "Nenhuma mudança significativa detectada nas métricas de tráfego."
+  }
+}

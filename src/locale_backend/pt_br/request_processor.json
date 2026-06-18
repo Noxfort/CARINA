@@ -1,0 +1,27 @@
+{
+  "request_processor": {
+    "init": {
+      "processor_created": "[REQ_PROCESSOR] Processador de Requisições (modo Distribuidor) criado."
+    },
+    "ui_command": {
+      "received": "[REQ_PROCESSOR] Comando da UI recebido: TIPO={type}",
+      "processing_save": "-> Processando comando 'save_settings'...",
+      "save_success": "-> Configurações salvas com sucesso pelo SettingsManager.",
+      "processing_error": "[REQ_PROCESSOR] Erro ao processar comando da UI: {error}"
+    },
+    "batch_collect": {
+      "error": "[REQ_PROCESSOR] Erro durante a coleta de dados em lote: {error}"
+    },
+    "ai_request": {
+      "queue_full_warning": "[REQ_PROCESSOR] Uma das filas de serviço (SDS/SAS) está cheia.",
+      "processing_error": "[REQ_PROCESSOR] Erro ao processar pedido da IA: {error}"
+    },
+    "watchdog": {
+      "processing_error": "[REQ_PROCESSOR] Erro ao processar comando do Watchdog: {error}"
+    },
+    "override": {
+      "ai_ignored": "\u001b[97mControle Global\u001b[0m Sugestão da IA para '{tl_id}' ignorada. Semáforo está sob intervenção do operador (Estado: {state}).",
+      "manual_intervention": "[INTERVENÇÃO MANUAL] O semáforo '{semaphore_id}' foi colocado em modo '{state}' pelo utilizador."
+    }
+  }
+}

@@ -28,10 +28,10 @@ import logging
 from typing import List, Tuple
 from dataclasses import dataclass
 
-from src.controller.common_types import PhaseDefinition
-from src.controller.phase_extractor import extract_green_phases
-from src.controller.phase_derivator import derive_yellow_state
-from src.controller.phase_validator import validate_phases
+from src.controller.common_types import StageDefinition
+from src.controller.stage_extractor import extract_green_stages
+from src.controller.stage_derivator import derive_yellow_state
+from src.controller.stage_validator import validate_stages
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 class IntersectionData:
     """Data structure for intersection information."""
     tls_id: str
-    phase_definitions: List[PhaseDefinition]
+    phase_definitions: List[StageDefinition]
 
 
 class TopologyLoader:
@@ -97,40 +97,40 @@ class TopologyLoader:
 
             # Use the first (default) program — program ID "0" in SUMO convention
             program = list(programs.values())[0]
-            original_phases = program.getPhases()
+            original_stages = program.getPhases()
 
             # Extract GREEN phases (phases that have actual green movement)
             # Filter out pure-yellow and pure-red transitional phases
-            green_phases = extract_green_phases(tls_id, original_phases, self._green_chars)
+            green_stages = extract_green_stages(tls_id, original_stages, self._green_chars)
 
-            if not green_phases:
+            if not green_stages:
                 logger.warning(
-                    f"[TopologyLoader] TLS '{tls_id}' has no usable green phases. "
+                    f"[TopologyLoader] TLS '{tls_id}' has no usable green stages. "
                     f"Will remain ALL_RED during failsafe."
                 )
                 continue
 
             # Build PhaseDefinitions with derived yellow and all-red strings
             phase_definitions = []
-            for state_str in green_phases:
+            for state_str in green_stages:
                 yellow_str = derive_yellow_state(state_str)
                 all_red_str = 'r' * len(state_str)
-                phase_definitions.append(PhaseDefinition(
+                phase_definitions.append(StageDefinition(
                     state_string=state_str,
                     yellow_string=yellow_str,
                     all_red_string=all_red_str
                 ))
 
             # SAFETY VALIDATION: verify each phase's internal consistency
-            if not validate_phases(tls_id, phase_definitions):
+            if not validate_stages(tls_id, phase_definitions):
                 logger.critical(
                     f"[TopologyLoader] ⚠️  VALIDATION FAILED for TLS '{tls_id}'! "
                     f"This intersection will remain ALL_RED permanently during failsafe."
                 )
                 # Force permanent ALL_RED for this intersection
-                signal_len = len(green_phases[0])
+                signal_len = len(green_stages[0])
                 all_red = 'r' * signal_len
-                phase_definitions = [PhaseDefinition(
+                phase_definitions = [StageDefinition(
                     state_string=all_red,
                     yellow_string=all_red,
                     all_red_string=all_red

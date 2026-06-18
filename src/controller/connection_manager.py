@@ -21,25 +21,52 @@
 """
 Manages the hardware connections between CARINA's logical logic and 
 the physical traffic light controllers (via SNMP NTCIP/UTMC2).
-Handles state tracking, bulk import/export, and dynamic intersection discovery.
+Acts as a clean orchestrator delegate, delegating map parsing and 
+CSV serialization to separate utility classes to satisfy SRP and OCP.
 """
 
-import csv
 import logging
 import os
-import glob
-import gzip
-import xml.etree.ElementTree as ET
 from typing import List, Dict
 
 from src.drivers.traffic_light_driver import TrafficLightDriver
+from src.controller.map_discoverer import MapTopologyDiscoverer
+from src.controller.connection_config_repo import ConnectionConfigRepository
+
+# --- Set up dedicated hardware log file ---
+hw_log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "hardware_connections.log"))
+hw_handler = logging.FileHandler(hw_log_path, encoding='utf-8')
+hw_handler.setFormatter(logging.Formatter('%(asctime)s - [%(name)s] - [%(levelname)s] - %(message)s'))
 
 logger = logging.getLogger(__name__)
+if not any(isinstance(h, logging.FileHandler) and h.baseFilename == hw_log_path for h in logger.handlers):
+    logger.addHandler(hw_handler)
+
+# --- Dedicated Commands Logger ---
+cmd_log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "commands.log"))
+cmd_logger = logging.getLogger("carina_commands")
+cmd_logger.setLevel(logging.INFO)
+cmd_logger.propagate = False
+
+if not any(isinstance(h, logging.FileHandler) and h.baseFilename == cmd_log_path for h in cmd_logger.handlers):
+    cmd_handler = logging.FileHandler(cmd_log_path, encoding='utf-8')
+    cmd_handler.setFormatter(logging.Formatter('%(asctime)s - [CARINA_CORE] - %(message)s'))
+    cmd_logger.addHandler(cmd_handler)
+
+import src.drivers.traffic_light_driver
+if not any(isinstance(h, logging.FileHandler) and h.baseFilename == hw_log_path for h in src.drivers.traffic_light_driver.logger.handlers):
+    src.drivers.traffic_light_driver.logger.addHandler(hw_handler)
+src.drivers.traffic_light_driver.cmd_logger = cmd_logger
+
+import src.drivers.driver_factory
+if not any(isinstance(h, logging.FileHandler) and h.baseFilename == hw_log_path for h in src.drivers.driver_factory.logger.handlers):
+    src.drivers.driver_factory.logger.addHandler(hw_handler)
+# -----------------------------------------------
 
 class HardwareConnectionManager:
     """
     Centralized manager for all active hardware driver instances.
-    Dynamically fetches real Intersection IDs from the deployed map.
+    Delegates discovery and CSV persistence to MapTopologyDiscoverer and ConnectionConfigRepository.
     """
 
     def __init__(self):
@@ -54,49 +81,28 @@ class HardwareConnectionManager:
 
     def _discover_intersections(self) -> List[str]:
         """
-        Scans the HFT Live Session map folder for the .net.xml.gz file 
-        and extracts all valid traffic light intersection IDs.
+        Delegates map scanning and parsing to MapTopologyDiscoverer.
         """
-        from src.utils.paths import get_base_output_dir
-        maps_dir = os.path.join(get_base_output_dir(), "results", "hft_live_session", "maps")
-        
-        search_gz = os.path.join(maps_dir, "*.net.xml.gz")
-        search_xml = os.path.join(maps_dir, "*.net.xml")
-        
-        files = glob.glob(search_gz) + glob.glob(search_xml)
-        if not files:
-            logger.warning(f"No network map found in {maps_dir}. Intersections list will be empty.")
-            return []
-            
-        target_file = files[0]
-        tl_ids = set()
-        
-        try:
-            if target_file.endswith('.gz'):
-                with gzip.open(target_file, 'rt', encoding='utf-8') as f:
-                    tree = ET.parse(f)
-            else:
-                with open(target_file, 'r', encoding='utf-8') as f:
-                    tree = ET.parse(f)
-                    
-            root = tree.getroot()
-            for tl in root.findall('tlLogic'):
-                tl_id = tl.get('id')
-                if tl_id:
-                    tl_ids.add(tl_id)
-                    
-            logger.info(f"Discovered {len(tl_ids)} intersections from {os.path.basename(target_file)}.")
-            return sorted(list(tl_ids))
-            
-        except Exception as e:
-            logger.error(f"Failed to parse network file {target_file}: {e}")
-            return []
+        return MapTopologyDiscoverer.discover_intersections()
+
+    def get_green_stages_for_intersection(self, intersection_id: str) -> List[int]:
+        """
+        Delegates phase parsing to MapTopologyDiscoverer.
+        """
+        return MapTopologyDiscoverer.get_green_stages(intersection_id)
 
     def get_ui_status_list(self) -> List[Dict[str, str]]:
         """
         Builds the status list expected by the HardwareConnectionCard UI.
         Now includes the specific saved IP address for the inline text field.
         """
+        # Dynamically refresh known intersections
+        current_intersections = self._discover_intersections()
+        for tl_id in current_intersections:
+            if tl_id not in self.known_intersections:
+                self.known_intersections.append(tl_id)
+        self.known_intersections = sorted(self.known_intersections)
+
         ui_data = []
         for tl_id in self.known_intersections:
             if tl_id in self.active_connections and self.active_connections[tl_id].is_connected:
@@ -162,10 +168,14 @@ class HardwareConnectionManager:
 
             logger.info(f"[{intersection_id}] Attempting to connect hardware at IP {connect_ip} (Port {connect_port})...")
 
+            # Parse green stages list dynamically from the map topology discoverer
+            green_stages = self.get_green_stages_for_intersection(intersection_id)
+
             driver = TrafficLightDriver(
                 intersection_id=intersection_id, 
                 ip_address=connect_ip, 
-                port=connect_port
+                port=connect_port,
+                green_stages=green_stages
             )
             
             if driver.is_connected:
@@ -176,63 +186,42 @@ class HardwareConnectionManager:
 
     def export_csv_template(self, filepath: str) -> bool:
         """
-        Generates a CSV file containing all discovered intersections.
+        Generates a CSV file template. Delegates to ConnectionConfigRepository.
         """
-        try:
-            with open(filepath, mode='w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                writer.writerow(["Intersection ID", "IP Address"])
-                
-                for tl_id in self.known_intersections:
-                    ip = self.saved_ips.get(tl_id, "")
-                    writer.writerow([tl_id, ip])
-                    
-            logger.info(f"Hardware template exported successfully to {filepath}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to export hardware template: {e}")
-            return False
+        return ConnectionConfigRepository.export_csv_template(
+            filepath, self.saved_ips, self.known_intersections
+        )
 
     def import_csv_config(self, filepath: str) -> tuple[int, int]:
         """
         Reads a CSV file, updates internal IPs, and AUTOMATICALLY attempts 
         to connect to all of them (Bulk Connect).
-        Returns a tuple: (success_count, total_attempted)
+        Delegates CSV parsing to ConnectionConfigRepository.
         """
         success_count = 0
         total_attempted = 0
         
-        try:
-            with open(filepath, mode='r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    tl_id = row.get("Intersection ID", "").strip()
-                    ip = row.get("IP Address", "").strip()
-                    
-                    if tl_id and ip:
-                        self.saved_ips[tl_id] = ip
-                        if tl_id not in self.known_intersections:
-                            self.known_intersections.append(tl_id)
-                            
-                        # Automatically attempt to connect/ping this intersection
-                        total_attempted += 1
-                        logger.info(f"[Bulk Import] Testing connection for {tl_id} at {ip}...")
-                        
-                        # Disconnect if already connected before testing new IP
-                        if tl_id in self.active_connections:
-                            self.active_connections[tl_id].shutdown()
-                            del self.active_connections[tl_id]
-                            
-                        is_connected = self.toggle_connection(tl_id, ip)
-                        if is_connected:
-                            success_count += 1
-                            
-            logger.info(f"Bulk connection finished: {success_count}/{total_attempted} connected successfully.")
-            return success_count, total_attempted
+        configs = ConnectionConfigRepository.import_csv_config(filepath)
+        for tl_id, ip in configs.items():
+            self.saved_ips[tl_id] = ip
+            if tl_id not in self.known_intersections:
+                self.known_intersections.append(tl_id)
+                
+            # Automatically attempt to connect/ping this intersection
+            total_attempted += 1
+            logger.info(f"[Bulk Import] Testing connection for {tl_id} at {ip}...")
             
-        except Exception as e:
-            logger.error(f"Failed to import and connect hardware configuration: {e}")
-            return 0, 0
+            # Disconnect if already connected before testing new IP
+            if tl_id in self.active_connections:
+                self.active_connections[tl_id].shutdown()
+                del self.active_connections[tl_id]
+                
+            is_connected = self.toggle_connection(tl_id, ip)
+            if is_connected:
+                success_count += 1
+                
+        logger.info(f"Bulk connection finished: {success_count}/{total_attempted} connected successfully.")
+        return success_count, total_attempted
 
     def shutdown_all(self) -> None:
         """Safely severs all active hardware connections."""

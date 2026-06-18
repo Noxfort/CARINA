@@ -1,0 +1,19 @@
+{
+  "threshold_calibrator": {
+    "init": {
+      "created": "[THRESHOLD_CALIBRATOR] Calibrador de Confiança criado.",
+      "window_info": "   L- Irá monitorar a estabilidade em uma janela de {window} episódios."
+    },
+    "step": {
+      "collecting_data": "[CALIBRATOR] Coletando dados de entropia... ({current}/{total})",
+      "std_dev_check": "[CALIBRATOR] Desvio padrão da entropia atual: {std_dev} (Limite: {threshold})"
+    },
+    "calibrate": {
+      "plateau_detected": "[THRESHOLD_CALIBRATOR] Platô de entropia detectado! A curva de aprendizado de confiança estabilizou.",
+      "stable_value": "   L- Valor de entropia estável calculado: {value}",
+      "complete": "[THRESHOLD_CALIBRATOR] Calibração concluída!",
+      "teen_threshold": "   L- Limite para Adolescente definido em: Entropia < {threshold}",
+      "adult_threshold": "   L- Limite para Adulto definido em: Entropia < {threshold}"
+    }
+  }
+}

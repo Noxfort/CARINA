@@ -1,0 +1,10 @@
+{
+  "episode_runner": {
+    "init": {
+      "created": "[EPISODE_RUNNER] Episode Runner (pure AI mode) created."
+    },
+    "run": {
+      "start_unified": "Starting Episode {episode} (unified training mode)"
+    }
+  }
+}

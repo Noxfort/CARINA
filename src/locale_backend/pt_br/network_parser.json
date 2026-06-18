@@ -1,0 +1,21 @@
+{
+  "network_parser": {
+    "lane_to_edge": {
+      "start": "[PARSER] Construindo mapa de tradução via -> rua a partir de '{path}'...",
+      "success": "[PARSER] Mapa de tradução construído com sucesso. {count} vias mapeadas.",
+      "file_not_found_error": "ERRO CRÍTICO: Arquivo de rede não encontrado em '{path}'.",
+      "processing_error": "ERRO ao processar o arquivo de rede para o mapa de tradução: {error}"
+    },
+    "structural_map": {
+      "start": "[PARSER] Construindo mapa de vizinhança ESTRUTURAL a partir do arquivo de rede...",
+      "reading_net_file": "   L- Lendo arquivo de rede: {path}",
+      "neighborhood_found": "   L- Vizinhança Estrutural encontrada para '{tl_id}': {neighbors}",
+      "success": "[PARSER] Mapa de vizinhança ESTRUTURAL construído com sucesso para {count} semáforos.",
+      "file_not_found_error": "ERRO: Arquivo não encontrado durante o parsing estrutural: {error}",
+      "processing_error": "ERRO ao processar o arquivo de rede para vizinhança estrutural: {error}"
+    },
+    "routes_map": {
+      "obsolete_warning": "[PARSER] A função 'build_neighborhood_map_from_routes' está obsoleta e não foi executada."
+    }
+  }
+}

@@ -5,7 +5,8 @@
         "settings_tooltip": "Open Settings",
         "tab_dashboard": "Operational Dashboard",
         "tab_planning": "Planning & Optimization",
-        "tab_diagnostics": "Diagnostics & System"
+        "tab_diagnostics": "Diagnostics & System",
+        "exit_app": "Exit CARINA"
     },
     "dashboard_view": {
         "global_controls_title": "Global Control",
@@ -228,5 +229,43 @@
     },
     "explanation_viewer": {
         "no_data": "No detailed report available."
+    },
+    "security": {
+        "auth_required": "Authentication Required",
+        "username": "Username",
+        "password": "Password",
+        "cancel": "Cancel",
+        "authenticate": "Authenticate",
+        "superuser": "Super User",
+        "system_locked": "SYSTEM LOCKED",
+        "system_locked_lockdown": "SYSTEM LOCKED (LOCKDOWN)",
+        "system_locked_desc1": "Too many failed attempts. Physical infrastructure isolated.",
+        "system_locked_desc2": "Multiple invalid access attempts. Autonomous control and hardware connections disabled.",
+        "system_locked_desc3": "Traffic lights are operating on their safe local plans.",
+        "unlock_system": "UNLOCK SYSTEM",
+        "auth_superuser": "AUTHENTICATE AS SUPER USER",
+        "err_fill_fields": "Fill in both fields.",
+        "err_superuser_only": "Only Super Users can unlock the system."
+    },
+    "accounts": {
+        "title": "Account Management",
+        "access_level": "Access Level",
+        "operator": "Operator (Standard Access)",
+        "superuser": "Super User (Full Access)",
+        "add_user": "Add User",
+        "refresh_list": "Refresh List",
+        "add_new_account": "Add New Account:",
+        "registered_accounts": "Registered Accounts:",
+        "remove_user": "Remove",
+        "success_action": "Action ({action_type}) completed successfully!",
+        "fail_action": "Action failed ({action_type}). Check data or if user already exists."
+    },
+    "audit": {
+        "title": "Audit Logs",
+        "date_time": "Date/Time",
+        "user": "User",
+        "action": "Action",
+        "details": "Details",
+        "refresh": "Refresh"
     }
 }

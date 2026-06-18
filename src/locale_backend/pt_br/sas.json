@@ -1,0 +1,63 @@
+{
+  "sas_collector": {
+    "init": {
+      "collector_created": "[SAS_COLLECTOR] Coletor de Dados de Análise criado."
+    },
+    "reset": {
+      "data_reset": "[SAS_COLLECTOR] Dados acumulados foram resetados para o próximo ciclo."
+    },
+    "get_data": {
+      "data_processed": "[SAS_COLLECTOR] Dados acumulados processados e prontos para análise."
+    }
+  },
+  "sas_engine": {
+    "init": {
+      "engine_created": "[SAS_ENGINE] Motor de Análise (modo +DB) criado."
+    },
+    "run": {
+      "analysis_skipped_no_data": "[SAS_ENGINE] Análise pulada devido a duração de simulação ou caminho de rede inválidos.",
+      "report_sent_to_db": "[SAS_ENGINE] Relatório de análise enviado para a fila do DB.",
+      "db_queue_error": "[SAS_ENGINE] Falha ao enviar relatório para a fila do DB: {error}",
+      "analysis_complete": "[SAS_ENGINE] Análise executada com sucesso.",
+      "processing_data": "[SAS_ENGINE] A processar dados de simulação acumulados...",
+      "data_processed": "[SAS_ENGINE] Dados processados para {count} junções."
+    },
+    "map": {
+      "generating": "[SAS_ENGINE] A gerar novo mapa de planeamento com ícones de recomendação..."
+    },
+    "topology": {
+      "critical_error": "[SAS_ENGINE] Erro crítico ao construir topologia da rede: {error}",
+      "cannot_continue_error": "[SAS_ENGINE] Não foi possível criar a topologia da rede. A análise não pode continuar."
+    },
+    "cache": {
+      "save_error": "[SAS_ENGINE] Erro ao salvar arquivo de cache."
+    },
+    "ui": {
+      "status_save_error": "[SAS_ENGINE] Erro ao salvar arquivo de status para a UI."
+    }
+  },
+  "sas_orchestrator": {
+    "init": {
+      "analysis_frequency_set": "[SAS_ORCH] Frequência de análise configurada para cada {freq}s de simulação.",
+      "config_error": "[SAS_ORCH] Seção [INFRASTRUCTURE_ANALYSIS] ou chaves de tempo não encontradas. Usando valores padrão.",
+      "orchestrator_created": "[SAS_ORCH] Orquestrador do SAS criado e especialistas instanciados."
+    },
+    "run": {
+      "main_loop_start": "[SAS_ORCH] Entrando no loop principal de coleta e análise.",
+      "run_id_captured": "[SAS_ORCH] RUN_ID: {run_id} capturado para este ciclo de análise.",
+      "analysis_triggered": "[SAS_ORCH] Gatilho de análise atingido em {time}s. Iniciando análise...",
+      "analysis_skipped_no_run_id": "[SAS_ORCH] Análise pulada porque um RUN_ID válido ainda não foi recebido.",
+      "analysis_cycle_complete": "[SAS_ORCH] Ciclo de análise concluído. Coletor resetado.",
+      "interrupt_received": "[SAS_ORCH] Sinal de interrupção recebido. Encerrando o orquestrador.",
+      "fatal_error": "[SAS_ORCH] Erro fatal no loop do orquestrador: {error}",
+      "orchestrator_shutdown": "[SAS_ORCH] Orquestrador do SAS finalizado."
+    }
+  },
+  "sas_worker": {
+    "run": {
+      "user_interrupt": "[SAS_WORKER] Processo do SAS encerrado pelo usuário.",
+      "fatal_error": "[SAS_WORKER] Erro fatal e não tratado no worker do SAS: {error}",
+      "worker_finished": "[SAS_WORKER] Processo do SAS finalizado."
+    }
+  }
+}

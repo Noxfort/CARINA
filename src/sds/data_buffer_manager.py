@@ -59,11 +59,11 @@ class DataBufferManager:
             edge_data (Dict): Dictionary with edge_id as key and dict with 'occupancy', 'speed', 'queue' as values
         """
         with self.buffer_lock:
-            # Add data to buffer
+            # Add data to buffer as (timestamp, value) tuples
             for edge_id, metrics in edge_data.items():
-                self.data_buffer[edge_id]['occ'].append(metrics.get('occupancy', 0.0))
-                self.data_buffer[edge_id]['spd'].append(metrics.get('speed', 0.0))
-                self.data_buffer[edge_id]['q'].append(metrics.get('queue', 0.0))
+                self.data_buffer[edge_id]['occ'].append((timestamp, metrics.get('occupancy', 0.0)))
+                self.data_buffer[edge_id]['spd'].append((timestamp, metrics.get('speed', 0.0)))
+                self.data_buffer[edge_id]['q'].append((timestamp, metrics.get('queue', 0.0)))
             
             self.stats['samples_collected'] += 1
             
@@ -73,28 +73,50 @@ class DataBufferManager:
 
     def get_buffer_data(self) -> Dict[str, Dict[str, list]]:
         """
-        Gets a copy of the current buffer data.
+        Gets a copy of the current buffer data, stripping the timestamps.
         
         Returns:
-            Dict: Current buffer data
+            Dict: Current buffer data as lists of floats
         """
         with self.buffer_lock:
-            # Return a deep copy of the buffer data
+            # Return a deep copy of the buffer data (stripping timestamps)
             buffer_copy = {}
             for edge_id, metrics in self.data_buffer.items():
                 buffer_copy[edge_id] = {
-                    'occ': metrics['occ'].copy(),
-                    'spd': metrics['spd'].copy(),
-                    'q': metrics['q'].copy()
+                    'occ': [v for t, v in metrics['occ']],
+                    'spd': [v for t, v in metrics['spd']],
+                    'q': [v for t, v in metrics['q']]
                 }
             return buffer_copy
 
     def clear_buffer(self) -> None:
         """
-        Clears the buffer data.
+        Clears the buffer data entirely (legacy support).
         """
         with self.buffer_lock:
             self.data_buffer.clear()
+
+    def trim_old_data(self, current_time: float, window: float = 60.0) -> None:
+        """
+        Removes data points older than the specified time window.
+        
+        Args:
+            current_time (float): The current simulation timestamp
+            window (float): The sliding window duration in seconds
+        """
+        cutoff_time = current_time - window
+        with self.buffer_lock:
+            empty_edges = []
+            for edge_id, metrics in self.data_buffer.items():
+                metrics['occ'] = [(t, v) for t, v in metrics['occ'] if t >= cutoff_time]
+                metrics['spd'] = [(t, v) for t, v in metrics['spd'] if t >= cutoff_time]
+                metrics['q']   = [(t, v) for t, v in metrics['q'] if t >= cutoff_time]
+                
+                if not metrics['occ'] and not metrics['spd'] and not metrics['q']:
+                    empty_edges.append(edge_id)
+            
+            for edge_id in empty_edges:
+                del self.data_buffer[edge_id]
 
     def _trim_buffer(self) -> None:
         """

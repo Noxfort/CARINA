@@ -45,6 +45,7 @@ class OverrideManager:
     def __init__(self, locale_manager: 'LocaleManagerBackend'): # Fixed type hint
         self.locale_manager = locale_manager
         self.active_overrides: Dict[str, str] = {}
+        self.active_street_overrides: Dict[str, str] = {}
         self.state_file_path: str | None = None
         logging.info("Manual Overrides Manager created.")
 
@@ -68,8 +69,13 @@ class OverrideManager:
         if self.state_file_path and os.path.exists(self.state_file_path):
             try:
                 with open(self.state_file_path, "r", encoding="utf-8") as f:
-                    self.active_overrides = json.load(f)
-                logging.info(f"Override state loaded from {self.state_file_path}. {len(self.active_overrides)} traffic lights in manual mode.")
+                    data = json.load(f)
+                    if isinstance(data, dict):
+                        self.active_overrides = data.get("semaphores", {})
+                        self.active_street_overrides = data.get("streets", {})
+                    else:
+                        self.active_overrides = data
+                logging.info(f"Override state loaded from {self.state_file_path}. {len(self.active_overrides)} traffic lights, {len(self.active_street_overrides)} streets in manual mode.")
             except (IOError, json.JSONDecodeError) as e:
                 logging.error(f"Error loading override state: {e}")
 
@@ -80,7 +86,10 @@ class OverrideManager:
             return
         try:
             with open(self.state_file_path, "w", encoding="utf-8") as f:
-                json.dump(self.active_overrides, f, indent=4)
+                json.dump({
+                    "semaphores": self.active_overrides,
+                    "streets": self.active_street_overrides
+                }, f, indent=4)
         except IOError as e:
             logging.error(f"Error saving override state: {e}")
 
@@ -138,6 +147,33 @@ class OverrideManager:
 
         except Exception as e_general: 
              logging.error(f"Unexpected error applying override for '{semaphore_id}': {e_general}", exc_info=True)
+
+
+    def handle_street_command(self, payload: Dict):
+        """
+        Processes a street override command from UI.
+        """
+        street_id = payload.get("street_id")
+        state = payload.get("state")
+
+        if not street_id or not state:
+            logging.warning(f"[OverrideManager] Invalid UI command for street. Payload: {payload}")
+            return
+
+        try:
+            if state == "BLOCKED":
+                self.active_street_overrides[street_id] = state
+                logging.info(f"[Agnostic] Street '{street_id}' commanded to BLOCKED state.")
+
+            elif state == "NORMAL":
+                if street_id in self.active_street_overrides:
+                    del self.active_street_overrides[street_id]
+                logging.info(f"[Agnostic] Street '{street_id}' returned to normal flow.")
+
+            self._save_state_to_disk()
+
+        except Exception as e:
+            logging.error(f"Unexpected error applying street override for '{street_id}': {e}", exc_info=True)
 
 
     def is_ai_command_blocked(self, request: Tuple) -> bool:

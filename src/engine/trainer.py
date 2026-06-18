@@ -54,6 +54,7 @@ from engine.input_preprocessor import InputPreprocessor
 from manager.agent_manager import AgentManager
 from engine.step_processor import StepProcessor
 from engine.event_router import EventRouter
+from mfd import MacroscopicFundamentalDiagram
 
 class Trainer:
     """
@@ -144,6 +145,9 @@ class Trainer:
             pipe_conn=self.pipe_conn
         )
         
+        # --- MFD: Network Performance Engine ---
+        self.mfd = MacroscopicFundamentalDiagram()
+        
         self.step_processor = StepProcessor(
             settings=self.settings, 
             locale_manager=self.locale_manager, 
@@ -155,7 +159,8 @@ class Trainer:
             maturity_manager=self.maturity_manager, 
             reward_computer=self.reward_computer, 
             cycle_manager=self.cycle_manager, 
-            pipe_conn=self.pipe_conn
+            pipe_conn=self.pipe_conn,
+            mfd=self.mfd
         )
         
         self.event_router = EventRouter(
@@ -202,7 +207,7 @@ class Trainer:
         
         try:
             # Delegate complex loading logic
-            self.agents, current_phases, self.strategist, self.guardians = self.agent_manager.setup_environment(
+            self.agents, current_stages, self.strategist, self.guardians = self.agent_manager.setup_environment(
                 map_path=map_path,
                 topology_manager=self.topology_manager,
                 state_extractor=self.state_extractor,
@@ -218,12 +223,20 @@ class Trainer:
             logging.info("[THRESHOLD_CALIBRATOR] Calibrador de Confiança criado.")
             logging.info("   L- Irá monitorar a estabilidade em uma janela de 10 episódios.")
             
-            self.step_processor.set_current_phases(current_phases)
+            self.step_processor.set_current_phases(current_stages)
             if hasattr(self.step_processor, 'set_guardians'):
                 self.step_processor.set_guardians(self.guardians)
 
+            # Load MFD topology (edge lengths for production/accumulation weighting)
+            self.mfd.load_topology(map_path)
+
             # Initial Cycle Check
-            self.cycle_manager.evaluate_cycle(0, self.agents, self.step_processor.accumulated_metrics)
+            mfd_efficiency = 0.0
+            if self.mfd:
+                latest = self.mfd.get_latest()
+                if latest:
+                    mfd_efficiency = latest.efficiency
+            self.cycle_manager.evaluate_cycle(0, self.agents, self.step_processor.accumulated_metrics, mfd_efficiency)
             
         except Exception as e:
             logging.error(f"Failed to load environment: {e}", exc_info=True)

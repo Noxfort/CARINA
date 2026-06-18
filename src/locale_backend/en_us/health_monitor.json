@@ -1,0 +1,14 @@
+{
+  "health_monitor": {
+    "init": {
+      "monitor_created": "[HEALTH_MONITOR] AI Health Monitor created with timeout of {timeout}s."
+    },
+    "activity": {
+      "communication_reestablished": "[HEALTH_MONITOR] Communication with AI reestablished."
+    },
+    "health_check": {
+      "failure": "[HEALTH_MONITOR] FAILURE: No communication from AI for more than {timeout}s.",
+      "switching_to_watchdog": "[HEALTH_MONITOR] Signaling controller to switch to safe mode (Watchdog)."
+    }
+  }
+}

@@ -228,5 +228,43 @@
     },
     "explanation_viewer": {
         "no_data": "无详细报告可用。"
+    },
+    "security": {
+        "auth_required": "需要验证",
+        "username": "用户名",
+        "password": "密码",
+        "cancel": "取消",
+        "authenticate": "验证",
+        "superuser": "超级用户",
+        "system_locked": "系统锁定",
+        "system_locked_lockdown": "系统锁定（全面封锁）",
+        "system_locked_desc1": "失败尝试过多。物理基础设施已隔离。",
+        "system_locked_desc2": "多次无效访问尝试。自主控制和硬件连接已禁用。",
+        "system_locked_desc3": "交通灯正在安全本地计划下运行。",
+        "unlock_system": "解锁系统",
+        "auth_superuser": "作为超级用户验证",
+        "err_fill_fields": "填写两个字段。",
+        "err_superuser_only": "只有超级用户才能解锁系统。"
+    },
+    "accounts": {
+        "title": "账户管理",
+        "access_level": "访问级别",
+        "operator": "操作员（标准访问）",
+        "superuser": "超级用户（完全访问）",
+        "add_user": "添加用户",
+        "refresh_list": "刷新列表",
+        "add_new_account": "添加新账户：",
+        "registered_accounts": "已注册账户：",
+        "remove_user": "移除",
+        "success_action": "操作（{action_type}）成功完成！",
+        "fail_action": "操作失败（{action_type}）。请检查数据或用户是否已存在。"
+    },
+    "audit": {
+        "title": "审计日志",
+        "date_time": "日期/时间",
+        "user": "用户",
+        "action": "操作",
+        "details": "详细信息",
+        "refresh": "刷新"
     }
 }

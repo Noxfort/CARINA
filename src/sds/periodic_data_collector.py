@@ -115,8 +115,8 @@ class PeriodicDataCollector:
             for original_edge in buf['original_edges']:
                 aggregated_payload['edges'][original_edge] = congestion_data
         
-        # Clear buffer and update timestamp
-        self.data_buffer_manager.clear_buffer()
+        # Trim old data from buffer (60s sliding window) and update timestamp
+        self.data_buffer_manager.trim_old_data(current_time, window=60.0)
         self.update_scheduler.update_last_update_time(current_time)
         
         logging.debug(f"[PeriodicDataCollector] Sent update with {len(aggregated_payload['edges'])} edges")

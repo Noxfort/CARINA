@@ -1,0 +1,42 @@
+{
+  "sds_processor": {
+    "init": {
+      "processor_created": "[SDS_PROCESSOR] Data Processor (Canvas/JSON mode) created."
+    }
+  },
+  "sds_orchestrator": {
+    "init": {
+      "orchestrator_created": "[SDS_ORCH] SDS Orchestrator created and specialists instantiated."
+    },
+    "run": {
+      "ws_thread_started": "[SDS_ORCH] WebSocket server thread started.",
+      "main_loop_start": "[SDS_ORCH] Entering main data processing loop.",
+      "interrupt_received": "[SDS_ORCH] Interrupt signal received. Shutting down the orchestrator.",
+      "fatal_error": "[SDS_ORCH] Fatal error in orchestrator loop: {error}",
+      "orchestrator_finished": "[SDS_ORCH] SDS Orchestrator finished."
+    }
+  },
+  "sds_websocket": {
+    "register": {
+      "client_connected": "[SDS_WS] New client connected: {address}"
+    },
+    "unregister": {
+      "client_disconnected": "[SDS_WS] Client {address} disconnected."
+    },
+    "handler": {
+      "command_received": "[SDS_WS] Command received from UI: {command}",
+      "invalid_json": "[SDS_WS] Invalid (non-JSON) message received from {address}",
+      "queue_full": "[SDS_WS] UI command queue is full. UI command discarded."
+    },
+    "main_loop": {
+      "server_started": "[SDS_WS] SDS WebSocket server started at ws://{host}:{port}"
+    }
+  },
+  "sds_worker": {
+    "run": {
+      "user_interrupt": "[SDS_WORKER] SDS Process terminated by user.",
+      "fatal_error": "[SDS_WORKER] Fatal and unhandled error in SDS worker: {error}",
+      "worker_finished": "[SDS_WORKER] SDS Process finished."
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "network_parser": {
+    "lane_to_edge": {
+      "start": "[PARSER] Building lane -> edge translation map from '{path}'...",
+      "success": "[PARSER] Translation map successfully built. {count} lanes mapped.",
+      "file_not_found_error": "CRITICAL ERROR: Network file not found in '{path}'.",
+      "processing_error": "ERROR processing network file for translation map: {error}"
+    },
+    "structural_map": {
+      "start": "[PARSER] Building STRUCTURAL neighborhood map from network file...",
+      "reading_net_file": "   L- Reading network file: {path}",
+      "neighborhood_found": "   L- Structural Neighborhood found for '{tl_id}': {neighbors}",
+      "success": "[PARSER] STRUCTURAL neighborhood map successfully built for {count} traffic lights.",
+      "file_not_found_error": "ERROR: File not found during structural parsing: {error}",
+      "processing_error": "ERROR processing network file for structural neighborhood: {error}"
+    },
+    "routes_map": {
+      "obsolete_warning": "[PARSER] Function 'build_neighborhood_map_from_routes' is obsolete and was not executed."
+    }
+  }
+}

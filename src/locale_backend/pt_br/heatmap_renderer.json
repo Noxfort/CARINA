@@ -1,0 +1,10 @@
+{
+  "heatmap_renderer": {
+    "init": {
+      "created": "[HEATMAP_RENDERER] Renderizador de Mapas de Calor criado."
+    },
+    "run": {
+      "error": "[HEATMAP_RENDERER] Erro ao gerar imagem de heatmap: {error}"
+    }
+  }
+}

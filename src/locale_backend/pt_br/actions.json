@@ -1,0 +1,7 @@
+{
+  "actions": {
+    "change_stage": "PRÓXIMO ESTÁGIO",
+    "keep_stage": "MANTER ESTÁGIO",
+    "unknown": "DESCONHECIDA ({action})"
+  }
+}

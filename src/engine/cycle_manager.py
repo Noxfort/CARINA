@@ -43,7 +43,7 @@ class CycleManager:
         self.maturity_manager = maturity_manager
         self.pipe_conn = pipe_conn
 
-    def evaluate_cycle(self, step_counter: int, agents: Dict, accumulated_metrics: Dict):
+    def evaluate_cycle(self, step_counter: int, agents: Dict, accumulated_metrics: Dict, mfd_efficiency: float = 0.0):
         """
         Executa a rotina de fim de ciclo:
         1. Calcula médias de desempenho.
@@ -67,7 +67,7 @@ class CycleManager:
         # 2. Promotion Check (Updates status in MaturityManager)
         # We run this BEFORE saving the checkpoint to ensure the promotion
         # be persisted to disk immediately.
-        promotion_occurred = self.maturity_manager.check_and_promote_agents(agent_metrics_summary)
+        promotion_occurred = self.maturity_manager.check_and_promote_agents(agent_metrics_summary, mfd_efficiency)
         
         # 3. Physical Checkpoints (Now it will save with the ALREADY updated phase)
         self._save_checkpoints(agents)

@@ -28,7 +28,7 @@ import logging
 import configparser
 import sys
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Any
 
 # Ensure src path is in sys.path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -57,11 +57,13 @@ class ActionSupervisor:
         self.locale_manager = locale_manager
         self.lm = self.locale_manager
 
-        self._last_phase_change_time = {}
+        self._last_stage_change_time = {}
         self.vetoed_actions = {}
+        self._last_sent_action = {}
+        self.override_states = {}
 
         # Load minimum safety time rules
-        self.min_green_time = SafetyRules.get_min_green()
+        self.green_time = SafetyRules.get_green()
 
         logging.info(self.lm.get_string("action_supervisor.init.actuator_created", fallback="ActionSupervisor initialized with ConnectionManager."))
 
@@ -71,63 +73,63 @@ class ActionSupervisor:
             for tl_id, veto_signal in vetos.items():
                 self.vetoed_actions[tl_id] = veto_signal.get('veto_action')
 
-    def apply_actions(self, actions: dict, current_sim_time: float, current_phases: dict):
+    def apply_actions(self, actions: Dict[str, int], current_sim_time: float, current_stages: Dict[str, Any]) -> None:
         """
-        Receives neural network decisions and forwards them to the hardware if not vetoed.
+        Executa as ações recomendadas pela IA nos respectivos drivers de hardware.
         """
-        for tl_id, action in actions.items():
+        for tl_id, action in list(actions.items()):
             # 1. Check Guardian Veto
             if tl_id in self.vetoed_actions and self.vetoed_actions[tl_id] == action:
                 logging.info(f"[{tl_id}] Action blocked by Guardian veto.")
                 del self.vetoed_actions[tl_id]
-                continue
+                actions[tl_id] = 1  # Force to HOLD
 
-            # 2. Execute Action
-            if action == 0: 
-                # NEXT_PHASE (Neural network wants to change the light)
-                self._try_change_phase(tl_id, current_sim_time, current_phases.get(tl_id, 0))
-            else: 
-                # HOLD (Neural network wants to maintain current green)
-                self._try_hold_phase(tl_id, current_sim_time, current_phases.get(tl_id, 0))
-
-    def _try_change_phase(self, tl_id: str, current_time: float, current_phase_idx: int):
-        """Attempts to advance to the next phase while respecting minimum times."""
-        time_since_last = current_time - self._last_phase_change_time.get(tl_id, 0)
-        if time_since_last < self.min_green_time:
+    def send_stage_hold(self, tl_id: str, stage_idx: int) -> None:
+        """
+        Sends the hold command for the specified stage to the hardware driver.
+        """
+        if self.override_states.get(tl_id) in ("ALERT", "OFF"):
+            logging.debug(f"[{tl_id}] Skipping send_stage_hold because of active override: {self.override_states[tl_id]}")
             return
-
-        green_phases = self.state_extractor.tl_green_phases.get(tl_id, [])
-        if not green_phases or current_phase_idx not in green_phases:
-            return
-
-        try:
-            # Discover the next phase in the sequence
-            current_list_idx = green_phases.index(current_phase_idx)
-            next_list_idx = (current_list_idx + 1) % len(green_phases)
-            next_phase_idx = green_phases[next_list_idx]
-
-            action_data = {'action_type': 'force_off', 'phase': current_phase_idx}
-
-            # Direct Hardware Communication via SNMP (NTCIP/UTMC)
-            if tl_id in self.connection_manager.active_connections:
-                driver = self.connection_manager.active_connections[tl_id]
-                driver.apply_action(action_data)
             
-            # Register the time of the change
-            self._last_phase_change_time[tl_id] = current_time
-            
-        except ValueError:
-            pass
-
-    def _try_hold_phase(self, tl_id: str, current_time: float, current_phase_idx: int):
-        """Sends the HOLD command to actively extend the green time."""
-        action_data = {'action_type': 'hold', 'phase': current_phase_idx}
-
-        if tl_id in self.connection_manager.active_connections:
-            driver = self.connection_manager.active_connections[tl_id]
-            driver.apply_action(action_data)
+        driver = self.connection_manager.active_connections.get(tl_id)
+        if driver:
+            # Pass 1-based stage to allow the driver to handle the hardware bitmask conversion
+            driver.apply_action({'action_type': 'hold', 'stage': stage_idx + 1})
 
     def reset(self):
         """Clears metrics for a clean restart."""
-        self._last_phase_change_time.clear()
+        self._last_stage_change_time.clear()
         self.vetoed_actions.clear()
+        self._last_sent_action.clear()
+        self.override_states.clear()
+
+    def apply_hardware_override(self, tl_id: str, state: str):
+        """
+        Interprets and sends manual UI override commands (e.g. FLASH, DARK) directly to the hardware connection.
+        """
+        if tl_id == "ALL" and state == "SHUTDOWN":
+            for driver in self.connection_manager.active_connections.values():
+                logging.critical(f"[ActionSupervisor] SHUTDOWN global: Stopping heartbeat for traffic light {driver.ip_address}")
+                driver.shutdown()
+            return
+            
+        if tl_id in self.connection_manager.active_connections:
+            driver = self.connection_manager.active_connections[tl_id]
+            if state == "ALERT":
+                self.override_states[tl_id] = "ALERT"
+                driver.apply_action({'action_type': 'flash'})
+                driver.log_carina_override("ALERT")
+                logging.info(f"[{tl_id}] FLASH (Alert) command sent to hardware via ActionSupervisor.")
+            elif state == "OFF":
+                self.override_states[tl_id] = "OFF"
+                driver.apply_action({'action_type': 'dark'})
+                driver.log_carina_override("OFF")
+                logging.info(f"[{tl_id}] DARK (Off) command sent to hardware via ActionSupervisor.")
+            elif state == "NORMAL":
+                prev_state = self.override_states.pop(tl_id, None)
+                if prev_state == "ALERT":
+                    driver.apply_action({'action_type': 'release_flash'})
+                elif prev_state == "OFF":
+                    driver.apply_action({'action_type': 'release_dark'})
+                logging.info(f"[{tl_id}] Traffic light returned to normal operation by operator.")

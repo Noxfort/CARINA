@@ -1,13 +1,29 @@
-# File: ui/handlers/settings_handler.py (FIXED)
+# CARINA (Controlled Artificial Road-traffic Intelligence Network Architecture) is an open-source AI ecosystem for real-time, adaptive control of urban traffic light networks.
+# Copyright (C) 2026 Gabriel Moraes - Noxfort Systems
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+# File: ui/handlers/settings_handler.py
 # Author: Gabriel Moraes
-# Date: October 1, 2025
+# Date: 2026-06-09
 
 """
-Define o SettingsHandler.
+Defines the SettingsHandler.
 
-Nesta versão, a responsabilidade de salvar o arquivo .ini foi removida.
-O método 'save_settings' agora apenas coleta e valida os dados da UI,
-retornando um dicionário pronto para ser enviado ao backend pelo SettingsClient.
+In this version, the responsibility of saving the .ini file has been removed.
+The 'save_settings' method now only collects and validates UI data,
+returning a dictionary ready to be sent to the backend via SettingsClient.
 """
 
 import logging
@@ -17,7 +33,7 @@ import os
 
 class SettingsHandler:
     """
-    Gerencia a lógica de carregar e validar as configurações da UI.
+    Manages the logic to load and validate UI settings.
     """
     # The map of keys to sections is still useful for initial reading
     _KEY_TO_SECTION_MAP = {
@@ -34,7 +50,6 @@ class SettingsHandler:
         'watchdog_grace': 'WATCHDOG',
         'analysis_interval_value': 'ANALYSIS_SCHEDULE', 'analysis_interval_unit': 'ANALYSIS_SCHEDULE',
         'weight_waiting_time': 'REWARD_WEIGHTS', 'weight_flow': 'REWARD_WEIGHTS',
-        'weight_emergency_brake': 'REWARD_WEIGHTS', 'weight_teleport': 'REWARD_WEIGHTS',
         'monitor_enabled': 'EXTERNAL_MONITOR', 'monitor_mqtt_host': 'EXTERNAL_MONITOR',
         'db_type': 'DATABASE', 'db_host': 'DATABASE', 'db_port': 'DATABASE',
         'db_user': 'DATABASE', 'db_password': 'DATABASE', 'db_name': 'DATABASE', 'db_connected': 'DATABASE',
@@ -47,13 +62,13 @@ class SettingsHandler:
         self.config = configparser.ConfigParser()
         self._defaults = self._get_default_settings_map()
         self._current_settings = self.load_settings()
-        logging.info("[SettingsHandler] Handler de Configurações inicializado e configurações carregadas.")
+        logging.info("[SettingsHandler] Settings Handler initialized and settings loaded.")
 
     def load_settings(self) -> Dict[str, Any]:
-        """Lê o arquivo .ini e retorna um dicionário com as configurações."""
+        """Reads the .ini file and returns a dictionary with the settings."""
         try:
             if not os.path.exists(self.config_path):
-                logging.warning(f"[SettingsHandler] Arquivo {self.config_path} não encontrado. Usando padrões.")
+                logging.warning(f"[SettingsHandler] File {self.config_path} not found. Using defaults.")
                 return self.get_default_settings()
 
             self.config.read(self.config_path, encoding='utf-8')
@@ -78,19 +93,19 @@ class SettingsHandler:
 
             return loaded_settings
         except Exception as e:
-            logging.error(f"[SettingsHandler] Erro ao carregar configurações: {e}. Usando padrões.")
+            logging.error(f"[SettingsHandler] Error loading settings: {e}. Using defaults.")
             return self.get_default_settings()
 
     # --- MAIN CHANGE HERE ---
     # This method no longer writes to the file. It just prepares the data.
     def prepare_settings_for_save(self, new_settings: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Valida e prepara as novas configurações para serem enviadas ao backend.
-        Por enquanto, a validação é simples (apenas coleta), mas pode ser expandida aqui.
+        Validates and prepares the new settings to be sent to the backend.
+        For now, validation is simple (just collection), but can be expanded here.
         """
         # Updates current settings in UI memory
         self._current_settings.update(new_settings)
-        logging.info("[SettingsHandler] Novas configurações preparadas para envio ao backend.")
+        logging.info("[SettingsHandler] New settings prepared for sending to the backend.")
         # Returns the complete payload, ready to be sent
         return new_settings
 
@@ -101,7 +116,7 @@ class SettingsHandler:
         return self._defaults.copy()
 
     def _get_default_settings_map(self) -> Dict[str, Any]:
-        """Retorna o dicionário de configurações padrão."""
+        """Returns the default settings dictionary."""
         return {
             'theme_dark': True, 'language': 'pt_br', 'min_green_time': '10',
             'yellow_time_seconds': '3', 'heatmap_strategy': 'max', 'heatmap_saturation': '100.0',
@@ -114,7 +129,6 @@ class SettingsHandler:
             'watchdog_grace': '30',
             'analysis_interval_value': '7', 'analysis_interval_unit': 'days',
             'weight_waiting_time': '-2.0', 'weight_flow': '2.0',
-            'weight_emergency_brake': '-50.0', 'weight_teleport': '-300.0',
             'monitor_enabled': 'False', 'monitor_mqtt_host': 'localhost',
             'db_type': 'sqlite', 'db_host': 'localhost', 'db_port': '5432',
             'db_user': 'admin', 'db_password': 'admin', 'db_name': 'carina_data', 'db_connected': 'False',

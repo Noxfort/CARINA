@@ -1,0 +1,10 @@
+{
+  "learning_coordinator": {
+    "init": {
+      "created": "[LEARNER] Learning Coordinator created."
+    },
+    "update": {
+      "trigger": "[LEARNER] Triggering learning cycle for agents."
+    }
+  }
+}

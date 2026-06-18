@@ -1,0 +1,47 @@
+{
+  "maturity_manager": {
+    "init": {
+      "manager_created": "[MATURITY_MANAGER] Diretor da Escola de Pilotagem criado.",
+      "performance_target": "   L- Meta de Desempenho para Graduação (Baseline): Recompensa > {target}"
+    },
+    "register": {
+      "agents_registered": "[MATURITY_MANAGER] {count} agentes registrados na fase: {phase}."
+    },
+    "calibration": {
+      "thresholds_updated": "[MATURITY_MANAGER] Limites de confiança para ADULTO recebidos do Calibrador e ativados."
+    },
+    "save": {
+      "success": "[MATURITY_MANAGER] Estado de maturidade salvo com sucesso em: {path}",
+      "error": "[MATURITY_MANAGER] Erro ao salvar o estado de maturidade: {error}"
+    },
+    "load": {
+      "not_found": "[MATURITY_MANAGER] Arquivo de estado de maturidade não encontrado em '{path}'. Começando do zero.",
+      "success": "[MATURITY_MANAGER] Estado de maturidade carregado com sucesso de '{path}'.",
+      "error": "[MATURITY_MANAGER] Erro ao carregar estado de maturidade: {error}"
+    },
+    "phase_child": "Infância",
+    "phase_teen": "Adolescência",
+    "phase_adult": "Adulto",
+    "criterion_time": "Critério: Tempo de Serviço",
+    "criterion_performance": "Critério: Desempenho",
+    "criterion_confidence": "Critério: Confiança",
+    "time_details": "{episodes_in_phase} de {required_episodes} episódios concluídos",
+    "performance_details": "Média {mean_performance:.2f} > Meta {baseline_target:.2f}",
+    "confidence_details": "Entropia {agent_entropy:.2f} < Limite {entropy_threshold:.2f}",
+    "new_phase_message": "Nova Fase: {phase_name}",
+    "criteria_met_header": "Critérios Cumpridos:",
+    "promotion_not_met_message": "não cumpriu os requisitos para promoção para a fase {target_phase_name}",
+    "criteria_status_header": "Estado dos Critérios:"
+  },
+  "maturity_reporter": {
+    "promotion": {
+      "title_graduated": "GRADUADO",
+      "title_promoted": "PROMOVIDO",
+      "header": "🎓 {title} | Agente: {agent_id}"
+    },
+    "rejection": {
+      "title": "Boletim de Avaliação",
+      "header": "📝 {title} | Agente: {agent_id} (Fase: {current_phase_name})"
+    }
+  }
+}

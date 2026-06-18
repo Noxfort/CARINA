@@ -1,0 +1,19 @@
+{
+  "lifecycle_manager": {
+    "init": {
+      "manager_created": "[LIFECYCLE] Gerente de Ciclo de Vida criado.",
+      "checkpoint_dir_set": "[LIFECYCLE] Diretório de checkpoint para este cenário definido como: '{path}'"
+    },
+    "create": {
+      "no_checkpoint_dir_error": "[LIFECYCLE] O diretório de checkpoint do cenário não foi configurado.",
+      "loading_checkpoints": "[LIFECYCLE] Criando agentes e carregando checkpoints de '{path}'...",
+      "uniform_obs_size": "[LIFECYCLE] Tamanho de observação uniforme para todos os agentes: {size}",
+      "no_dna_found": "Não foi encontrado DNA inicial para o agente {tl_id}. Pulando.",
+      "creation_complete": "[LIFECYCLE] {num_agents} agentes e {num_guardians} guardiões foram criados no total."
+    },
+    "save": {
+      "starting_checkpoint": "--- INICIANDO CHECKPOINT ({reason}) em '{path}' ---",
+      "checkpoint_complete": "--- CHECKPOINT CONCLUÍDO ---"
+    }
+  }
+}

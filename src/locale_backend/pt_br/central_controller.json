@@ -1,0 +1,18 @@
+{
+  "central_controller": {
+    "run": {
+      "simulation_ended": "Simulação terminada ou conexão TraCI perdida.",
+      "initial_connection_fail": "[CONTROLLER] Falha na conexão inicial com o SUMO. Encerrando o processo.",
+      "keyboard_interrupt": "[CONTROLLER] Interrupção pelo teclado recebida.",
+      "fatal_error": "[CONTROLLER] Erro fatal no orquestrador: {error}",
+      "process_finished": "[CONTROLLER] Processo da Central de Controle finalizado."
+    },
+    "shutdown": {
+      "sending_signal": "A enviar sinal de encerramento para o processo da IA...",
+      "signal_error": "Não foi possível enviar o sinal de encerramento para a IA: {error}"
+    },
+    "main_loop": {
+      "starting": "[CONTROLLER] Orquestrador iniciado. Entrando no loop principal da simulação."
+    }
+  }
+}

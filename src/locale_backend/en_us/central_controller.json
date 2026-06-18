@@ -1,0 +1,18 @@
+{
+  "central_controller": {
+    "run": {
+      "simulation_ended": "Simulation ended or TraCI connection lost.",
+      "initial_connection_fail": "[CONTROLLER] Initial connection failure with SUMO. Terminating process.",
+      "keyboard_interrupt": "[CONTROLLER] Keyboard interrupt received.",
+      "fatal_error": "[CONTROLLER] Fatal error in orchestrator: {error}",
+      "process_finished": "[CONTROLLER] Central Control process finished."
+    },
+    "shutdown": {
+      "sending_signal": "Sending shutdown signal to the AI process...",
+      "signal_error": "Could not send shutdown signal to AI: {error}"
+    },
+    "main_loop": {
+      "starting": "[CONTROLLER] Orchestrator started. Entering main simulation loop."
+    }
+  }
+}
