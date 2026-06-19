@@ -30,6 +30,7 @@ from typing import Optional, Dict, Any
 
 from src.drivers.driver_factory import DriverFactory
 from src.drivers.base_driver import BaseTrafficDriver
+from src.utils.paths import get_base_output_dir
 
 logger = logging.getLogger(__name__)
 cmd_logger = None  # Will be injected by ConnectionManager
@@ -136,8 +137,9 @@ class TrafficLightDriver:
         if not active_states:
             return
 
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-        log_file = os.path.join(project_root, "carina_colors.log")
+        log_dir = os.path.join(get_base_output_dir(), "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, "carina_colors.log")
 
         try:
             if current_stage_idx in active_states:
@@ -156,8 +158,9 @@ class TrafficLightDriver:
         """
         Logs a manual override (flash or dark/desligado) to carina_colors.log.
         """
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-        log_file = os.path.join(project_root, "carina_colors.log")
+        log_dir = os.path.join(get_base_output_dir(), "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, "carina_colors.log")
 
         label = "flash" if override_type == "ALERT" else "desligado"
         try:

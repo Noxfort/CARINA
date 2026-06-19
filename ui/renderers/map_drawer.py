@@ -128,11 +128,23 @@ class MapDrawer:
                 else:
                     path_points.append(cv.Path.LineTo(tx, ty))
             
+            # Draw an elegant outline/underlay path to create a road-casing effect
+            outline_path = cv.Path(
+                path_points,
+                paint=ft.Paint(
+                    stroke_width=stroke_width + 4.0,
+                    color="#CC1E1E24", # Elegant dark charcoal grey with opacity
+                    style=ft.PaintingStyle.STROKE,
+                    stroke_cap=ft.StrokeCap.ROUND
+                )
+            )
+            canvas.shapes.append(outline_path)
+            
             path_object = cv.Path(
                 path_points,
                 paint=ft.Paint(
                     stroke_width=stroke_width,
-                    color="#3394a3b8", # Muted semi-transparent slate gray for base map
+                    color="#2ecc71", # Modern Emerald Green for initial zero congestion
                     style=ft.PaintingStyle.STROKE,
                     stroke_cap=ft.StrokeCap.ROUND
                 )
@@ -146,11 +158,21 @@ class MapDrawer:
             if node_data.get('type') != 'traffic_light':
                 tx, ty = self.transform_point(node_data['x'], node_data['y'])
                 
+                # Outer circle for a clean white border
+                node_border = cv.Circle(
+                    x=tx,
+                    y=ty,
+                    radius=6.5,
+                    paint=ft.Paint(color="#FFFFFF")
+                )
+                canvas.shapes.append(node_border)
+                
+                # Inner circle for the node core
                 node_circle = cv.Circle(
                     x=tx,
                     y=ty,
-                    radius=4,
-                    paint=ft.Paint(color=ft.Colors.BLACK)
+                    radius=4.5,
+                    paint=ft.Paint(color="#2C3E50") # Premium Slate/Charcoal color
                 )
                 canvas.shapes.append(node_circle)
         

@@ -29,32 +29,10 @@ from typing import Callable, Dict
 from ui.handlers.locale_manager import LocaleManager
 from ui.managers.alias_manager import AliasManager
 
-class StreetInfoWidget(ft.Container):
+class StreetInfoWidget(ft.Card):
     """
-    Um Container que exibe os dados de uma rua e pode ser escondido.
+    Um Card que exibe os dados de uma rua e pode ser escondido.
     """
-    def _create_metric_card(self, icon: str, label_control: ft.Text, value_control: ft.Text) -> ft.Container:
-        label_control.size = 11
-        label_control.color = ft.Colors.BLUE_GREY_200
-        value_control.size = 14
-        value_control.weight = ft.FontWeight.BOLD
-        value_control.color = ft.Colors.WHITE
-        
-        return ft.Container(
-            content=ft.Row([
-                ft.Icon(icon, color=ft.Colors.BLUE_400, size=18),
-                ft.Column([
-                    label_control,
-                    value_control
-                ], spacing=1, tight=True, expand=True)
-            ], alignment=ft.MainAxisAlignment.START, spacing=8),
-            bgcolor=ft.Colors.with_opacity(0.3, "#0F172A"),
-            padding=8,
-            border_radius=8,
-            border=ft.border.all(1, "#1E293B"),
-            expand=True
-        )
-
     def __init__(
         self,
         locale_manager: LocaleManager,
@@ -64,10 +42,7 @@ class StreetInfoWidget(ft.Container):
         on_street_override: Callable[[str, str], None] = None
     ):
         super().__init__(
-            bgcolor=ft.Colors.with_opacity(0.4, "#0F172A"),
-            border_radius=12,
-            border=ft.border.all(1, "#1E293B"),
-            padding=15,
+            elevation=4,
             visible=False,
             animate_opacity=200
         )
@@ -105,41 +80,35 @@ class StreetInfoWidget(ft.Container):
         self.speed_text = ft.Text("--")
         self.vehicles_text = ft.Text("--")
 
-        self.congestion_card = self._create_metric_card(ft.Icons.TRAFFIC_ROUNDED, self.congestion_label, self.congestion_text)
-        self.flow_card = self._create_metric_card(ft.Icons.SPEED_ROUNDED, self.flow_label, self.flow_text)
-        self.speed_card = self._create_metric_card(ft.Icons.AV_TIMER_ROUNDED, self.speed_label, self.speed_text)
-        self.vehicles_card = self._create_metric_card(ft.Icons.DIRECTIONS_CAR_ROUNDED, self.vehicles_label, self.vehicles_text)
-
         self.block_button = ft.ElevatedButton(
             text="Desativar Fluxo",
             icon=ft.Icons.BLOCK_ROUNDED,
             on_click=self._handle_block_request,
-            style=ft.ButtonStyle(color=ft.Colors.WHITE, bgcolor=ft.Colors.RED_700),
-            width=270
+            style=ft.ButtonStyle(color=ft.Colors.WHITE, bgcolor=ft.Colors.RED_700)
         )
         
-        self.content = ft.Column(
-            [
-                ft.Row(
-                    [ft.Icon(ft.Icons.EDIT_ROAD_ROUNDED, color=ft.Colors.BLUE_400), self.street_id_text],
-                ),
-                ft.Divider(height=10, color="#1E293B"),
-                ft.Column([
-                    ft.Row([self.congestion_card, self.flow_card], spacing=8),
-                    ft.Row([self.speed_card, self.vehicles_card], spacing=8),
-                ], spacing=8),
-                ft.Divider(height=10, color="#1E293B"),
-                self.block_button,
-                ft.Row([
+        self.content = ft.Container(
+            padding=10,
+            content=ft.Column(
+                [
+                    ft.Row(
+                        [ft.Icon(ft.Icons.EDIT_ROAD_ROUNDED), self.street_id_text],
+                    ),
+                    ft.Divider(height=10),
+                    ft.Row([self.congestion_label, self.congestion_text]),
+                    ft.Row([self.flow_label, self.flow_text]),
+                    ft.Row([self.speed_label, self.speed_text]),
+                    ft.Row([self.vehicles_label, self.vehicles_text]),
+                    ft.Divider(height=10),
+                    self.block_button,
                     ft.IconButton(
                         icon=ft.Icons.CLOSE_ROUNDED,
                         on_click=self.hide,
-                        tooltip="Fechar painel"
+                        tooltip="Fechar painel" # This tooltip will be translated in the parent
                     )
-                ], alignment=ft.MainAxisAlignment.END)
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=10
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER
+            )
         )
 
     def did_mount(self):

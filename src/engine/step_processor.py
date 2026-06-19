@@ -217,6 +217,25 @@ class StepProcessor:
             mfd_snapshot = self.mfd.compute_step(edges_data, sim_time)
             mfd_data = mfd_snapshot.to_dict()
             
+            # --- Persist MFD history to disk for MFD Optimization Analysis worker ---
+            try:
+                import json
+                import os
+                from utils.paths import get_base_output_dir
+                hft_results_dir = os.path.join(get_base_output_dir(), "results", "hft_live_session")
+                os.makedirs(hft_results_dir, exist_ok=True)
+                mfd_history_path = os.path.join(hft_results_dir, "mfd_history.json")
+                
+                mfd_payload = {
+                    "peak_production": self.mfd._tracker.peak_production,
+                    "peak_accumulation": self.mfd._tracker.peak_accumulation,
+                    "history": [s.to_dict() for s in self.mfd._tracker._history]
+                }
+                with open(mfd_history_path, "w", encoding="utf-8") as f:
+                    json.dump(mfd_payload, f)
+            except Exception as e:
+                logging.error(f"[StepProcessor] Failed to save MFD history: {e}")
+            
             # Log network state at episode boundaries
             if self.step_counter % episode_steps == 0:
                 report = self.mfd.get_network_report()

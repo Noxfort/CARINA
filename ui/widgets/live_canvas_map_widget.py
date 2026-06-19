@@ -29,26 +29,20 @@ Automatically recalculates upon window resize.
 import flet as ft
 import flet.canvas as cv
 import logging
-import time
-from typing import Dict, Any, Callable, Tuple, TYPE_CHECKING
+from typing import Dict, List, Any, Callable, Tuple, TYPE_CHECKING
 
-from ui.handlers.map_interaction_handler import MapInteractionHandler
-from ui.handlers.street_interaction_handler import StreetInteractionHandler
-from ui.handlers.map_event_router import MapEventRouter
-from ui.builders.map_builder import MapBuilder
-from ui.managers.ui_config_manager import ui_config
-
-# Prevents circular import by allowing type annotations
-if TYPE_CHECKING:
-    from ui.renderers.map_drawer import MapDrawer
-    from ui.animators.map_animator import MapAnimator
-    from ui.managers.map_state_manager import MapStateManager
-
-_CONFIG = ui_config.get_section("live_map")
-
-# Estimated pixels consumed by UI chrome (AppBar, Tabs, padding, ControlPanel)
-_CHROME_WIDTH_OFFSET = _CONFIG["chrome_width_offset"]
-_CHROME_HEIGHT_OFFSET = _CONFIG["chrome_height_offset"]
+from ui.builders.map_element_factory import MapElementFactory
+from ui.interfaces.map_protocols import (
+    InteractionHandlerProtocol,
+    StreetInteractionHandlerProtocol,
+    EventRouterProtocol,
+    MapDrawerProtocol,
+    MapStateManagerProtocol,
+    MapAnimatorProtocol,
+    MapViewportManagerProtocol,
+    MapControlsAssemblerProtocol
+)
+from ui.handlers.locale_manager import LocaleManager
 
 class LiveCanvasMapWidget(ft.Container):
     """
@@ -57,54 +51,47 @@ class LiveCanvasMapWidget(ft.Container):
     """
     def __init__(
         self,
+        locale_manager: LocaleManager,
         on_semaphore_click: Callable[[str | None], None] = None,
         on_street_click: Callable[[str | None], None] = None,
         get_panel_state_callback: Callable[[], Dict] = None,
         on_panel_update_callback: Callable[[str, Dict, str, str], None] = None
     ):
         super().__init__(
-            expand=True, bgcolor=_CONFIG["bgcolor"], border_radius=_CONFIG["border_radius"],
+            expand=True, bgcolor="#F7F7F7", border_radius=10,
             alignment=ft.alignment.center,
             clip_behavior=ft.ClipBehavior.HARD_EDGE
         )
         
+        self.locale_manager = locale_manager
         self.get_panel_state_callback = get_panel_state_callback
         self.on_panel_update_callback = on_panel_update_callback
         
-        # Current effective dimensions (calculated on mount / resize)
-        self._canvas_width: int = _CONFIG["initial_canvas_width"]
-        self._canvas_height: int = _CONFIG["initial_canvas_height"]
+        # Initialize Layout and Controls Assembler specialists
+        self.viewport_manager: MapViewportManagerProtocol = self.create_viewport_manager()
+        self.controls_assembler: MapControlsAssemblerProtocol = self.create_controls_assembler()
         
-        self.interaction_handler = MapInteractionHandler(
-            base_width=self._canvas_width, 
-            base_height=self._canvas_height, 
-            on_update_callback=self._safe_update
-        )
-        self.last_mouse_x = self._canvas_width / 2
-        self.last_mouse_y = self._canvas_height / 2
+        self.interaction_handler: InteractionHandlerProtocol = self.create_interaction_handler()
+        self.last_mouse_x = self.viewport_manager.width / 2
+        self.last_mouse_y = self.viewport_manager.height / 2
         
-        self.street_interaction_handler = StreetInteractionHandler(on_street_selected=None)
+        self.street_interaction_handler: StreetInteractionHandlerProtocol = self.create_street_interaction_handler()
         
-        # Use the newly decoupled Event Router
-        self.event_router = MapEventRouter(
-            interaction_handler=self.interaction_handler,
-            street_interaction_handler=self.street_interaction_handler,
-            safe_update_callback=self._safe_update,
-            on_semaphore_click=on_semaphore_click,
-            on_street_click=on_street_click
-        )
+        # Use the decoupled Event Router
+        self.event_router: EventRouterProtocol = self.create_event_router(on_semaphore_click, on_street_click)
+        
         # Bind the street handler's callback to the event router
         self.street_interaction_handler.on_street_selected = self.event_router.handle_street_click
         
-        self.drawer: MapDrawer | None = None
-        self.animator: MapAnimator | None = None
-        self.map_state_manager: MapStateManager | None = None
+        self.drawer: MapDrawerProtocol | None = None
+        self.animator: MapAnimatorProtocol | None = None
+        self.map_state_manager: MapStateManagerProtocol | None = None
         
         # Pending map data (stored if initialize_map is called before mount)
         self._pending_map_data: Tuple | None = None
         self._is_map_built = False
         
-        self.canvas = cv.Canvas(shapes=[], width=self._canvas_width, height=self._canvas_height)
+        self.canvas = cv.Canvas(shapes=[], width=self.viewport_manager.width, height=self.viewport_manager.height)
         self.map_stack = ft.Stack(
             scale=self.interaction_handler.scale,
             offset=self.interaction_handler.offset,
@@ -114,28 +101,19 @@ class LiveCanvasMapWidget(ft.Container):
             self.last_mouse_x = e.local_x
             self.last_mouse_y = e.local_y
  
-        self._last_right_click_time = 0.0
-        threshold = _CONFIG.get("double_click_time_threshold", 0.3)
-        def _on_secondary_tap_down(e):
-            current_time = time.time()
-            if current_time - self._last_right_click_time < threshold:
-                self.interaction_handler.center_and_reset_zoom()
-            self._last_right_click_time = current_time
-
         self.gesture_detector = ft.GestureDetector(
             content=self.map_stack,
             on_hover=_on_hover,
             on_pan_update=self.interaction_handler.handle_pan_update,
             on_scroll=lambda e: self.interaction_handler.handle_zoom(e, self.last_mouse_x, self.last_mouse_y),
             on_double_tap=lambda e: self.interaction_handler.center_and_reset_zoom(),
-            on_secondary_tap_down=_on_secondary_tap_down,
             on_tap_down=self.event_router.handle_map_tap
         )
         
         self.content = ft.Column(
             [
                 ft.ProgressRing(),
-                ft.Text("Waiting for Scenario Connection...")
+                ft.Text(self.locale_manager.get_string("live_map.waiting_scenario", default="Waiting for Scenario Connection..."))
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER
@@ -164,32 +142,30 @@ class LiveCanvasMapWidget(ft.Container):
     def _calculate_dimensions(self):
         """Calculates canvas dimensions from the current page size."""
         if self.page:
-            pw = self.page.width or 1280
-            ph = self.page.height or 800
-            self._canvas_width = max(int(pw - _CHROME_WIDTH_OFFSET), 400)
-            self._canvas_height = max(int(ph - _CHROME_HEIGHT_OFFSET), 300)
+            self.viewport_manager.calculate_dimensions(self.page.width, self.page.height)
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-    def initialize_map(self, map_data: Tuple | None, net_file_path: str | None = None):
+    def update_translations(self, locale_manager: LocaleManager):
+        self.locale_manager = locale_manager
+        if isinstance(self.content, ft.Column) and len(self.content.controls) > 1:
+            if isinstance(self.content.controls[1], ft.Text):
+                self.content.controls[1].value = self.locale_manager.get_string("live_map.waiting_scenario", default="Waiting for Scenario Connection...")
+        elif isinstance(self.content, ft.Text):
+            if "ERROR" in self.content.value or "ERRO" in self.content.value:
+                self.content.value = self.locale_manager.get_string("live_map.error_geometry", default="ERROR: Map geometry data was not provided.")
+        if self.page: self.update()
+
+    def initialize_map(self, map_data: Tuple | None):
         """
         Receives map geometry. If the widget is already mounted, builds immediately.
         Otherwise, stores data and defers to did_mount.
         """
         if not map_data:
-            self.content = ft.Text("ERROR: Map geometry data was not provided.", color=ft.Colors.RED)
+            self.content = ft.Text(self.locale_manager.get_string("live_map.error_geometry", default="ERROR: Map geometry data was not provided."), color=ft.Colors.RED)
             if self.page: self.update()
             return
-
-        # Start background check/download for realistic background map
-        if net_file_path:
-            import threading
-            threading.Thread(
-                target=self._check_and_generate_background,
-                args=(net_file_path, map_data),
-                daemon=True
-            ).start()
 
         if self.page:
             self._calculate_dimensions()
@@ -197,66 +173,6 @@ class LiveCanvasMapWidget(ft.Container):
         else:
             self._pending_map_data = map_data
             logging.info("[LiveCanvasMap] Map data received before mount. Deferred.")
-
-    def _check_and_generate_background(self, net_file_path: str, map_data: Tuple):
-        try:
-            import os
-            import json
-            from ui.loader.map_tile_downloader import generate_background_map
-            
-            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-            bg_path = os.path.join(project_root, "ui", "assets", "images", "osm_background.png")
-            meta_path = bg_path + ".json"
-            
-            # Check if bounds match map_data bounds
-            nodes, edges, bounds = map_data
-            
-            # Get current map bounds
-            if isinstance(bounds, dict) and "min_x" in bounds:
-                curr_min_x = bounds["min_x"]
-                curr_max_x = bounds["max_x"]
-                curr_min_y = bounds["min_y"]
-                curr_max_y = bounds["max_y"]
-            elif isinstance(bounds, dict) and "x_min" in bounds:
-                curr_min_x = bounds["x_min"]
-                curr_max_x = bounds["x_max"]
-                curr_min_y = bounds["y_min"]
-                curr_max_y = bounds["y_max"]
-            else:
-                # bounds is lane_to_edge_map, we compute bounds from nodes
-                xs = [n["x"] for n in nodes.values()]
-                ys = [n["y"] for n in nodes.values()]
-                curr_min_x = min(xs) if xs else 0.0
-                curr_max_x = max(xs) if xs else 1000.0
-                curr_min_y = min(ys) if ys else 0.0
-                curr_max_y = max(ys) if ys else 1000.0
-
-            need_download = True
-            if os.path.exists(bg_path) and os.path.exists(meta_path):
-                try:
-                    with open(meta_path, 'r', encoding='utf-8') as f:
-                        meta = json.load(f)
-                    # Allow 10.0 units threshold
-                    if (abs(meta["x_min"] - curr_min_x) < 10.0 and
-                        abs(meta["x_max"] - curr_max_x) < 10.0 and
-                        abs(meta["y_min"] - curr_min_y) < 10.0 and
-                        abs(meta["y_max"] - curr_max_y) < 10.0):
-                        need_download = False
-                        logging.info("[LiveCanvasMap] Background map cache matches current scenario bounds. Reusing.")
-                except Exception as e:
-                    logging.warning(f"[LiveCanvasMap] Error reading cached background metadata: {e}")
-            
-            if need_download:
-                logging.info(f"[LiveCanvasMap] Generating new background map for net: {net_file_path}")
-                meta = generate_background_map(net_file_path, bg_path)
-                if meta:
-                    logging.info("[LiveCanvasMap] Background map generated successfully.")
-                    if self.page:
-                        self._build_map(map_data)
-                else:
-                    logging.warning("[LiveCanvasMap] Failed to generate background map.")
-        except Exception as e:
-            logging.error(f"[LiveCanvasMap] Error in background map check/generation thread: {e}", exc_info=True)
 
     def clear_all_selections(self):
         if self.map_state_manager:
@@ -280,29 +196,43 @@ class LiveCanvasMapWidget(ft.Container):
     # Internal: Build / Rebuild
     # ------------------------------------------------------------------
     def _build_map(self, map_data: Tuple):
-        """Builds (or rebuilds) the entire map canvas with current dimensions using MapBuilder."""
-        if self.animator:
-            self.animator.stop()
+        """Builds (or rebuilds) the entire map canvas with current dimensions."""
+        nodes, edges, _ = map_data
         
         self._pending_map_data = map_data
-        self.interaction_handler.base_width = self._canvas_width
-        self.interaction_handler.base_height = self._canvas_height
+        
+        if self.animator:
+            self.animator.stop()
 
-        canvas, drawer, edge_paths, map_state_manager, animator = MapBuilder.build(
-            map_data=map_data,
-            canvas_width=self._canvas_width,
-            canvas_height=self._canvas_height,
-            map_stack=self.map_stack,
-            widget_to_update=self,
-            get_panel_state_callback=self.get_panel_state_callback,
-            on_panel_update_callback=self.on_panel_update_callback
+        self.canvas = cv.Canvas(shapes=[], width=self.viewport_manager.width, height=self.viewport_manager.height)
+        
+        self.interaction_handler.base_width = self.viewport_manager.width
+        self.interaction_handler.base_height = self.viewport_manager.height
+        
+        self.drawer = self.create_drawer(nodes, edges)
+        self.drawer.calculate_transformations(self.viewport_manager.width, self.viewport_manager.height)
+        
+        edge_paths = self.drawer.draw_initial_map(self.canvas, stroke_width=7.0)
+        self.street_interaction_handler.load_paths(edge_paths)
+        
+        # Assemble canvas and interactive element controls
+        stack_controls, interactive_widgets_map = self.controls_assembler.assemble_map_controls(
+            drawer=self.drawer,
+            canvas=self.canvas
+        )
+        
+        self.map_stack.controls = stack_controls
+        
+        self.map_state_manager = self.create_state_manager(
+            edge_paths=edge_paths,
+            interactive_widgets=interactive_widgets_map
         )
 
-        self.canvas = canvas
-        self.drawer = drawer
-        self.street_interaction_handler.load_paths(edge_paths)
-        self.map_state_manager = map_state_manager
-        self.animator = animator
+        self.animator = self.create_animator(
+            edge_paths=edge_paths,
+            interactive_widgets=interactive_widgets_map,
+            topology_edges=edges
+        )
         
         # Pass the managers back to the router
         self.event_router.attach_managers(self.map_state_manager, self.animator)
@@ -312,7 +242,7 @@ class LiveCanvasMapWidget(ft.Container):
         
         self.content = self.gesture_detector
         if self.page: self.update()
-        logging.info(f"[LiveCanvasMap] Map initialized ({self._canvas_width}x{self._canvas_height}).")
+        logging.info(f"[LiveCanvasMap] Map initialized ({self.viewport_manager.width}x{self.viewport_manager.height}).")
 
     def _safe_update(self):
         """Wrapper to call update only when mounted."""
@@ -321,3 +251,64 @@ class LiveCanvasMapWidget(ft.Container):
                 self.update()
             except Exception:
                 pass
+
+    # ------------------------------------------------------------------
+    # Factory Methods (DIP / OCP / ISP Compliance)
+    # ------------------------------------------------------------------
+    def create_viewport_manager(self) -> MapViewportManagerProtocol:
+        from ui.managers.map_viewport_manager import MapViewportManager
+        return MapViewportManager()
+
+    def create_controls_assembler(self) -> MapControlsAssemblerProtocol:
+        from ui.builders.map_controls_assembler import MapControlsAssembler
+        return MapControlsAssembler()
+
+    def create_interaction_handler(self) -> InteractionHandlerProtocol:
+        from ui.handlers.map_interaction_handler import MapInteractionHandler
+        return MapInteractionHandler(
+            base_width=self.viewport_manager.width, 
+            base_height=self.viewport_manager.height, 
+            on_update_callback=self._safe_update
+        )
+
+    def create_street_interaction_handler(self) -> StreetInteractionHandlerProtocol:
+        from ui.handlers.street_interaction_handler import StreetInteractionHandler
+        return StreetInteractionHandler(on_street_selected=None)
+
+    def create_event_router(
+        self,
+        on_semaphore_click: Callable[[str | None], None],
+        on_street_click: Callable[[str | None], None]
+    ) -> EventRouterProtocol:
+        from ui.handlers.map_event_router import MapEventRouter
+        return MapEventRouter(
+            interaction_handler=self.interaction_handler,
+            street_interaction_handler=self.street_interaction_handler,
+            safe_update_callback=self._safe_update,
+            on_semaphore_click=on_semaphore_click,
+            on_street_click=on_street_click
+        )
+
+    def create_drawer(self, nodes: Dict, edges: List) -> MapDrawerProtocol:
+        from ui.renderers.map_drawer import MapDrawer
+        return MapDrawer(nodes, edges)
+
+    def create_state_manager(self, edge_paths: Dict, interactive_widgets: Dict) -> MapStateManagerProtocol:
+        from ui.managers.map_state_manager import MapStateManager
+        return MapStateManager(
+            canvas=self.canvas,
+            stack=self.map_stack,
+            edge_paths=edge_paths,
+            interactive_widgets=interactive_widgets
+        )
+
+    def create_animator(self, edge_paths: Dict, interactive_widgets: Dict, topology_edges: List) -> MapAnimatorProtocol:
+        from ui.animators.map_animator import MapAnimator
+        return MapAnimator(
+            widget_to_update=self,
+            get_panel_state_callback=self.get_panel_state_callback,
+            on_panel_update_callback=self.on_panel_update_callback,
+            edge_paths=edge_paths,
+            semaforo_widgets=interactive_widgets,
+            topology_edges=topology_edges
+        )

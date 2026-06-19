@@ -29,9 +29,9 @@ from typing import Callable
 from ui.clients.control_client import ControlClient
 from ui.handlers.locale_manager import LocaleManager
 
-class GlobalControlsWidget(ft.Container):
+class GlobalControlsWidget(ft.Card):
     """
-    Um Container que contém os botões de modo global e sua lógica de interação.
+    Um Card que contém os botões de modo global e sua lógica de interação.
     """
     def __init__(
         self, 
@@ -39,12 +39,7 @@ class GlobalControlsWidget(ft.Container):
         locale_manager: LocaleManager,
         on_mode_change: Callable[[str], None] = None
     ):
-        super().__init__(
-            bgcolor=ft.Colors.with_opacity(0.4, "#0F172A"),
-            border_radius=12,
-            border=ft.border.all(1, "#1E293B"),
-            padding=15
-        )
+        super().__init__(elevation=4)
 
         self.control_client = control_client
         self.locale_manager = locale_manager
@@ -80,7 +75,7 @@ class GlobalControlsWidget(ft.Container):
             actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
         )
 
-        self.title_text = ft.Text(size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
+        self.title_text = ft.Text(size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
         
         self.auto_button = ft.ElevatedButton(
             icon=ft.Icons.SMART_TOY_ROUNDED, width=270,
@@ -101,16 +96,19 @@ class GlobalControlsWidget(ft.Container):
             data="manual"
         )
         
-        self.content = ft.Column([
-            ft.Row([
-                ft.Icon(ft.Icons.GAMEPAD_ROUNDED, color=ft.Colors.BLUE_400),
-                self.title_text,
-            ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
-            ft.Divider(height=10, color="#1E293B"),
-            self.auto_button,
-            self.semiauto_button,
-            self.manual_button,
-        ], spacing=12)
+        self.content = ft.Container(
+            padding=10,
+            content=ft.Column([
+                ft.Row([
+                    ft.Icon(ft.Icons.GAMEPAD_ROUNDED),
+                    self.title_text,
+                ], alignment=ft.MainAxisAlignment.CENTER),
+                ft.Divider(height=10),
+                self.auto_button,
+                self.semiauto_button,
+                self.manual_button,
+            ])
+        )
     
     def did_mount(self):
         if self.page and self.confirmation_dialog not in self.page.overlay:

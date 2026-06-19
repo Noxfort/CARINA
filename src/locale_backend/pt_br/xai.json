@@ -1,31 +1,11 @@
 {
-  "xai_worker": {
-    "run": {
-      "start": "[XAI_WORKER] Processo XAI Worker iniciado. A vigiar a pasta: {path}",
-      "request_received": "[XAI_WORKER] Pedido de análise recebido para o agente: '{agent_id}'",
-      "analysis_failed": "Falha ao gerar arquivos de análise.",
-      "processing_error": "[XAI_WORKER] Erro ao processar pedido: {error}",
-      "response_file_error": "[XAI_WORKER] Falha crítica ao escrever arquivo de resposta: {error}",
-      "response_sent": "[XAI_WORKER] Resposta para '{filename}' enviada.",
-      "critical_loop_error": "[XAI_WORKER] Erro crítico no loop do vigilante: {error}",
-      "finished": "[XAI_WORKER] Processo XAI Worker finalizado."
-    }
-  },
-  "xai_report": {
-    "chart_xlabel": "Importância",
-    "chart_title": "Análise de Importância de Variáveis - Agente {agent_id}",
-    "title": "Relatório de Análise XAI - Agente {agent_id}",
-    "subtitle": "Gerado em: {timestamp}",
-    "header_description": "Este relatório apresenta a importância de cada sensor (variável) para a tomada de decisão do agente, baseando-se no método Integrated Gradients.",
-    "section_sensor": "Sensor",
-    "section_importance": "Importância",
-    "section_description": "Descrição"
-  },
-  "captum_analyzer": {
-    "run": {
-      "empty_memory_warning": "[CAPTUM_ANALYZER] Memória XAI para o agente {agent_id} está vazia. Análise não pode ser gerada.",
-      "text_report_success": "[CAPTUM_ANALYZER] Análise textual guardada em: {path}",
-      "analysis_error": "[CAPTUM_ANALYZER] Falha ao gerar análise: {error}"
-    }
+  "xai": {
+    "mfd_chart_title": "Diagrama Fundamental Macroscópico (MFD) - Curva de Otimização",
+    "mfd_xlabel": "Acumulação (veículos)",
+    "mfd_ylabel": "Produção (veículos·m/s)",
+    "mfd_cbar_label": "Passos de Simulação",
+    "mfd_scatter_label": "Estado da Simulação",
+    "mfd_peak_label": "Capacidade Ótima (Pico MFD)",
+    "mfd_fallback_report": "Relatório de Desempenho MFD:\n- Passos Totais: {total_steps}\n- Eficiência Média: {avg_eff:.2%}\n- Eficiência Máxima: {max_eff:.2%}\n- Produção Máxima: {peak_prod:.2f}\n- Divisão de Estados: {state_pct}"
   }
 }

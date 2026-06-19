@@ -41,7 +41,7 @@ class DashboardView(ft.Container):
         self.control_panel.exibir_controles_semaforo(selected_id, semaphore_data, phase, mode)
 
     def __init__(self, control_client: ControlClient, locale_manager: LocaleManager, security_ui=None):
-        super().__init__(expand=True, bgcolor="#0F172A", padding=15)
+        super().__init__(expand=True)
         
         self.locale_manager = locale_manager
         self.latest_data_packet = {}
@@ -63,100 +63,28 @@ class DashboardView(ft.Container):
         )
         
         self.map_widget = LiveCanvasMapWidget(
+            locale_manager=self.locale_manager,
             on_semaphore_click=self._handle_semaphore_click,
             on_street_click=self._handle_street_click,
             get_panel_state_callback=self._get_panel_state,
             on_panel_update_callback=self._on_panel_update
         )
-
-        # High-tech modern header
-        self.title_icon = ft.Icon(ft.Icons.MONITOR_HEART_ROUNDED, color=ft.Colors.CYAN_400, size=24)
-        self.title_text = ft.Text(
-            "CENTRO DE OPERAÇÕES DE TRÁFEGO",
-            size=15,
-            weight=ft.FontWeight.BOLD,
-            color=ft.Colors.WHITE,
-            letter_spacing=1.2
-        )
         
-        self.scenario_badge_text = ft.Text("Cenário: --", size=11, color=ft.Colors.CYAN_400, weight=ft.FontWeight.BOLD)
-        self.scenario_badge = ft.Container(
-            content=self.scenario_badge_text,
-            bgcolor=ft.Colors.with_opacity(0.1, "#22D3EE"),
-            border=ft.border.all(1, ft.Colors.with_opacity(0.3, "#22D3EE")),
-            padding=ft.padding.symmetric(5, 12),
-            border_radius=8,
-            visible=False
-        )
-        
-        self.run_id_badge_text = ft.Text("Sessão: --", size=11, color=ft.Colors.BLUE_GREY_200)
-        self.run_id_badge = ft.Container(
-            content=self.run_id_badge_text,
-            bgcolor=ft.Colors.with_opacity(0.1, "#64748B"),
-            border=ft.border.all(1, ft.Colors.with_opacity(0.3, "#64748B")),
-            padding=ft.padding.symmetric(5, 12),
-            border_radius=8,
-            visible=False
-        )
-        
-        self.mode_badge_text = ft.Text("Modo: AUTOMÁTICO", size=11, color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD)
-        self.mode_badge = ft.Container(
-            content=self.mode_badge_text,
-            bgcolor=ft.Colors.TEAL_800,
-            border=ft.border.all(1, ft.Colors.TEAL_400),
-            padding=ft.padding.symmetric(5, 12),
-            border_radius=8
-        )
-        
-        self.header_row = ft.Container(
-            content=ft.Row(
-                controls=[
-                    ft.Row([self.title_icon, self.title_text], spacing=8),
-                    ft.Row([self.scenario_badge, self.run_id_badge, self.mode_badge], spacing=8)
-                ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-            ),
-            padding=ft.padding.symmetric(10, 16),
-            bgcolor=ft.Colors.with_opacity(0.5, "#1E293B"),
-            border_radius=12,
-            border=ft.border.all(1, "#334155")
-        )
-        
-        self.main_layout = ft.Row(
+        self.content = ft.Row(
             controls=[
-                ft.Container(
-                    content=self.map_widget, 
-                    alignment=ft.alignment.center, 
-                    expand=True,
-                    border=ft.border.all(1, "#1E293B"),
-                    border_radius=16,
-                    shadow=ft.BoxShadow(
-                        spread_radius=1,
-                        blur_radius=10,
-                        color=ft.Colors.with_opacity(0.4, "#000000")
-                    )
-                ),
+                ft.Container(content=self.map_widget, alignment=ft.alignment.center, expand=True),
                 self.control_panel,
             ],
             expand=True,
-            spacing=15,
             vertical_alignment=ft.CrossAxisAlignment.START
         )
         
-        self.content = ft.Column(
-            controls=[
-                self.header_row,
-                self.main_layout
-            ],
-            expand=True,
-            spacing=12
-        )
-        
         self.current_mode = self.locale_manager.get_string("dashboard_view.mode_auto")
-
+ 
     def update_translations(self, lm: LocaleManager):
         self.current_mode = lm.get_string("dashboard_view.mode_auto")
         self.control_panel.update_translations(lm)
+        self.map_widget.update_translations(lm)
         if self.page: self.update()
 
     def update_live_data(self, data_packet: dict):
@@ -169,14 +97,13 @@ class DashboardView(ft.Container):
             
             asset_loader = MapAssetLoader()
             map_data = asset_loader.load_map_data()
-            net_file_path = asset_loader.get_net_file_path()
             
             if map_data:
                 nodes, _, _ = map_data
                 traffic_light_ids = [node_id for node_id, data in nodes.items() if data.get('type') == 'traffic_light']
                 self.maturity_phases = {tl_id: "UNKNOWN" for tl_id in traffic_light_ids}
 
-            self.map_widget.initialize_map(map_data, net_file_path=net_file_path)
+            self.map_widget.initialize_map(map_data)
         
         # --- DATA MERGE CORRECTION ---
         # Instead of brutally overwriting the packet (which destroys data in separate queues), 

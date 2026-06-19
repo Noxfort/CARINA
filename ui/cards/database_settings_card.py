@@ -267,7 +267,12 @@ class DatabaseSettingsCard(ft.Card):
             self._update_ui_lock_state()
             
             if self.page:
-                self.page.snack_bar = ft.SnackBar(content=ft.Text(f"Erro: {error_msg}", color=ft.colors.WHITE), bgcolor=ft.colors.RED_700)
+                err_label = "Erro: {error}"
+                if self.lm:
+                    err_label = self.lm.get_string("settings_view.db_card.msg_error", default=err_label, error=error_msg)
+                else:
+                    err_label = err_label.format(error=error_msg)
+                self.page.snack_bar = ft.SnackBar(content=ft.Text(err_label, color=ft.colors.WHITE), bgcolor=ft.colors.RED_700)
                 self.page.snack_bar.open = True
                 
         if self.page: self.update()
@@ -307,6 +312,10 @@ class DatabaseSettingsCard(ft.Card):
         self.subtitle_text.value = lm.get_string("settings_view.db_card.subtitle", default="O PostgreSQL é recomendado para alta carga e Machine Learning distribuído.")
         self.db_type_dropdown.label = lm.get_string("settings_view.db_card.type_label", default="Tipo de Banco de Dados")
         
+        if len(self.db_type_dropdown.options) >= 2:
+            self.db_type_dropdown.options[0].text = lm.get_string("settings_view.db_card.option_sqlite", default="SQLite (Local)")
+            self.db_type_dropdown.options[1].text = lm.get_string("settings_view.db_card.option_postgres", default="PostgreSQL (Remoto/Avançado)")
+            
         self.host_field.label = lm.get_string("settings_view.db_card.host", default="Host")
         self.port_field.label = lm.get_string("settings_view.db_card.port", default="Porta")
         self.user_field.label = lm.get_string("settings_view.db_card.user", default="Usuário")

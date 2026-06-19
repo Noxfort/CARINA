@@ -34,7 +34,7 @@ if src_path not in sys.path:
 
 from utils.paths import get_base_output_dir # <--- THE MAGIC FIX
 from ui.handlers.locale_manager import LocaleManager
-from ui.widgets.log_viewer_widget import LogViewerWidget
+from ui.widgets.mfd_viewer_widget import MfdViewerWidget
 from ui.widgets.xai_viewer_widget import XaiViewerWidget
 from ui.widgets.audit_log_widget import AuditLogWidget
 
@@ -55,13 +55,15 @@ class DiagnosticsView(ft.Column):
         self.project_root = get_base_output_dir()
         
         self.results_dir = os.path.join(self.project_root, "results", "hft_live_session")
-        self.log_file_path = os.path.join(self.project_root, "log.txt")
         
         logging.info(f"[UI_DIAG] DiagnosticsView inicializada.")
         logging.info(f"[UI_DIAG] Pasta de Resultados (Backend): {self.results_dir}")
         
         # Widgets
-        self.log_viewer = LogViewerWidget(locale_manager)
+        self.mfd_viewer = MfdViewerWidget(
+            locale_manager,
+            results_dir=self.results_dir
+        )
         
         # XAI Widget now receives the CORRECT directory
         self.xai_viewer = XaiViewerWidget(
@@ -80,10 +82,10 @@ class DiagnosticsView(ft.Column):
             animation_duration=300,
             tabs=[
                 ft.Tab(
-                    text=locale_manager.get_string("diagnostics_view.nav_logs", default="System Logs"),
-                    icon=ft.Icons.TERMINAL_ROUNDED,
+                    text=locale_manager.get_string("diagnostics_view.nav_mfd", default="MFD Optimization Analysis"),
+                    icon=ft.Icons.AUTO_GRAPH_ROUNDED,
                     content=ft.Container(
-                        content=self.log_viewer,
+                        content=self.mfd_viewer,
                         padding=10
                     )
                 ),
@@ -110,18 +112,18 @@ class DiagnosticsView(ft.Column):
         self.controls = [self.tabs]
 
     def did_mount(self):
-        logging.info("[UI_DIAG] View montada. Iniciando Log Watcher...")
+        logging.info("[UI_DIAG] View montada. Iniciando Agent Watcher...")
         self.start_log_watcher()
 
     def will_unmount(self):
-        logging.info("[UI_DIAG] View desmontando. Parando Log Watcher...")
+        logging.info("[UI_DIAG] View desmontando. Parando Agent Watcher...")
         self.stop_log_watcher()
 
     def update_translations(self, locale_manager: LocaleManager):
         self.locale_manager = locale_manager
-        self.tabs.tabs[0].text = locale_manager.get_string("diagnostics_view.nav_logs", default="System Logs")
+        self.tabs.tabs[0].text = locale_manager.get_string("diagnostics_view.nav_mfd", default="MFD Optimization Analysis")
         self.tabs.tabs[1].text = locale_manager.get_string("diagnostics_view.nav_xai", default="Neural Analysis (XAI)")
-        self.log_viewer.update_translations(locale_manager)
+        self.mfd_viewer.update_translations(locale_manager)
         self.xai_viewer.update_translations(locale_manager)
         if self.page: self.update()
 

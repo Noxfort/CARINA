@@ -48,17 +48,10 @@ class ControlPanelWidget(ft.Container):
         on_mode_change: Callable[[str], None] = None
     ):
         super().__init__(
-            width=320,
-            bgcolor=ft.Colors.with_opacity(0.85, "#1E293B"),
-            border_radius=16,
-            border=ft.border.all(1, "#334155"),
-            padding=15,
-            shadow=ft.BoxShadow(
-                spread_radius=1,
-                blur_radius=15,
-                color=ft.Colors.with_opacity(0.3, "#000000"),
-                offset=ft.Offset(0, 5)
-            )
+            width=300,
+            bgcolor=ft.Colors.BLUE_GREY_900,
+            border_radius=10,
+            padding=15
         )
         
         self.on_details_close = on_details_close

@@ -34,7 +34,11 @@ from src.controller.map_discoverer import MapTopologyDiscoverer
 from src.controller.connection_config_repo import ConnectionConfigRepository
 
 # --- Set up dedicated hardware log file ---
-hw_log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "hardware_connections.log"))
+from src.utils.paths import get_base_output_dir
+log_dir = os.path.join(get_base_output_dir(), "logs")
+os.makedirs(log_dir, exist_ok=True)
+
+hw_log_path = os.path.abspath(os.path.join(log_dir, "hardware_connections.log"))
 hw_handler = logging.FileHandler(hw_log_path, encoding='utf-8')
 hw_handler.setFormatter(logging.Formatter('%(asctime)s - [%(name)s] - [%(levelname)s] - %(message)s'))
 
@@ -43,7 +47,7 @@ if not any(isinstance(h, logging.FileHandler) and h.baseFilename == hw_log_path 
     logger.addHandler(hw_handler)
 
 # --- Dedicated Commands Logger ---
-cmd_log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "commands.log"))
+cmd_log_path = os.path.abspath(os.path.join(log_dir, "commands.log"))
 cmd_logger = logging.getLogger("carina_commands")
 cmd_logger.setLevel(logging.INFO)
 cmd_logger.propagate = False

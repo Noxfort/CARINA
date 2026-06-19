@@ -39,16 +39,16 @@ class HeatmapColorResolver:
         # 66%  - Orange (Heavy/Slow traffic)
         # 100% - Dark Red Waze-style (Traffic Jam/Congestion)
         stops = [
-            (0.00, (0, 255, 0)),      # Vibrant Green
-            (0.25, (255, 255, 0)),    # Vibrant Yellow
-            (0.50, (255, 140, 0)),    # Vibrant Orange
-            (0.75, (255, 0, 0)),      # Vibrant Red
-            (1.00, (139, 0, 0))       # Dark Red (Waze style)
+            (0.00, (46, 204, 113)),   # Modern Emerald Green (#2ecc71)
+            (0.25, (241, 196, 15)),   # Modern Sun Flower Yellow (#f1c40f)
+            (0.50, (230, 126, 34)),   # Modern Carrot Orange (#e67e22)
+            (0.75, (231, 76, 60)),    # Modern Alizarin Red (#e74c3c)
+            (1.00, (192, 57, 43))     # Modern Pomegranate Dark Red (#c0392b)
         ]
         
         # If exactly 1.0 (or more due to margin of error)
         if normalized >= 1.0:
-            return "#8b0000"
+            return "#c0392b"
             
         # Smooth interpolation within segments
         for i in range(len(stops) - 1):
@@ -62,4 +62,4 @@ class HeatmapColorResolver:
                 b = int(c1[2] + (c2[2] - c1[2]) * factor)
                 return f"#{r:02x}{g:02x}{b:02x}"
                 
-        return "#8b0000" # Safety fallback
+        return "#c0392b" # Safety fallback

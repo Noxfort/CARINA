@@ -38,6 +38,7 @@ from ui.cards.monitor_settings_card import MonitorSettingsCard
 from ui.cards.database_settings_card import DatabaseSettingsCard
 from ui.cards.account_settings_card import AccountSettingsCard
 from ui.cards.hardware_connection_card import HardwareConnectionCard
+from ui.cards.report_formatting_card import ReportFormattingCard
 
 def build_settings_view(locale_manager, settings_client):
     """
@@ -53,6 +54,7 @@ def build_settings_view(locale_manager, settings_client):
     monitor_handler = MonitorSettingsHandler(settings_client)
     
     # Cards
+    formatting_card = ReportFormattingCard(initial_settings)
     general_card = GeneralSettingsCard(initial_settings)
     traffic_rules_card = TrafficRulesCard(initial_settings)
     dashboard_card = DashboardSettingsCard(initial_settings)
@@ -132,6 +134,12 @@ def build_settings_view(locale_manager, settings_client):
             "title_key": "settings_view.tab_accounts",
             "default_title": "Contas",
             "cards": [account_card]
+        },
+        {
+            "icon": ft.Icons.PRINT_ROUNDED,
+            "title_key": "settings_view.tab_formatting",
+            "default_title": "Formatação",
+            "cards": [formatting_card]
         }
     ]
 

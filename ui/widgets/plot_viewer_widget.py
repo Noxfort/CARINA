@@ -100,6 +100,20 @@ class PlotViewerWidget(ft.Container):
         # Force UI update for this specific widget
         self.update()
 
+    def load_plot_base64(self, base64_str: str):
+        """
+        Updates the displayed image using base64 representation.
+        """
+        if base64_str:
+            self.plot_image.src_base64 = base64_str
+            self.plot_image.visible = True
+            self.placeholder_col.visible = False
+        else:
+            self.plot_image.src_base64 = None
+            self.plot_image.visible = False
+            self.placeholder_col.visible = True
+        self.update()
+
     def update_translations(self, locale_manager: LocaleManager):
         """Refreshes text translations."""
         self.locale_manager = locale_manager

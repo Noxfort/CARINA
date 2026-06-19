@@ -23,8 +23,7 @@ class SecurityManager:
     Manages user accounts, authentication, and the Lockdown failsafe logic.
     Roles available: OPERATOR, SUPERUSER, MASTER.
     """
-    def __init__(self, db_manager=None):
-        self.db_manager = db_manager
+    def __init__(self):
         self.max_failed_attempts = 3
         self.security_file = os.path.join(get_base_output_dir(), "results", "security.json")
         self.lockdown_file = os.path.join(get_base_output_dir(), "results", "lockdown.flag")
@@ -34,7 +33,6 @@ class SecurityManager:
         self.master_hash = "a56cc725d6b9df386120c36f77678be3302935c97f8ec1d78ba59b74ad221e62" # SHA256 of the master password
 
         self._ensure_files()
-        self._sync_with_db()
         
     def _ensure_files(self):
         os.makedirs(os.path.dirname(self.security_file), exist_ok=True)
@@ -52,111 +50,13 @@ class SecurityManager:
             self._save_db(default_db)
             logging.info("[SecurityManager] Arquivo de segurança criado com usuário padrão 'admin' (senha: 'admin').")
 
-    def _ensure_db_table(self):
-        if self.db_manager:
-            conn = self.db_manager.engine.get_connection()
-            if conn:
-                try:
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS security_users (
-                        username VARCHAR(100) PRIMARY KEY,
-                        password_hash TEXT NOT NULL,
-                        role VARCHAR(50) NOT NULL
-                    );
-                    """)
-                    conn.commit()
-                except Exception as e:
-                    if conn:
-                        conn.rollback()
-                    logging.error(f"[SecurityManager] Erro ao criar tabela security_users no banco: {e}")
-                finally:
-                    conn.close()
-
-    def _sync_with_db(self):
-        if not self.db_manager:
-            return
-
-        self._ensure_db_table()
-
-        # Load local users
-        local_db = self._load_db_raw()
-        local_users = local_db.get("users", {})
-
-        # Load database users
-        db_users = {}
-        conn = self.db_manager.engine.get_connection()
-        if conn:
-            try:
-                cursor = conn.cursor()
-                cursor.execute("SELECT username, password_hash, role FROM security_users")
-                rows = cursor.fetchall()
-                for row in rows:
-                    db_users[row[0]] = {
-                        "hash": row[1],
-                        "role": row[2]
-                    }
-            except Exception as e:
-                logging.error(f"[SecurityManager] Erro ao ler usuarios do banco: {e}")
-            finally:
-                conn.close()
-
-        # Sync lists both ways
-        modified = False
-        
-        # 1. Any user in local_users that is NOT in db_users -> insert to DB
-        ph = "%s" if self.db_manager.engine.db_type == "postgres" else "?"
-        for uname, udata in local_users.items():
-            if uname not in db_users:
-                conn = self.db_manager.engine.get_connection()
-                if conn:
-                    try:
-                        cursor = conn.cursor()
-                        cursor.execute(
-                            f"INSERT INTO security_users (username, password_hash, role) VALUES ({ph}, {ph}, {ph})",
-                            (uname, udata["hash"], udata["role"])
-                        )
-                        conn.commit()
-                        db_users[uname] = udata
-                        logging.info(f"[SecurityManager] Sincronização: Usuário '{uname}' copiado local -> DB.")
-                    except Exception as e:
-                        if conn: conn.rollback()
-                        logging.error(f"[SecurityManager] Erro ao sincronizar '{uname}' para DB: {e}")
-                    finally:
-                        conn.close()
-
-        # 2. Any user in db_users that is NOT in local_users -> restore to local_users
-        for uname, udata in db_users.items():
-            if uname not in local_users:
-                local_users[uname] = udata
-                modified = True
-                logging.info(f"[SecurityManager] Sincronização: Usuário '{uname}' restaurado DB -> local.")
-
-        if modified:
-            local_db["users"] = local_users
-            self._save_db(local_db)
-
-    def _load_db_raw(self):
+    def _load_db(self):
         try:
             with open(self.security_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             logging.error(f"[SecurityManager] Erro ao ler banco de segurança: {e}")
             return {"users": {}, "failed_attempts": 0}
-
-    def _load_db(self):
-        # If file doesn't exist, we try to restore from DB first
-        if not os.path.exists(self.security_file) and self.db_manager:
-            self._ensure_files()
-            self._sync_with_db()
-        
-        db = self._load_db_raw()
-        # If DB is configured, let's sync to ensure any DB updates are reflected
-        if self.db_manager:
-            if not db.get("users"):
-                self._sync_with_db()
-                db = self._load_db_raw()
-        return db
 
     def _save_db(self, db):
         try:
@@ -284,36 +184,12 @@ class SecurityManager:
         if username in db["users"]:
             return False # User already exists
             
-        pwd_hash = self._hash_password(password)
         db["users"][username] = {
-            "hash": pwd_hash,
+            "hash": self._hash_password(password),
             "role": role
         }
         self._save_db(db)
-        logging.info(f"[SecurityManager] Novo usuário cadastrado localmente: {username} ({role})")
-
-        # Save to database
-        if self.db_manager:
-            conn = self.db_manager.engine.get_connection()
-            if conn:
-                try:
-                    cursor = conn.cursor()
-                    if self.db_manager.engine.db_type == "postgres":
-                        query = (
-                            "INSERT INTO security_users (username, password_hash, role) VALUES (%s, %s, %s) "
-                            "ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = EXCLUDED.role"
-                        )
-                    else:
-                        query = "INSERT OR REPLACE INTO security_users (username, password_hash, role) VALUES (?, ?, ?)"
-                    cursor.execute(query, (username, pwd_hash, role))
-                    conn.commit()
-                    logging.info(f"[SecurityManager] Novo usuário cadastrado no banco: {username}")
-                except Exception as e:
-                    if conn: conn.rollback()
-                    logging.error(f"[SecurityManager] Erro ao cadastrar usuário no banco: {e}")
-                finally:
-                    conn.close()
-
+        logging.info(f"[SecurityManager] Novo usuário cadastrado: {username} ({role})")
         return True
 
     def remove_user(self, username: str) -> bool:
@@ -322,31 +198,12 @@ class SecurityManager:
             return False
             
         db = self._load_db()
-        removed_local = False
         if username in db["users"]:
             del db["users"][username]
             self._save_db(db)
-            logging.info(f"[SecurityManager] Usuário removido localmente: {username}")
-            removed_local = True
-
-        removed_db = False
-        if self.db_manager:
-            conn = self.db_manager.engine.get_connection()
-            if conn:
-                try:
-                    cursor = conn.cursor()
-                    ph = "%s" if self.db_manager.engine.db_type == "postgres" else "?"
-                    cursor.execute(f"DELETE FROM security_users WHERE username = {ph}", (username,))
-                    conn.commit()
-                    logging.info(f"[SecurityManager] Usuário removido do banco: {username}")
-                    removed_db = True
-                except Exception as e:
-                    if conn: conn.rollback()
-                    logging.error(f"[SecurityManager] Erro ao remover usuário do banco: {e}")
-                finally:
-                    conn.close()
-
-        return removed_local or removed_db
+            logging.info(f"[SecurityManager] Usuário removido: {username}")
+            return True
+        return False
         
     def list_users(self) -> list:
         db = self._load_db()

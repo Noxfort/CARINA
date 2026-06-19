@@ -21,7 +21,6 @@
 import flet as ft
 import flet.canvas as cv
 import math
-import time
 
 from ui.handlers.map_interaction_handler import MapInteractionHandler
 from ui.loader.map_asset_loader import MapAssetLoader
@@ -74,13 +73,6 @@ class InteractiveMap(ft.Container):
              self.last_mouse_x = e.local_x
              self.last_mouse_y = e.local_y
 
-        self._last_right_click_time = 0.0
-        def _on_secondary_tap_down(e):
-            current_time = time.time()
-            if current_time - self._last_right_click_time < 0.3:
-                self.interaction_handler.center_and_reset_zoom()
-            self._last_right_click_time = current_time
-
         self.gesture_detector = ft.GestureDetector(
             content=ft.Container(
                 content=self.map_stack, 
@@ -91,7 +83,6 @@ class InteractiveMap(ft.Container):
             on_pan_update=self.interaction_handler.handle_pan_update,
             on_scroll=lambda e: self.interaction_handler.handle_zoom(e, self.last_mouse_x, self.last_mouse_y),
             on_double_tap=lambda e: self.interaction_handler.center_and_reset_zoom(),
-            on_secondary_tap_down=_on_secondary_tap_down,
             on_tap_down=self._handle_tap,
             drag_interval=10
         )

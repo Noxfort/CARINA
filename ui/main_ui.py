@@ -141,7 +141,6 @@ def main(page: ft.Page):
         title=ft.Row([ft.Icon(ft.Icons.SETTINGS), ft.Text("Configurações")]),
         content=settings_view,
         actions=[
-            ft.TextButton(locale_manager.get_string("main_ui.exit_app", "Encerrar CARINA"), icon=ft.Icons.POWER_SETTINGS_NEW, on_click=hard_kill_app, icon_color=ft.Colors.RED_400),
             ft.TextButton("Fechar", on_click=close_settings_dialog)
         ],
         actions_alignment=ft.MainAxisAlignment.END,

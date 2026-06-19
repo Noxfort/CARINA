@@ -161,17 +161,23 @@ class MapAssetLoader:
             logging.error(f"[AssetLoader] Falha crítica ao carregar os dados do mapa: {e}", exc_info=True)
             return None
 
-    def get_net_file_path(self) -> str | None:
+    def load_background_map(self) -> tuple[str, dict] | None:
         """
-        Encontra o arquivo .net.xml.gz ou .net.xml do cenário mais recente.
+        Encontra e carrega a imagem de fundo do mapa (Base64) e as suas coordenadas.
         """
-        latest_scenario_dir = self._find_latest_scenario_dir()
-        if not latest_scenario_dir:
+        bg_json_path = self.get_asset_path("maps", "map_background.json")
+        bg_png_path = self.get_asset_path("maps", "map_background.png")
+        if not bg_json_path or not bg_png_path:
+            logging.debug("[AssetLoader] Arquivos de imagem de fundo ou coordenadas não encontrados.")
             return None
-        maps_dir = os.path.join(latest_scenario_dir, "maps")
-        if not os.path.exists(maps_dir):
+        
+        try:
+            import base64
+            with open(bg_json_path, "r", encoding="utf-8") as f:
+                bg_data = json.load(f)
+            with open(bg_png_path, "rb") as f:
+                b64_string = base64.b64encode(f.read()).decode("utf-8")
+            return b64_string, bg_data
+        except Exception as e:
+            logging.error(f"[AssetLoader] Falha ao carregar mapa de fundo: {e}", exc_info=True)
             return None
-        for file in os.listdir(maps_dir):
-            if file.endswith(".net.xml.gz") or file.endswith(".net.xml"):
-                return os.path.join(maps_dir, file)
-        return None

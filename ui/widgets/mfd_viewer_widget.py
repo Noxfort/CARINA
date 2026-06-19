@@ -14,9 +14,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# File: ui/widgets/xai_viewer_widget.py
+# File: ui/widgets/mfd_viewer_widget.py
 # Author: Gabriel Moraes
-# Date: 2026-06-19
+# Date: June 19, 2026
 
 import flet as ft
 import os
@@ -25,26 +25,25 @@ import logging
 from ui.handlers.locale_manager import LocaleManager
 from ui.widgets.explanation_viewer_widget import ExplanationViewerWidget
 from ui.widgets.plot_viewer_widget import PlotViewerWidget
-from ui.clients.xai_client import XaiClient
+from ui.clients.mfd_analysis_client import MfdAnalysisClient
 
-class XaiViewerWidget(ft.Column):
+class MfdViewerWidget(ft.Column):
     """
-    Main widget for the XAI (Explainable AI) tab.
+    Main widget for the MFD Optimization Analysis tab.
     Maintains clean separation of concerns by delegating orchestration, I/O, 
-    and IPC to XaiClient, acting strictly as a passive view.
+    and IPC to MfdAnalysisClient, acting strictly as a passive view.
     """
     def __init__(self, locale_manager: LocaleManager, results_dir: str):
         super().__init__()
         self.locale_manager = locale_manager
         self.results_dir = results_dir
-        self.selected_agent_id = None
         self.generated_img_base64 = None
         self.generated_txt_content = None
         self.is_analyzing = False
         
-        # Initialize XaiClient to orchestrate the backend request/response cycle
-        self.xai_client = XaiClient(
-            on_analysis_complete_callback=self._on_xai_analysis_complete,
+        # Initialize MfdAnalysisClient to orchestrate the backend request/response cycle
+        self.mfd_client = MfdAnalysisClient(
+            on_analysis_complete_callback=self._on_mfd_analysis_complete,
             results_dir=self.results_dir
         )
         
@@ -53,23 +52,15 @@ class XaiViewerWidget(ft.Column):
         self.spacing = 10
         
         # UI Components
-        self.agent_dropdown = ft.Dropdown(
-            label="Select Agent",
-            width=300,
-            options=[],
-            on_change=self._on_agent_selected,
-            prefix_icon=ft.Icons.TRAFFIC_ROUNDED
-        )
-        
         self.analyze_btn = ft.ElevatedButton(
-            text="Request XAI Analysis",
+            text=self.locale_manager.get_string("mfd_viewer.analyze_btn", default="Gerar Relatório de Otimização MFD"),
             icon=ft.Icons.ANALYTICS_ROUNDED,
             on_click=self._on_analyze_click,
-            disabled=True
+            disabled=False
         )
 
         self.export_btn = ft.ElevatedButton(
-            text=self.locale_manager.get_string("xai_viewer.export_btn", default="Salvar Laudo (.docx)"),
+            text=self.locale_manager.get_string("mfd_viewer.export_btn", default="Salvar Laudo MFD (.docx)"),
             icon=ft.Icons.SAVE_ROUNDED,
             on_click=self._on_export_click,
             visible=False
@@ -87,9 +78,10 @@ class XaiViewerWidget(ft.Column):
         # Defines children controls
         self.controls = [
             ft.Row(
-                controls=[self.agent_dropdown, self.analyze_btn, self.export_btn],
+                controls=[self.analyze_btn, self.export_btn],
                 alignment=ft.MainAxisAlignment.START,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=15
             ),
             self.status_text,
             ft.Divider(),
@@ -98,7 +90,7 @@ class XaiViewerWidget(ft.Column):
                 animation_duration=300,
                 tabs=[
                     ft.Tab(
-                        text=self.locale_manager.get_string("xai_viewer.tab_chart", default="Sensor Importance (Chart)"),
+                        text=self.locale_manager.get_string("mfd_viewer.tab_chart", default="Curva MFD (Gráfico)"),
                         icon=ft.Icons.BAR_CHART_ROUNDED,
                         content=ft.Container(
                             content=self.plot_viewer,
@@ -106,7 +98,7 @@ class XaiViewerWidget(ft.Column):
                         )
                     ),
                     ft.Tab(
-                        text=self.locale_manager.get_string("xai_viewer.tab_text", default="Detailed Report (Text)"),
+                        text=self.locale_manager.get_string("mfd_viewer.tab_text", default="Laudo Estruturado (Relatório SLM)"),
                         icon=ft.Icons.DESCRIPTION_ROUNDED,
                         content=ft.Container(
                             content=self.explanation_viewer,
@@ -125,36 +117,16 @@ class XaiViewerWidget(ft.Column):
 
     def update_translations(self, locale_manager: LocaleManager):
         self.locale_manager = locale_manager
-        self.agent_dropdown.label = locale_manager.get_string("xai_viewer.agent_select_label", default="Select Agent")
-        self.analyze_btn.text = locale_manager.get_string("xai_viewer.analyze_btn", default="Run XAI Analysis")
-        self.export_btn.text = locale_manager.get_string("xai_viewer.export_btn", default="Exportar Laudo (.docx)")
+        self.analyze_btn.text = locale_manager.get_string("mfd_viewer.analyze_btn", default="Gerar Relatório de Otimização MFD")
+        self.export_btn.text = locale_manager.get_string("mfd_viewer.export_btn", default="Salvar Laudo MFD (.docx)")
         
         # Tabs
-        self.controls[3].tabs[0].text = locale_manager.get_string("xai_viewer.tab_chart", default="Sensor Importance (Chart)")
-        self.controls[3].tabs[1].text = locale_manager.get_string("xai_viewer.tab_text", default="Detailed Report (Text)")
+        self.controls[3].tabs[0].text = locale_manager.get_string("mfd_viewer.tab_chart", default="Curva MFD (Gráfico)")
+        self.controls[3].tabs[1].text = locale_manager.get_string("mfd_viewer.tab_text", default="Laudo Estruturado (Relatório SLM)")
         
         if self.page: self.update()
 
-    def update_agent_list(self, agent_ids: list):
-        current = self.agent_dropdown.value
-        self.agent_dropdown.options = [ft.dropdown.Option(key=str(aid), text=f"Agent {aid}") for aid in agent_ids]
-        if current not in agent_ids: self.agent_dropdown.value = None
-        if not self.is_analyzing:
-            self.analyze_btn.disabled = self.agent_dropdown.value is None
-        if self.page: self.agent_dropdown.update()
-        if self.page: self.analyze_btn.update()
-
-    def _on_agent_selected(self, e):
-        self.selected_agent_id = self.agent_dropdown.value
-        if not self.is_analyzing:
-            self.analyze_btn.disabled = self.selected_agent_id is None
-            self.analyze_btn.update()
-
     def _on_analyze_click(self, e):
-        if not self.selected_agent_id: return
-        
-        agent_id = self.selected_agent_id
-        
         # 1. Immediate UI Feedback
         self.is_analyzing = True
         self.analyze_btn.disabled = True
@@ -166,67 +138,66 @@ class XaiViewerWidget(ft.Column):
         self.plot_viewer.load_plot_base64(None) 
         self.explanation_viewer.set_text(None) 
         
-        self.status_text.value = self.locale_manager.get_string("xai_viewer.status_requesting", default="Requesting...", agent_id=agent_id)
+        self.status_text.value = self.locale_manager.get_string("mfd_viewer.status_requesting", default="Processando dados do Diagrama Fundamental Macroscópico (MFD) e invocando SLM...")
         self.status_text.color = ft.Colors.ORANGE_400
         self.update()
 
         # 2. Delegate orchestration to client
-        logging.info(f"[XAI_WIDGET] Requesting analysis via XaiClient for agent {agent_id}")
-        self.xai_client.start_analysis(agent_id)
+        logging.info("[MFD_WIDGET] Requesting optimization analysis via MfdAnalysisClient")
+        self.mfd_client.start_analysis()
 
-    def _on_xai_analysis_complete(self, response: dict):
-        """Callback received from XaiClient thread on analysis completion."""
+    def _on_mfd_analysis_complete(self, response: dict):
+        """Callback received from MfdAnalysisClient thread on analysis completion."""
         if not self.page:
             return
             
         if response.get("status") == "complete":
             image_base64 = response.get("image_base64")
-            text_content = response.get("text_content")
+            text_content = response.get("text_report")
             
             if image_base64 and text_content:
                 self._safe_update_ui(image_base64, text_content, success=True)
             else:
-                missing_msg = self.locale_manager.get_string("xai_viewer.missing_response", default="Success signal received, but response data is missing.")
+                missing_msg = self.locale_manager.get_string("mfd_viewer.missing_response", default="Success signal received, but response data is missing.")
                 self._safe_update_ui(None, missing_msg, success=False)
         else:
             err_msg = response.get("message", "Unknown error")
             self._safe_update_ui(None, err_msg, success=False)
-
+ 
     def _safe_update_ui(self, image_base64, text_content, success):
         """Updates the UI elements (runs on Flet UI thread)."""
         self.is_analyzing = False
-        self.analyze_btn.disabled = self.agent_dropdown.value is None
+        self.analyze_btn.disabled = False
         
         if success:
             self.plot_viewer.load_plot_base64(image_base64)
             self.explanation_viewer.set_text(text_content)
-
+ 
             self.generated_img_base64 = image_base64
             self.generated_txt_content = text_content
             self.export_btn.visible = True
-
-            self.status_text.value = self.locale_manager.get_string("xai_viewer.status_success", default="Analysis completed successfully!")
+ 
+            self.status_text.value = self.locale_manager.get_string("mfd_viewer.status_success", default="Relatório de otimização gerado com sucesso!")
             self.status_text.color = ft.Colors.GREEN_400
         else:
-            self.status_text.value = self.locale_manager.get_string("xai_viewer.status_error", default="Failed: {error}", error=text_content)
+            self.status_text.value = self.locale_manager.get_string("mfd_viewer.status_error", default="Falha: {error}", error=text_content)
             self.status_text.color = ft.Colors.RED_400
             self.export_btn.visible = False
             self.generated_img_base64 = None
             self.generated_txt_content = None
         
         self.update()
-
+ 
     def _on_export_click(self, e):
         if not self.generated_txt_content or not self.generated_img_base64:
             return
             
-        prefix = self.locale_manager.get_string("xai_viewer.export_filename_prefix", default="laudo_tecnico_")
         self.file_picker.save_file(
-            dialog_title=self.locale_manager.get_string("xai_viewer.export_title", default="Salvar Laudo Técnico"),
-            file_name=f"{prefix}{self.selected_agent_id}.docx",
+            dialog_title=self.locale_manager.get_string("mfd_viewer.export_title", default="Salvar Relatório MFD"),
+            file_name=self.locale_manager.get_string("mfd_viewer.export_filename", default="relatorio_otimizacao_mfd.docx"),
             allowed_extensions=["docx"]
         )
-
+ 
     def _on_save_docx_result(self, e):
         if e.path and self.generated_txt_content and self.generated_img_base64:
             save_path = e.path
@@ -260,7 +231,7 @@ class XaiViewerWidget(ft.Column):
                     "secretary_title": get_cfg("xai_secretary_title", "secretary_title", "Secretário de Mobilidade e Trânsito"),
                     "agency_name": get_cfg("xai_agency_name", "agency_name", "Prefeitura Municipal / Secretaria de Trânsito"),
                     "department_name": get_cfg("xai_department_name", "department_name", "Departamento de Mobilidade Inteligente"),
-                    "title": get_cfg("xai_report_title", "title", "LAUDO TÉCNICO DE EXPLICABILIDADE DE IA (XAI)"),
+                    "title": get_cfg("xai_report_title_mfd", "title_mfd", "RELATÓRIO DE DESEMPENHO E OTIMIZAÇÃO MFD"),
                     "font_name": get_cfg("xai_font_name", "font_name", "Arial"),
                     "font_size": float(get_cfg("xai_font_size", "font_size", "11")),
                     "margin_top": float(get_cfg("xai_margin_top", "margin_top", "1.0")),
@@ -270,14 +241,14 @@ class XaiViewerWidget(ft.Column):
                     "line_spacing": float(get_cfg("xai_line_spacing", "line_spacing", "1.15")),
                     "alignment": get_cfg("xai_alignment", "alignment", "justify"),
                     "locale_manager": self.locale_manager,
-                    "mode": "XAI"
+                    "mode": "MFD"
                 }
                 
                 block_order_str = get_cfg("xai_block_order", "block_order", "header,title,metadata,chart,content,signature")
                 block_order = [b.strip() for b in block_order_str.split(",") if b.strip()]
                 
                 context = {
-                    "agent_id": self.selected_agent_id,
+                    "agent_id": self.locale_manager.get_string("mfd_viewer.central_control", default="CARINA Central Control"),
                     "scenario": os.path.basename(self.results_dir),
                     "engine_version": "CARINA v1.0.0",
                     "image_path": tmp_img_path,
@@ -288,17 +259,17 @@ class XaiViewerWidget(ft.Column):
                 success = builder.generate_report(save_path, context, config)
                 
                 if success:
-                    success_msg = self.locale_manager.get_string("xai_viewer.export_success", default="Laudo exportado com sucesso para: {path}", path=save_path)
+                    success_msg = self.locale_manager.get_string("mfd_viewer.export_success", default="Relatório exportado com sucesso para: {path}", path=save_path)
                     self.page.snack_bar = ft.SnackBar(content=ft.Text(success_msg))
                     self.page.snack_bar.open = True
                 else:
-                    error_msg = self.locale_manager.get_string("xai_viewer.export_error", default="Erro ao gerar o laudo técnico.")
+                    error_msg = self.locale_manager.get_string("mfd_viewer.export_error", default="Erro ao gerar o relatório.")
                     self.page.snack_bar = ft.SnackBar(content=ft.Text(error_msg))
                     self.page.snack_bar.open = True
                 self.page.update()
                 
             except Exception as ex:
-                catch_msg = self.locale_manager.get_string("xai_viewer.export_catch_error", default="Erro ao exportar laudo: {error}", error=str(ex))
+                catch_msg = self.locale_manager.get_string("mfd_viewer.export_catch_error", default="Erro ao exportar relatório: {error}", error=str(ex))
                 self.page.snack_bar = ft.SnackBar(content=ft.Text(catch_msg))
                 self.page.snack_bar.open = True
                 self.page.update()

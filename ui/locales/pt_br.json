@@ -1,12 +1,15 @@
 {
+    "live_map": {
+        "waiting_scenario": "Aguardando Conexão do Cenário...",
+        "error_geometry": "ERRO: Geometria do mapa não fornecida."
+    },
     "main_ui": {
         "app_title": "CARINA - Painel de Controle",
         "app_long_title": "CARINA - Controlled Artificial Road-traffic Intelligence Network Architecture",
         "settings_tooltip": "Abrir Configurações",
         "tab_dashboard": "Dashboard Operacional",
         "tab_planning": "Planejamento e Otimização",
-        "tab_diagnostics": "Diagnóstico e Sistema",
-        "exit_app": "Encerrar CARINA"
+        "tab_diagnostics": "Diagnóstico e Sistema"
     },
     "dashboard_view": {
         "title": "Noxfort CARINA - Monitor Avançado",
@@ -53,6 +56,7 @@
         "legend_remove": "Remover Semáforo"
     },
     "diagnostics_view": {
+        "nav_mfd": "Análise de Otimização MFD",
         "nav_logs": "Log em Tempo Real",
         "nav_xai": "Análise de Decisão (XAI)",
         "nav_system": "Sumário do Sistema",
@@ -94,12 +98,41 @@
         "tab_advanced": "Avançado (IA)",
         "tab_hardware": "Hardware / Conexões",
         "tab_monitor": "Monitoramento",
+        "tab_formatting": "Formatação",
         "save_button": "Salvar Alterações",
         "restore_button": "Restaurar Padrões",
         "warning_text": "Atenção: Alterar estes valores pode impactar a performance e estabilidade da IA.",
         "general_card_title": "Geral e Aparência",
+        "formatting_card_title": "Formatação e Layout dos Laudos",
+        "formatting_card_desc": "Personalize as fontes, alinhamentos, margens e informações oficiais do documento exportado.",
         "dark_mode_label": "Modo Escuro",
         "language_label": "Idioma da Interface",
+        "formatting_card": {
+            "typography_title": "Tipografia e Espaçamento",
+            "font_label": "Fonte",
+            "size_label": "Tamanho",
+            "alignment_label": "Alinhamento",
+            "spacing_label": "Espaçamento",
+            "margins_title": "Margens da Página (polegadas)",
+            "margin_top": "Superior",
+            "margin_bottom": "Inferior",
+            "margin_left": "Esquerda",
+            "margin_right": "Direita",
+            "official_title": "Informações Oficiais do Laudo",
+            "report_title": "Título do Relatório",
+            "logo_path": "Caminho do Logotipo (Logo)",
+            "logo_dialog_title": "Selecione o Logotipo Oficial",
+            "secretary_name": "Nome do Secretário/Autoridade",
+            "secretary_title": "Cargo/Título",
+            "agency_name": "Órgão/Secretaria",
+            "department_name": "Departamento",
+            "alignment_left": "Esquerda (Left)",
+            "alignment_center": "Centralizado (Center)",
+            "alignment_right": "Direita (Right)",
+            "alignment_justify": "Justificado (Justified)",
+            "spacing_simple": "Simples (1.0)",
+            "spacing_double": "Duplo (2.0)"
+        },
         "traffic_rules_card": {
             "title": "Regras de Trânsito",
             "min_green_time": "Tempo Mínimo de Fase Verde (s)",
@@ -166,17 +199,22 @@
             "title": "Configurações de Banco de Dados",
             "subtitle": "O PostgreSQL é recomendado para alta carga e Machine Learning distribuído.",
             "type_label": "Tipo de Banco de Dados",
+            "option_sqlite": "SQLite (Local)",
+            "option_postgres": "PostgreSQL (Remoto/Avançado)",
             "host": "Host",
             "port": "Porta",
             "user": "Usuário",
             "password": "Senha",
             "dbname": "Nome do Banco",
             "btn_test": "Testar Conexão",
+            "btn_connect": "Conectar / Testar",
+            "btn_disconnect": "Desconectar",
             "status_untested": "NÃO TESTADO",
             "status_testing": "TESTANDO...",
             "status_connected": "CONECTADO",
             "status_error": "ERRO DE CONEXÃO",
-            "msg_success": "Conexão ao banco de dados estabelecida com sucesso!"
+            "msg_success": "Conexão ao banco de dados estabelecida com sucesso!",
+            "msg_error": "Erro: {error}"
         },
         "hardware_card": {
             "title": "Conexões de Hardware",
@@ -222,7 +260,30 @@
         "status_requesting": "Solicitando análise para o Agente {agent_id}... (Isso envolve inferência LLM, por favor aguarde)",
         "status_success": "Análise concluída com sucesso!",
         "status_error": "Falhou: {error}",
-        "status_timeout": "Tempo limite esgotado ({seconds}s). A IA está demorando muito."
+        "status_timeout": "Tempo limite esgotado ({seconds}s). A IA está demorando muito.",
+        "export_btn": "Exportar Laudo (.docx)",
+        "missing_response": "Sinal de sucesso recebido, mas os dados da resposta estão ausentes.",
+        "export_title": "Salvar Laudo Técnico",
+        "export_filename_prefix": "laudo_tecnico_",
+        "export_success": "Laudo exportado com sucesso para: {path}",
+        "export_error": "Erro ao gerar o laudo técnico.",
+        "export_catch_error": "Erro ao exportar laudo: {error}"
+    },
+    "mfd_viewer": {
+        "analyze_btn": "Gerar Relatório de Otimização MFD",
+        "export_btn": "Salvar Laudo MFD (.docx)",
+        "tab_chart": "Curva MFD (Gráfico)",
+        "tab_text": "Laudo Estruturado (Relatório SLM)",
+        "status_requesting": "Processando dados do Diagrama Fundamental Macroscópico (MFD) e invocando SLM...",
+        "status_success": "Relatório de otimização gerado com sucesso!",
+        "status_error": "Falha: {error}",
+        "missing_response": "Sinal de sucesso recebido, mas os dados da resposta estão ausentes.",
+        "export_title": "Salvar Relatório MFD",
+        "export_filename": "relatorio_otimizacao_mfd.docx",
+        "central_control": "Controle Central CARINA",
+        "export_success": "Relatório exportado com sucesso para: {path}",
+        "export_error": "Erro ao gerar o relatório.",
+        "export_catch_error": "Erro ao exportar relatório: {error}"
     },
     "plot_viewer": {
         "no_data": "Nenhuma análise gerada ainda."
@@ -267,5 +328,25 @@
         "action": "Ação",
         "details": "Detalhes",
         "refresh": "Atualizar"
+    },
+    "structured_report": {
+        "xai_metadata_title": "1. Detalhes Gerais da Sessão",
+        "xai_label_agent": "Identificador do Agente:",
+        "xai_label_scenario": "Cenário de Operação:",
+        "xai_label_engine": "Motor Analítico:",
+        "mfd_metadata_title": "1. Detalhes da Análise de Desempenho MFD",
+        "mfd_label_scenario": "Cenário de Simulação:",
+        "mfd_label_engine": "Motor Analítico MFD:",
+        "mfd_label_control": "Sistema de Controle:",
+        "xai_chart_title": "2. Análise de Atribuição Matemática (Captum)",
+        "xai_chart_caption": "Figura 1: Importância relativa dos sensores de aproximação calculada via gradientes integrados.",
+        "mfd_chart_title": "2. Visualização do Diagrama Fundamental Macroscópico (MFD)",
+        "mfd_chart_caption": "Figura 1: Curva de otimização MFD exibindo produção versus acumulação da malha viária.",
+        "xai_content_title": "3. Descritivo Semântico e Parecer Técnico",
+        "xai_content_fallback": "Nenhum descritivo semântico foi gerado pelo modelo de linguagem.",
+        "mfd_content_title": "3. Relatório de Desempenho e Avaliação de Otimização",
+        "mfd_content_fallback": "Nenhum descritivo semântico foi gerado pelo modelo de otimização.",
+        "xai_conformity_text": "Este documento foi consolidado de forma determinística pelo motor Neuro-Simbólico CARINA XAI. Ele atesta as condições puras da leitura de topologia e do comportamento da rede neural.",
+        "mfd_conformity_text": "Este laudo foi gerado de forma determinística pelo motor de otimização CARINA MFD. Ele atesta as métricas de performance macroscópica da rede de tráfego analisada."
     }
 }

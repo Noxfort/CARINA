@@ -29,7 +29,9 @@ from typing import Dict, Any
 
 from agents.local_agent import LocalAgent
 from utils.locale_manager_backend import LocaleManagerBackend
+from utils.settings_manager import SettingsManager
 from xai.captum_analyzer import CaptumAnalyzer
+from xai.structured_report_builder import XaiStructuredReportBuilder
 
 class ReportPipeline:
     """
@@ -45,25 +47,26 @@ class ReportPipeline:
         self.transducer_script = os.path.join(project_root, 'src', 'xai', 'semantic_transducer.py')
 
     def generate_full_report(self, agent: LocalAgent, agent_id: str) -> Dict[str, Any]:
-        """Runs Captum -> Parses Chart Data -> Runs Transducer."""
+        """Runs Captum -> Parses Chart Data -> Runs Transducer in memory, returns encoded data."""
         
-        # 1. Run Captum (The Math)
+        # 1. Run Captum (The Math) in memory
         analyzer = CaptumAnalyzer(
             agent=agent,
             scenario_results_dir=self.scenario_results_dir,
             locale_manager=self.locale_manager,
-            feature_glossary=None 
+            feature_glossary=None
         )
         
-        captum_result = analyzer.generate_analysis()
+        captum_result = analyzer.generate_analysis_in_memory()
         if not captum_result:
             raise RuntimeError(f"Captum mathematical analysis failed for {agent_id}.")
 
-        # 2. Extract Numbers
-        raw_attributions = self._parse_captum_text_report(captum_result['text_path'])
+        # 2. Extract Numbers from memory text report
+        raw_attributions = self._parse_captum_text_report_content(captum_result['text_report'])
         
+        final_report_text = ""
         if raw_attributions:
-            # 3. Trigger Subprocess Compiler
+            # 3. Trigger Subprocess Compiler via stdin/stdout
             transducer_input = {
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "mode": "AUTO",
@@ -71,43 +74,40 @@ class ReportPipeline:
                 "language": self.locale_manager.get_language()
             }
             
-            input_json_path = os.path.join(self.reports_dir, f"transducer_input_{agent_id}.json")
-            final_report_path = os.path.join(self.reports_dir, f"laudo_tecnico_{agent_id}.txt")
-            
             try:
-                with open(input_json_path, 'w', encoding='utf-8') as f:
-                    json.dump(transducer_input, f, indent=4)
+                logging.info(f"[ReportPipeline] Invoking Semantic Transducer LLM for {agent_id} in memory...")
                 
-                logging.info(f"[ReportPipeline] Invoking Semantic Transducer LLM for {agent_id}...")
+                cmd = [sys.executable, self.transducer_script]
+                proc = subprocess.run(
+                    cmd,
+                    input=json.dumps(transducer_input),
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8'
+                )
                 
-                # Build command without GPU arguments to force exclusive use of CPU
-                cmd = [sys.executable, self.transducer_script, "--input", input_json_path, "--output", final_report_path]
-                
-                proc = subprocess.run(cmd, capture_output=True, text=True)
-                
-                if proc.returncode == 0 and os.path.exists(final_report_path):
+                if proc.returncode == 0:
                     logging.info(f"[ReportPipeline] Transducer LLM compilation successful for {agent_id}.")
-                    # Override basic file with the rich translated output
-                    captum_result['text_path'] = final_report_path
+                    final_report_text = proc.stdout.strip()
                 else:
                     logging.warning(f"[ReportPipeline] Transducer failed. STDERR: {proc.stderr}")
             except Exception as e:
                 logging.error(f"[ReportPipeline] LLM Pipeline crashed: {e}")
-
-        # 4. Final Data
+        
+        # If transducer report wasn't generated/failed, fall back to basic text report
+        if not final_report_text:
+            final_report_text = captum_result.get("text_report", "")
+                
         return {
-            "status": "complete", 
-            "image_path": captum_result.get("image_path"),
-            "text_path": captum_result.get("text_path")
+            "status": "complete",
+            "image_base64": captum_result.get("image_base64"),
+            "text_content": final_report_text
         }
 
-    def _parse_captum_text_report(self, report_path: str) -> dict:
-        """Helper to rip numbers from the basic auto-generated .txt file."""
+    def _parse_captum_text_report_content(self, content: str) -> dict:
+        """Helper to rip numbers from the basic auto-generated text report content."""
         attributions = {}
         try:
-            with open(report_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-                
             # Use localized strings for the regex to match the generated file
             sensor_str = re.escape(self.locale_manager.get_string('xai_report.section_sensor', default="Sensor"))
             imp_str = re.escape(self.locale_manager.get_string('xai_report.section_importance', default="Importance"))
@@ -118,5 +118,15 @@ class ReportPipeline:
                 except ValueError: continue
             return attributions
         except Exception as e:
-            logging.error(f"[ReportPipeline] Failed to parse intermediate report: {e}")
+            logging.error(f"[ReportPipeline] Failed to parse intermediate report content: {e}")
+            return {}
+
+    def _parse_captum_text_report(self, report_path: str) -> dict:
+        """Helper to rip numbers from the basic auto-generated .txt file (legacy)."""
+        try:
+            with open(report_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return self._parse_captum_text_report_content(content)
+        except Exception as e:
+            logging.error(f"[ReportPipeline] Failed to read report file: {e}")
             return {}

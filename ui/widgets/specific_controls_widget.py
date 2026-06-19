@@ -28,7 +28,7 @@ from ui.dialogs.confirmation_dialog_manager import ConfirmationDialogManager
 from ui.clients.control_client import ControlClient
 from ui.handlers.specific_controls_handler import SpecificControlsHandler
 
-class SpecificControlsWidget(ft.Container):
+class SpecificControlsWidget(ft.Card):
     def __init__(
         self,
         control_client: ControlClient,
@@ -38,12 +38,7 @@ class SpecificControlsWidget(ft.Container):
         on_specific_command: Callable[[str, str], None] = None
     ):
         super().__init__(
-            bgcolor=ft.Colors.with_opacity(0.4, "#0F172A"),
-            border_radius=12,
-            border=ft.border.all(1, "#1E293B"),
-            padding=15,
-            visible=False,
-            animate_opacity=300
+            elevation=4, visible=False, animate_opacity=300
         )
 
         self.locale_manager = locale_manager
@@ -62,14 +57,16 @@ class SpecificControlsWidget(ft.Container):
         # Save button removed as per request
         self.close_button = ft.IconButton(icon=ft.Icons.CLOSE_ROUNDED, on_click=self.ocultar_controles_semaforo)
 
-        self.content = ft.Column(
-            [
-                self.info_display,
-                self.actions,
-                ft.Row([self.close_button], alignment=ft.MainAxisAlignment.END),
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=12
+        self.content = ft.Container(
+            padding=10,
+            content=ft.Column(
+                [
+                    self.info_display,
+                    self.actions,
+                    self.close_button,
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER
+            )
         )
 
     def did_mount(self):

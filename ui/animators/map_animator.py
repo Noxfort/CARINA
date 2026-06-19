@@ -172,7 +172,7 @@ class MapAnimator:
                         elif max_congestion is not None:
                             new_color = HeatmapColorResolver.get_color_for_congestion(max_congestion)
                         else:
-                            new_color = "#3394a3b8" # Base map color for empty streets (Muted Slate)
+                            new_color = "#2ecc71" # Base map color for empty streets (Emerald Green)
                             
                         if path_object.paint.color != new_color:
                             path_object.paint = ft.Paint(

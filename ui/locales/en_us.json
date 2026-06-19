@@ -1,12 +1,15 @@
 {
+    "live_map": {
+        "waiting_scenario": "Waiting for Scenario Connection...",
+        "error_geometry": "ERROR: Map geometry data was not provided."
+    },
     "main_ui": {
         "app_title": "CARINA - Control Panel",
         "app_long_title": "CARINA - Controlled Artificial Road-traffic Intelligence Network Architecture",
         "settings_tooltip": "Open Settings",
         "tab_dashboard": "Operational Dashboard",
         "tab_planning": "Planning & Optimization",
-        "tab_diagnostics": "Diagnostics & System",
-        "exit_app": "Exit CARINA"
+        "tab_diagnostics": "Diagnostics & System"
     },
     "dashboard_view": {
         "global_controls_title": "Global Control",
@@ -53,6 +56,7 @@
         "legend_remove": "Remove Traffic Light"
     },
     "diagnostics_view": {
+        "nav_mfd": "MFD Optimization Analysis",
         "nav_logs": "Real-time Log",
         "nav_xai": "Decision Analysis (XAI)",
         "nav_system": "System Summary",
@@ -94,12 +98,41 @@
         "tab_advanced": "Advanced (AI)",
         "tab_hardware": "Hardware / Connections",
         "tab_monitor": "Monitoring",
+        "tab_formatting": "Formatting",
         "save_button": "Save Changes",
         "restore_button": "Restore Defaults",
         "warning_text": "Warning: Changing these values may impact AI performance and stability.",
         "general_card_title": "General & Appearance",
+        "formatting_card_title": "Report Formatting & Layout",
+        "formatting_card_desc": "Customize fonts, alignments, margins, and official authority information for the exported document.",
         "dark_mode_label": "Dark Mode",
         "language_label": "Interface Language",
+        "formatting_card": {
+            "typography_title": "Typography and Spacing",
+            "font_label": "Font",
+            "size_label": "Size",
+            "alignment_label": "Alignment",
+            "spacing_label": "Line Spacing",
+            "margins_title": "Page Margins (inches)",
+            "margin_top": "Top",
+            "margin_bottom": "Bottom",
+            "margin_left": "Left",
+            "margin_right": "Right",
+            "official_title": "Official Report Information",
+            "report_title": "Report Title",
+            "logo_path": "Logo Path",
+            "logo_dialog_title": "Select Official Logo",
+            "secretary_name": "Secretary/Authority Name",
+            "secretary_title": "Title/Role",
+            "agency_name": "Agency/Secretariat",
+            "department_name": "Department",
+            "alignment_left": "Left",
+            "alignment_center": "Center",
+            "alignment_right": "Right",
+            "alignment_justify": "Justified",
+            "spacing_simple": "Simple (1.0)",
+            "spacing_double": "Double (2.0)"
+        },
         "traffic_rules_card": {
             "title": "Traffic Rules",
             "min_green_time": "Minimum Green Phase Time (s)",
@@ -166,17 +199,22 @@
             "title": "Database Settings",
             "subtitle": "PostgreSQL is recommended for heavy loads and distributed Machine Learning.",
             "type_label": "Database Type",
+            "option_sqlite": "SQLite (Local)",
+            "option_postgres": "PostgreSQL (Remote/Advanced)",
             "host": "Host",
             "port": "Port",
             "user": "User",
             "password": "Password",
             "dbname": "Database Name",
             "btn_test": "Test Connection",
+            "btn_connect": "Connect / Test",
+            "btn_disconnect": "Disconnect",
             "status_untested": "UNTESTED",
             "status_testing": "TESTING...",
             "status_connected": "CONNECTED",
             "status_error": "CONNECTION ERROR",
-            "msg_success": "Database connection successfully established!"
+            "msg_success": "Database connection successfully established!",
+            "msg_error": "Error: {error}"
         },
         "hardware_card": {
             "title": "Hardware Connections",
@@ -222,7 +260,30 @@
         "status_requesting": "Requesting analysis for Agent {agent_id}... (This involves LLM inference, please wait)",
         "status_success": "Analysis completed successfully!",
         "status_error": "Failed: {error}",
-        "status_timeout": "Timeout ({seconds}s). The AI is taking too long."
+        "status_timeout": "Timeout ({seconds}s). The AI is taking too long.",
+        "export_btn": "Export Report (.docx)",
+        "missing_response": "Success signal received, but response data is missing.",
+        "export_title": "Save Technical Report",
+        "export_filename_prefix": "technical_report_",
+        "export_success": "Report exported successfully to: {path}",
+        "export_error": "Error generating technical report.",
+        "export_catch_error": "Error exporting report: {error}"
+    },
+    "mfd_viewer": {
+        "analyze_btn": "Generate MFD Optimization Report",
+        "export_btn": "Save MFD Report (.docx)",
+        "tab_chart": "MFD Curve (Chart)",
+        "tab_text": "Structured Report (SLM Report)",
+        "status_requesting": "Processing Macroscopic Fundamental Diagram (MFD) data and invoking SLM...",
+        "status_success": "Optimization report generated successfully!",
+        "status_error": "Failed: {error}",
+        "missing_response": "Success signal received, but response data is missing.",
+        "export_title": "Save MFD Report",
+        "export_filename": "mfd_optimization_report.docx",
+        "central_control": "CARINA Central Control",
+        "export_success": "Report exported successfully to: {path}",
+        "export_error": "Error generating report.",
+        "export_catch_error": "Error exporting report: {error}"
     },
     "plot_viewer": {
         "no_data": "No analysis generated yet."
@@ -267,5 +328,25 @@
         "action": "Action",
         "details": "Details",
         "refresh": "Refresh"
+    },
+    "structured_report": {
+        "xai_metadata_title": "1. General Session Details",
+        "xai_label_agent": "Agent Identifier:",
+        "xai_label_scenario": "Operating Scenario:",
+        "xai_label_engine": "Analytical Engine:",
+        "mfd_metadata_title": "1. MFD Performance Analysis Details",
+        "mfd_label_scenario": "Simulation Scenario:",
+        "mfd_label_engine": "MFD Analytical Engine:",
+        "mfd_label_control": "Control System:",
+        "xai_chart_title": "2. Mathematical Attribution Analysis (Captum)",
+        "xai_chart_caption": "Figure 1: Relative importance of approach sensors calculated via integrated gradients.",
+        "mfd_chart_title": "2. Macroscopic Fundamental Diagram (MFD) Visualization",
+        "mfd_chart_caption": "Figure 1: MFD optimization curve displaying network production vs accumulation.",
+        "xai_content_title": "3. Semantic Description and Technical Opinion",
+        "xai_content_fallback": "No semantic description generated by the language model.",
+        "mfd_content_title": "3. Performance Assessment and Optimization Report",
+        "mfd_content_fallback": "No semantic description generated by the optimization model.",
+        "xai_conformity_text": "This document was deterministically consolidated by the Neuro-Symbolic CARINA XAI engine. It attests to the raw topology readings and neural network behavior.",
+        "mfd_conformity_text": "This report was deterministically generated by the CARINA MFD optimization engine. It attests to the macroscopic performance metrics of the analyzed traffic network."
     }
 }

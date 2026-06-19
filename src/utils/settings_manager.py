@@ -74,7 +74,24 @@ class SettingsManager:
         'db_user': 'DATABASE', 'db_password': 'DATABASE', 'db_name': 'DATABASE',
         'db_connected': 'DATABASE',
         
-        'tensorboard_enabled': 'TENSORBOARD', 'tensorboard_log_dir': 'TENSORBOARD'
+        'tensorboard_enabled': 'TENSORBOARD', 'tensorboard_log_dir': 'TENSORBOARD',
+        
+        # --- CARINA XAI Report Settings ---
+        'xai_logo_path': 'XAI_REPORT',
+        'xai_secretary_name': 'XAI_REPORT',
+        'xai_secretary_title': 'XAI_REPORT',
+        'xai_agency_name': 'XAI_REPORT',
+        'xai_department_name': 'XAI_REPORT',
+        'xai_report_title': 'XAI_REPORT',
+        'xai_block_order': 'XAI_REPORT',
+        'xai_font_name': 'XAI_REPORT',
+        'xai_font_size': 'XAI_REPORT',
+        'xai_margin_top': 'XAI_REPORT',
+        'xai_margin_bottom': 'XAI_REPORT',
+        'xai_margin_left': 'XAI_REPORT',
+        'xai_margin_right': 'XAI_REPORT',
+        'xai_line_spacing': 'XAI_REPORT',
+        'xai_alignment': 'XAI_REPORT'
     }
 
     def __init__(self):

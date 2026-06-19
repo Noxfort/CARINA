@@ -60,8 +60,7 @@ class RequestProcessor:
                  locale_manager: 'LocaleManagerBackend',
                  override_manager: 'OverrideManager',
                  failsafe_manager: 'FailsafeManager',
-                 topology_manager: 'TopologyManager',
-                 db_manager: Any = None):
+                 topology_manager: 'TopologyManager'):
 
         self.ai_pipe_conn = ai_pipe_conn
         self.watchdog_q = watchdog_q
@@ -71,7 +70,7 @@ class RequestProcessor:
         self.override_commands_buffer = []
 
         # Initialize Specialized Handlers
-        self.security_manager = SecurityManager(db_manager)
+        self.security_manager = SecurityManager()
         self.ui_handler = UICommandHandler(locale_manager, override_manager, failsafe_manager, self.security_manager, sds_data_queue)
         self.ai_handler = AIRequestHandler(locale_manager, topology_manager, sds_data_queue, sas_data_queue, health_monitor, override_manager)
         self.watchdog_handler = WatchdogCommandHandler(locale_manager)

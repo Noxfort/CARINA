@@ -160,10 +160,8 @@ class PlanningView(ft.Container):
         self.client.start_fetching_latest_analysis()
 
     def _on_analysis_complete(self, response: dict):
-        def update_ui_on_main_thread():
-            self._process_analysis_response(response)
         if self.page:
-            self.page.run_on_ui(update_ui_on_main_thread)
+            self._process_analysis_response(response)
 
     def _process_analysis_response(self, response: dict):
         if response.get("status") == "error":

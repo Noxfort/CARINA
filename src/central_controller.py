@@ -159,8 +159,7 @@ class CentralController:
             locale_manager=self.locale_manager,
             override_manager=self.override_manager,
             failsafe_manager=self.failsafe_manager,
-            topology_manager=self.topology_manager,
-            db_manager=self.db_manager
+            topology_manager=self.topology_manager
         )
         
         # --- Two-Stage Readiness Latch ---

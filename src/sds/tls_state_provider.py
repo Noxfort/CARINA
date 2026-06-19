@@ -50,7 +50,8 @@ class TlsStateProvider:
     def get_live_states_for_junction(cls, incoming_edges: list, tl_id: str, phase_idx: int) -> dict:
         """
         Calculates the realistic traffic light state for a given set of approaching streets.
-        Enforces a 2-stage transition (Yellow followed by All-Red) when a phase change occurs.
+        Directly queries the current active phase without artificial transition delays,
+        ensuring perfect correspondence between the UI dashboard and the controller telemetry.
         """
         lanes_state_dict = {}
         
@@ -60,68 +61,7 @@ class TlsStateProvider:
             lanes_state_dict["Unknown_Group"] = "r"
             return {"lanes_state": lanes_state_dict, "display_state": "RED"}
 
-        current_time = time.time()
-        
-        # Load rules from central location
-        cls._yellow_duration_seconds = SafetyRules.get_yellow()
-        cls._all_red_duration_seconds = SafetyRules.get_all_red()
-
-        # Initialize the baseline phase if it's the first time seeing this traffic light
-        if tl_id not in cls._current_display_phases:
-            cls._current_display_phases[tl_id] = phase_idx
-
-        last_phase = cls._current_display_phases[tl_id]
-
-        # Phase jump detected from telemetry! Start the 2-stage visual transition.
-        if phase_idx != last_phase and tl_id not in cls._transition_timers:
-            cls._transition_timers[tl_id] = {
-                'target_phase': phase_idx,
-                'yellow_until': current_time + cls._yellow_duration_seconds,
-                'all_red_until': current_time + cls._yellow_duration_seconds + cls._all_red_duration_seconds,
-                'old_phase': last_phase
-            }
-
-        extracted_colors = {}
-
-        # Handle Visual Transition Window
-        if tl_id in cls._transition_timers:
-            timer = cls._transition_timers[tl_id]
-            
-            old_colors = TlsMapExtractor.get_edge_colors_for_phase(tl_id, timer['old_phase'])
-            new_colors = TlsMapExtractor.get_edge_colors_for_phase(tl_id, timer['target_phase'])
-
-            if current_time < timer['yellow_until']:
-                # --- STAGE 1: YELLOW WARNING ---
-                for fg in focal_groups:
-                    old_c = old_colors.get(fg, 'r')
-                    new_c = new_colors.get(fg, 'r')
-                    
-                    if old_c == 'G' and new_c == 'r':
-                        extracted_colors[fg] = 'y' # Closing movement gets Yellow
-                    elif old_c == 'G' and new_c == 'G':
-                        extracted_colors[fg] = 'G' # Continuing movement stays Green
-                    else:
-                        extracted_colors[fg] = 'r' # Opening movement waits in Red
-
-            elif current_time < timer['all_red_until']:
-                # --- STAGE 2: ALL-RED CLEARANCE ---
-                for fg in focal_groups:
-                    old_c = old_colors.get(fg, 'r')
-                    new_c = new_colors.get(fg, 'r')
-                    
-                    if old_c == 'G' and new_c == 'G':
-                        extracted_colors[fg] = 'G' # Only pure continuous movements stay Green
-                    else:
-                        extracted_colors[fg] = 'r' # Everything else is strictly Red for safety
-
-            else:
-                # --- TRANSITION COMPLETED ---
-                cls._current_display_phases[tl_id] = timer['target_phase']
-                del cls._transition_timers[tl_id]
-                extracted_colors = TlsMapExtractor.get_edge_colors_for_phase(tl_id, cls._current_display_phases[tl_id])
-        else:
-            # Normal steady state (No active transition)
-            extracted_colors = TlsMapExtractor.get_edge_colors_for_phase(tl_id, phase_idx)
+        extracted_colors = TlsMapExtractor.get_edge_colors_for_phase(tl_id, phase_idx)
 
         # Map the resolved colors to the focal groups
         for fg in focal_groups:
