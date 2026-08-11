@@ -1,31 +1,66 @@
 ---
-tags: [ui, flet, frontend]
-aliases: [UI, Dashboard, Frontend]
+tags: [ui, flet, dashboard, frontend, sds]
+aliases: [UI Architecture, Dashboard Service, Flet Frontend]
 ---
-# 🖥️ UI & Smart Dashboard Service (SDS)
 
-CARINA features a completely decoupled frontend architecture. The heavy lifting of rendering UI components and streaming live telemetry is completely isolated from the AI Engine to guarantee zero frame-drops or inference stuttering.
+# 🖥️ UI & Smart Dashboard Service (SDS) Architecture
 
-⬅️ Back to [[CARINA_MOC|Main Documentation Hub]]
+This document details CARINA's native desktop UI, the **Smart Dashboard Service (SDS)**, the **System Tray Manager**, and the single-instance locking system.
 
-## 1. The Flet Desktop Architecture (`ui/`)
-
-The graphical interface is built using **Flet**, a framework that compiles Python to a Flutter native desktop application. 
-
-### Core Components
-- **`carina.py` (The Launcher)**: The main thread of execution is permanently yielded to the `ft.app(target=main)` render loop. If the Flet window closes, the `TrayHandler` takes over.
-- **`TrayHandler`**: Uses `pystray` to keep the massive AI ecosystem running quietly in the background (System Tray). Users can right-click the tray icon to restore the Flet window or trigger a Graceful Shutdown.
-- **Asynchronous Views**: The `ui/views/` directory contains individual screens (Dashboard, Topology Map, XAI Reports) that update asynchronously via `page.update()` without blocking user interaction.
+⬅️ Back to [Main Documentation Hub](CARINA_MOC.md)
 
 ---
 
-## 2. Smart Dashboard Service (`sds/`)
+## 1. Decoupled Desktop Architecture (`ui/`)
 
-The SDS acts as the crucial bridge between the `EpisodeRunner` (AI Process) and the Flet UI. It runs inside its own OS process: `DashboardService`.
+To prevent GUI rendering or client browser socket lag from dropping real-time traffic control frames, CARINA completely decouples its frontend into the **`DashboardService` (SDS)** process (`run_sds_worker`).
 
-### 2.1 Telemetry Aggregation
-- The `telemetry_aggregator.py` reads raw data points from the internal queues and aggregates them into visually digestible metrics (e.g., calculating moving averages of intersection delays or generating color gradients for heatmaps).
+```text
+CentralController (gRPC) ──> [sds Queue] ──> DashboardService (SDS) ──> [ui Queue] ──> Flet UI (Main Thread)
+                                                   │
+                                                   └──> WebSocket Telemetry Server (port 8080)
+```
 
-### 2.2 WebSocket Server
-- Instead of using direct memory hooks (which would violate process isolation), the `websocket_server.py` broadcasts JSON payloads over local network ports.
-- The Flet UI frontend acts as a standard WebSocket Client, consuming these JSON payloads and re-rendering the visual widgets at 60 FPS.
+---
+
+## 2. Flet Desktop UI Components & Views
+
+The frontend is built using **[Flet](https://flet.dev/)** (Python + Flutter engine) located in `ui/`.
+
+```text
+ui/
+├── views/                  # Primary Dashboard Screens
+│   ├── main_view.py        # Central Real-time Telemetry & Signal Monitor
+│   ├── analytics_view.py   # SAS Infrastructure Warrants & Historical Trends
+│   ├── mfd_view.py         # Live Macroscopic Fundamental Diagram Curve Plotter
+│   └── settings_view.py    # Runtime System Configuration & gRPC Settings
+│
+├── components/             # Reusable UI Controls
+│   ├── header.py           # Top Status Bar (gRPC status, active processes, FPS counter)
+│   ├── sidebar.py          # Navigation Drawer & Quick Action Buttons
+│   ├── signal_card.py      # Individual Intersection Live Phase Display
+│   └── incident_filter.py  # Real-time Incident & Safety Veto Log Table
+│
+├── theme/                  # Design System & Styling
+│   ├── colors.py           # Curated Dark Theme Color Palette
+│   └── typography.py       # Custom Font Scales & Spacing Tokens
+│
+└── assets/                 # Icons, System Tray Graphics & Logotypes
+```
+
+---
+
+## 3. System Tray & Single Instance Lock (`SingleInstanceLock`)
+
+CARINA runs seamlessly as a background system daemon with a native desktop tray icon.
+
+### 3.1 System Tray Management (`UITrayManager`)
+- **Tray Actions:** Minimize to Tray, Open Dashboard, View Live Logs, Restart Services, Graceful Shutdown.
+- **Notification Popups:** Displays system alerts when the Watchdog detects process failure or when the Guardian Agent fires an emergency veto.
+
+### 3.2 Single Instance Lock (`SingleInstanceLock`)
+- **Port:** `42123`
+- If a user double-clicks `carina.py` or the built binary while CARINA is already running:
+  1. The new process attempts to acquire TCP port `42123`.
+  2. Upon failure, it sends a RESTORE command signal over the local TCP socket to the primary instance.
+  3. The primary instance receives the signal, restores the Flet dashboard window to the foreground, and the duplicate process exits cleanly.

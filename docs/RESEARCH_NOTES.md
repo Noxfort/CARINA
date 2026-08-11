@@ -1,57 +1,113 @@
 ---
-tags: [ai, neural, ppo-tcn, research]
-aliases: [Research Notes, Neural Models]
+tags: [research, ai, math, neural]
+aliases: [Neural Research, Mathematical Formulations, PPO-TCN, GOMES]
 ---
-# 🔬 Neural Research & GOMES Formulations
 
-This document provides a technical deep-dive into the custom neural network architectures, the DA SILVA curriculum, and the mathematical formulations utilized by the **GOMES** (Graph-based Operational Multi-agent Expert System) engine.
+# 🧠 Neural Research & Mathematical Formulations
 
-⬅️ Back to [[CARINA_MOC|Main Documentation Hub]]
+This document details the mathematical framework, neural network architectures, and curriculum formulations underlying CARINA's **Graph-based Operational Multi-agent Expert System (GOMES)** and the **DA SILVA** maturation curriculum.
+
+⬅️ Back to [Main Documentation Hub](CARINA_MOC.md)
+
+---
 
 ## 1. PPO-TCN: Temporal Convolutional Networks over LSTMs
 
-Traditional Reinforcement Learning relies heavily on Recurrent Neural Networks (RNNs or LSTMs) to handle partially observable environments (POMDPs). CARINA abandons RNNs in favor of **Temporal Convolutional Networks (TCN)** (`src/models/actor_critic_tcn.py`).
+Standard Recurrent Neural Networks (LSTMs/GRUs) suffer from vanishing gradients and vanishing temporal context during long episode Backpropagation Through Time (BPTT). CARINA replaces LSTMs with a **Temporal Convolutional Network (TCN)** backbone in the PPO Tactical Agent.
 
-### Why TCN?
-1. **No Backpropagation Through Time (BPTT)**: TCNs use causal dilated convolutions. This eliminates the vanishing/exploding gradient problems inherent to LSTMs when processing long traffic queues.
-2. **Massive Parallelism**: Unlike LSTMs, which must process sequences sequentially, 1D convolutions process the entire sequence window simultaneously on the GPU.
-3. **Receptive Field Control**: By increasing the dilation factor, CARINA can geometrically expand its historical look-back window without drastically increasing parameter count.
+```text
+Input Tensor History: X ∈ ℝ^(B × C × T)
+  B: Batch size
+  C: Features per timestep (occupancy, speed, queue, phase)
+  T: Temporal context window (e.g., T = 8 seconds at 10Hz = 80 frames)
+```
 
-### The Objective Function
-CARINA's PPO surrogate clipping objective prevents catastrophic forgetting during live traffic adaptations:
-$$L^{CLIP}(\theta) = \hat{E}_t [ \min(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t) ]$$
+### 1.1 Dilated Causal Convolutions
 
----
+To ensure zero temporal leakage (the prediction at time $t$ depends only on timestamps $\le t$), TCN uses 1D dilated causal convolutions:
 
-## 2. Universal Predictive Autoencoder (PAE)
+$$y(t) = (x \star_d f)(t) = \sum_{i=0}^{k-1} f(i) \cdot x(t - d \cdot i)$$
 
-Defined in `src/models/pae.py`, the PAE is a self-supervised generative model trained concurrently with the RL agents.
+Where:
+- $k$: Kernel size ($k = 3$)
+- $d$: Dilation factor ($d = 2^l$ at layer index $l \in \{0, 1, 2, 3\}$)
+- Receptive Field size: $RF = 1 + \sum_{l=0}^{L-1} (k - 1) \cdot d_l$
 
-### Latent Fluid Dynamics
-The PAE receives a sequence of traffic states $S_{t-n \dots t}$ and is trained to predict the future state $S_{t+1}$. 
-The mathematical magic happens in the **Latent Space ($Z$)**. The high-dimensional physical representation is compressed into a dense vector. This latent vector $Z$ is dynamically fused into the input layer of both the Tactical PPO Agent and the Guardian DQN Agent. 
-By "reading" the PAE's latent space, the RL agents intuitively understand momentum, vehicle platooning, and spillback physics without having to learn it through sparse trial-and-error rewards.
+The TCN outputs a dense temporal representation tensor $H_{tcn}$, which feeds into the PPO Actor and Critic heads.
 
----
+### 1.2 PPO Clipped Surrogate Objective
 
-## 3. Dueling DQN-TCN (The Guardian's Brain)
+The PPO policy network is optimized using the clipped surrogate objective with Generalized Advantage Estimation (GAE):
 
-The Guardian Agent (`src/agents/guardian_agent.py`) uses a specialized `Dueling DQN-TCN` architecture (`src/models/d3qn_tcn.py`). 
+$$L^{CLIP}(\theta) = \hat{\mathbb{E}}_t \left[ \min \left( r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t \right) \right]$$
 
-### Stream Splitting
-The network bifurcates into two separate streams after the TCN layers:
-1. **State Value Stream ($V(s)$)**: Estimates how intrinsically safe/dangerous the current global intersection state is, regardless of the light phase.
-2. **Advantage Stream ($A(s, a)$)**: Estimates the relative safety of keeping the phase vs changing the phase.
-
-These are aggregated mathematically at the output layer:
-$$ Q(s,a) = V(s) + \left( A(s,a) - \frac{1}{|\mathcal{A}|} \sum_{a'} A(s,a') \right) $$
-This separation ensures that if the intersection is in a catastrophic gridlock (low $V(s)$), the Guardian recognizes the danger immediately, overriding the tactical agent's commands.
+Where:
+- $r_t(\theta) = \frac{\pi_\theta(a_t | s_t)}{\pi_{\theta_{old}}(a_t | s_t)}$ is the probability ratio.
+- $\hat{A}_t = \sum_{l=0}^{\infty} (\gamma \lambda)^l \delta_{t+l}^V$ is the GAE advantage estimator.
+- $\epsilon = 0.2$ is the policy clipping boundary.
 
 ---
 
-## 4. The DA SILVA Statistical Maturation
+## 2. Predictive Autoencoder (PAE) & Latent Space $Z$
 
-The `ChildhoodAnalyzer` oversees the agent's growth. It tracks the mathematical **Policy Entropy** (how "unsure" the network is) and the **Cumulative Rewards**. 
+The **Predictive Autoencoder (PAE)** predicts future traffic queue spillbacks from past spatio-temporal trends.
 
-- **Entropy Stabilization**: An agent must prove its Entropy falls below $0.15$ before graduating from `TEEN` to `ADULT`. This proves the network is no longer randomly guessing.
-- **Hardware Integration**: The `ActionFilter` strictly enforces these maturation stages, mathematically dropping actions requested by `CHILD` agents before they reach the physical controller.
+```text
+        ┌──────────────┐          ┌───────────────────────┐          ┌──────────────┐
+X_hist  │  PAE Encoder │ ───────> │  Latent Bottleneck Z  │ ───────> │  PAE Decoder │ ───> X_pred
+(t-8s..t)└──────────────┘          │  Z ∈ ℝ^16             │          └──────────────┘      (t+1s..t+30s)
+                                   └───────────────────────┘
+```
+
+### 2.1 PAE Loss Function
+
+The PAE is trained offline and online using a joint Mean Squared Error (MSE) and Kullback-Leibler (KL) divergence regularization:
+
+$$\mathcal{L}_{PAE} = \underbrace{\| X_{pred} - X_{future} \|_2^2}_{\text{Reconstruction & Prediction Loss}} + \beta \cdot D_{KL}\Big( q_\phi(Z|X) \,\parallel\, \mathcal{N}(0, I) \Big)$$
+
+The 16-dimensional latent vector $Z \in \mathbb{R}^{16}$ captures the physical momentum of traffic queues and is concatenated into the PPO input vector.
+
+---
+
+## 3. Dueling DQN-TCN Guardian Agent
+
+The **Guardian Agent** continuously estimates **Spillback Risk** for every intersection lane using a Dueling Deep Q-Network over TCN feature representations:
+
+$$Q(s, a; \theta, \alpha, \beta) = V(s; \theta, \beta) + \left( A(s, a; \theta, \alpha) - \frac{1}{|\mathcal{A}|} \sum_{a' \in \mathcal{A}} A(s, a'; \theta, \alpha) \right)$$
+
+Where:
+- $V(s)$: Scalar baseline value of state $s$.
+- $A(s, a)$: Advantage of taking phase action $a$.
+
+If $\max_a Q(s, a_{spillback}) > \tau_{risk}$ (where $\tau_{risk} = 0.8$), the Guardian overrides the Tactical Agent's proposed phase and forces an emergency clearing phase.
+
+---
+
+## 4. Strategic Layer: Graph Attention Networks (GATv2 Lite)
+
+To coordinate multi-intersection "Green Waves" across arterial avenues, CARINA models the road network as a directed graph $\mathcal{G} = (\mathcal{V}, \mathcal{E})$.
+
+### 4.1 GATv2 Attention Weights
+
+For connected intersections $i, j \in \mathcal{V}$, GATv2 computes dynamic attention coefficients $\alpha_{ij}$:
+
+$$\alpha_{ij} = \frac{\exp\left( \mathbf{a}^T \text{LeakyReLU}\left( \mathbf{W} [h_i \,\|\, h_j] \right) \right)}{\sum_{k \in \mathcal{N}_i} \exp\left( \mathbf{a}^T \text{LeakyReLU}\left( \mathbf{W} [h_i \,\|\, h_k] \right) \right)}$$
+
+Where:
+- $h_i, h_j$: Feature representations of node $i$ and neighboring node $j$.
+- $\mathbf{W}$: Shared weight matrix.
+- $\mathbf{a}$: Learnable attention vector.
+
+---
+
+## 5. DA SILVA Maturation Curriculum Formulation
+
+The **Dynamic Agent Safety Integrated Learning for Validated Autonomy (DA SILVA)** pipeline evaluates policy maturity using **Policy Shannon Entropy**:
+
+$$\mathcal{H}(\pi_\theta(\cdot | s_t)) = -\sum_{a \in \mathcal{A}} \pi_\theta(a | s_t) \log \pi_\theta(a | s_t)$$
+
+### 5.1 Progression Criteria
+
+1. **CHILD Stage (Shadow Mode):** $\mathcal{H} > 0.40$. Actions are shadowed; baseline controller operates hardware.
+2. **TEEN Stage (Restricted Autonomy):** $0.15 < \mathcal{H} \le 0.40$. Agent operates hardware during low-risk hours (01:00 AM - 04:00 AM).
+3. **ADULT Stage (Full Autonomy):** $\mathcal{H} \le 0.15$ and Mean Reward $\mu_{reward} > \mu_{baseline} + 2\sigma$. Full 24/7 autonomous actuation granted.

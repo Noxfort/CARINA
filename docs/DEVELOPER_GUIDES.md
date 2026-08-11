@@ -1,87 +1,152 @@
 ---
-tags: [dev, guides, setup]
-aliases: [Developer Guides, Integração]
+tags: [developer, guide, setup, pyinstaller, config]
+aliases: [Developer Guides, Configuration Reference, PyInstaller Build]
 ---
-# 🛠️ Developer & System Integration Guide
 
-CARINA is designed as an extensible enterprise framework. This guide details how to extend the system, handle multiprocessing, and prepare binaries.
+# 🛠️ Developer & Integration Guides
 
-⬅️ Back to [[CARINA_MOC|Main Documentation Hub]]
+This document provides step-by-step developer guides for configuring, extending, and building the CARINA ecosystem.
 
-## 1. Creating and Registering Custom Neural Agents
+⬅️ Back to [Main Documentation Hub](CARINA_MOC.md)
 
-Because CARINA relies on the `DecisionCoordinator` to invoke agents, you can inject entirely new RL algorithms seamlessly.
+---
 
-### Step 1.1: Implement the Abstract Interface
-Create a new file in `src/agents/custom_agent.py`.
+## 1. Complete `config/settings.ini` Parameter Reference
+
+The central configuration file is located at `config/settings.ini`.
+
+```ini
+[SERVER]
+# gRPC High-Frequency Telemetry Server Port
+grpc_port = 50051
+grpc_max_workers = 10
+enable_tls = false
+
+[DATABASE]
+# Database backend: 'postgresql' or 'sqlite'
+db_type = postgresql
+db_host = localhost
+db_port = 5432
+db_name = carina_db
+db_user = carina_user
+db_password = secret_password
+pool_size = 20
+
+[AI]
+# Reinforcement Learning Engine Parameters
+device = cuda
+learning_rate = 0.0003
+gamma = 0.99
+gae_lambda = 0.95
+ppo_clip = 0.2
+batch_size = 64
+temporal_context_window = 8
+spillback_risk_threshold = 0.80
+
+[XAI]
+# Explainable AI & Local LLM Configuration
+enable_xai = true
+model_name = Qwen/Qwen3-1.7B-Instruct
+vram_allocation_gb = 4.0
+
+[MFD]
+# Macroscopic Fundamental Diagram Analysis
+mfd_time_window_seconds = 3600
+critical_density_threshold = 45.0
+
+[PROMETHEUS]
+# Metrics Exporter Port
+metrics_port = 8001
+enable_metrics = true
+```
+
+---
+
+## 2. Creating a Custom Reinforcement Learning Agent
+
+To register a new agent (e.g., `CustomSACAgent`):
+
+1. Create your agent class in `src/agents/custom_sac_agent.py` inheriting from `BaseAgent`:
+
 ```python
-from src.agents.base_agent import BaseAgent
+from agents.base_agent import BaseAgent
 import torch
 
 class CustomSACAgent(BaseAgent):
-    def __init__(self, config):
-        super().__init__(config)
-        self.actor = ...
-        self.critic = ...
+    def __init__(self, state_dim: int, action_dim: int, config: dict):
+        super().__init__(state_dim, action_dim, config)
+        # Initialize actor/critic networks here
 
-    def act(self, state_tensor: torch.Tensor) -> int:
-        return action
-        
-    def update(self, batch):
+    def select_action(self, state_tensor: torch.Tensor, explore: bool = True) -> int:
+        # Return discrete phase action index
         pass
+
+    def update(self, replay_buffer) -> dict:
+        # Perform backpropagation update step
+        return {"actor_loss": 0.0, "critic_loss": 0.0}
 ```
 
-### Step 1.2: Update Configuration
-Modify `config/settings.ini` to point to your new class:
-```ini
-[AGENT]
-model_type = SAC_CUSTOM
-```
-The `PopulationManager` will automatically spawn your new agent architecture during initialization.
-
----
-
-## 2. Modifying the Safety Rules (Guardian Agent)
-
-The `GuardianAgent` enforces deterministic safety rules before allowing neural inference.
-
-1. Navigate to `src/agents/guardian_agent.py`.
-2. Locate the `select_action` method.
-3. Add a new rule (e.g., Pedestrian Priority) using the `context` dictionary:
-```python
-pedestrian_waiting = context.get('pedestrian_waiting', False)
-if pedestrian_waiting and 'G' in current_phase_state:
-    return self.ACTION_CHANGE_PHASE, "Pedestrian Priority Override"
-```
-
----
-
-## 3. Database Migration: Moving to PostgreSQL
-
-By default, the `DatabaseWorker` mounts a lightweight `SQLite3` engine. For production deployments with multiple physical intersections, PostgreSQL is mandatory.
-
-1. Ensure bindings are installed: `pip install psycopg2-binary`
-2. Open `config/settings.ini`.
-3. Locate the `[DATABASE]` block and adjust parameters:
-```ini
-[DATABASE]
-driver = postgresql
-host = 192.168.1.100
-port = 5432
-user = carina_admin
-password = your_secure_password
-dbname = carina_telemetry
-```
-4. Restart the application. The `DatabaseWorker` will automatically mount the SQLAlchemy connection pool to your Postgres cluster.
-
----
-
-## 4. Frozen Packaging (`PyInstaller`)
-
-CARINA detects if it is running as a compiled binary using the `IS_FROZEN` flag inside `carina.py`.
+2. Register your agent in `src/engine/decision_coordinator.py`:
 
 ```python
-IS_FROZEN = getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
+from agents.custom_sac_agent import CustomSACAgent
+
+def get_agent_instance(agent_type: str, state_dim: int, action_dim: int, config: dict):
+    if agent_type == "SAC":
+        return CustomSACAgent(state_dim, action_dim, config)
+    # ...
 ```
 
-If you compile CARINA using `pyinstaller`, it will automatically remap the `sys.path` to the `_MEIPASS` temporary extraction directory to ensure the massive `Qwen3` LLM and `Flet` UI assets load correctly without crashing the 7 concurrent worker processes.
+3. Update `config/settings.ini`:
+```ini
+[AI]
+agent_type = SAC
+```
+
+---
+
+## 3. Building Standalone Executables with PyInstaller
+
+CARINA supports frozen binary distribution via PyInstaller for Linux and Windows.
+
+### 3.1 Main Application Executable (`carina.spec`)
+To build the primary `carina` executable bundle:
+
+```bash
+# Clean previous build artifacts
+rm -rf dist/ build/
+
+# Run PyInstaller build spec
+pyinstaller carina.spec --noconfirm
+```
+
+The resulting standalone executable bundle will be generated in `dist/carina/`.
+
+### 3.2 Patch Utility Executable (`apply_patch.spec`)
+For deploying zero-downtime micro-updates:
+
+```bash
+pyinstaller apply_patch.spec --noconfirm
+```
+
+---
+
+## 4. Environment & Sys.Path Handling in Frozen Mode
+
+When running in PyInstaller frozen mode (`sys.frozen = True`), CARINA uses `src/launcher/env_setup.py` to resolve resource paths dynamically:
+
+```python
+import sys
+import os
+
+def setup_environment():
+    if getattr(sys, 'frozen', False):
+        bundle_root = sys._MEIPASS
+        project_root = os.path.dirname(sys.executable)
+    else:
+        project_root = os.path.abspath(os.path.dirname(__file__))
+        bundle_root = project_root
+
+    sys.path.insert(0, project_root)
+    return project_root, bundle_root, getattr(sys, 'frozen', False)
+```

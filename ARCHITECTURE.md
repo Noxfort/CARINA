@@ -2,88 +2,128 @@
 tags: [architecture, core, system]
 aliases: [Arquitetura CARINA, Visão Geral]
 ---
-# 🏛️ CARINA: The Complete System Blueprint
 
-This document specifies the exact, low-level boundaries of the CARINA ecosystem. It maps out the asynchronous micro-processes, the neural interaction matrices, and the rigorous pipeline that guarantees fail-safe traffic execution.
+# 🏛️ CARINA: System Blueprint & Multiprocessing Architecture
 
-⬅️ Back to [[CARINA_MOC|Main Documentation Hub]]
+This document specifies the internal engineering architecture of the CARINA ecosystem. It details the 8 concurrent operating system microservices, the inter-process communication (IPC) topology, the `EpisodeRunner` inference loop, and the neuro-symbolic safety firewall.
 
----
-
-## 1. The Multiprocessing Concurrency Engine
-
-At its core, CARINA operates as a distributed system on a single machine. The `carina.py` launcher orchestrates this by spawning 7 isolated operating system processes. This completely negates Python's Global Interpreter Lock (GIL) and prevents heavy I/O or LLM inference from stuttering the real-time AI control loop.
-
-### 1.1 Process Boundaries & IPC Queues
-- **`CentralController`**: Hosts the gRPC Server (`HFTLink`). Receives raw telemetry from the physical world. It uses an internal `Pipe` to communicate with the `AI_Process`.
-- **`AI_Process`**: Hosts the `EpisodeRunner`. This is the Reinforcement Learning heart. It steps the environment, calculates rewards, and calls neural inference.
-- **`DatabaseWorker`**: A dedicated process listening to the `db` Queue. The AI pushes JSON serialized reward states into the queue. The worker executes bulk SQL `INSERT` commands.
-- **`Watchdog`**: Monitors the health of all processes via heartbeat mechanisms. If the `AI_Process` hangs, the Watchdog alerts the `CentralController` to instantly revert the physical intersection to a hardcoded safe state.
-- **`XAI_Worker`**: Loads the massive Qwen3 1.7B language model into VRAM. It listens for explanation requests, generating heavy text reports entirely detached from the traffic simulation timeline.
-- **`DashboardService (SDS)`**: Runs the WebSocket server, streaming live metrics to the UI.
-- **`AnalysisService (SAS)`**: Runs offline batch analysis over historical database data to calculate engineering warrants.
+⬅️ Back to [Main Documentation Hub](docs/CARINA_MOC.md)
 
 ---
 
-## 2. The GOMES Macro-Architecture
+## 1. Multiprocessing Microservices Concurrency Model
 
-The **Graph-based Operational Multi-agent Expert System (GOMES)** divides traffic cognition into specialized agents.
+Python's Global Interpreter Lock (GIL) prevents multi-threaded CPU-bound AI inference and heavy I/O operations from running in true parallelism. To achieve sub-millisecond actuation latency, CARINA employs a **multiprocessing microservice model** orchestrated by `carina.py` and `ProcessManager`.
 
-### 2.1 The Tactical Layer (PPO-TCN + PAE)
-The `LocalAgent` is hyper-focused on its specific intersection. 
-- **Temporal Context**: Instead of receiving a snapshot of the current traffic, it receives a `StateHistoryManager` tensor (e.g., the last 8 seconds of occupancy). 
-- **Physics Fusion**: The `PredictiveAutoencoder` (PAE) projects these 8 seconds into a latent vector `Z`, predicting whether a traffic jam will spill back into the intersection. This vector `Z` is fused into the PPO actor network, granting the agent an implicit understanding of physical momentum.
+The system spawns **8 isolated OS processes**, each executing inside its own Python process memory space with its own event loop.
 
-### 2.2 The Strategic Layer (GATv2 Lite)
-Operated by the `StrategicCoordinator`. 
-- **Graph Attention**: It creates a topological graph of all intersections. It calculates attention vectors, allowing a `LocalAgent` to prioritize clearing a massive avenue to synchronize a "Green Wave" with its downstream neighbors.
+```mermaid
+graph TD
+    Launcher[carina.py Orchestrator / UI Tray] -->|Spawns & Monitors| PM[ProcessManager]
+    
+    PM --> CC[1. CentralController Process]
+    PM --> AI[2. AI_Process Engine]
+    PM --> WD[3. Watchdog Process]
+    PM --> SDS[4. DashboardService SDS]
+    PM --> SAS[5. AnalysisService SAS]
+    PM --> DB[6. DatabaseWorker]
+    PM --> XAI[7. XAI_Worker LLM]
+    PM --> MFD[8. MFD_Worker Engine]
 
-### 2.3 The Guardian Layer (Neuro-Symbolic "Thinking Mode")
-The `GuardianAgent` enforces absolute safety and prevents systemic gridlock via a hybrid approach:
-- **Symbolic Layer (Real-Time)**: Evaluates physics-based absolutes (e.g., Minimum Green Time, Yellow Clearance, Ghost Green). If an absolute is violated, a deterministic Veto is fired with zero latency.
-- **Neural Layer (Background Thinking)**: The `Dueling DQN-TCN` runs asynchronously in the `GuardianWorker`. It uses the PAE and the **Strategic GATv2 vector** to predict *Spillback Risk* (congestion waves) for all intersections simultaneously. It continuously updates a **Preemptive Veto Map** shared with the main process, allowing the safety firewall to execute neural vetoes instantly without blocking the simulation loop.
+    CC <-->|IPC Pipe| AI
+    AI -->|g_state Queue| WD
+    AI -->|db Queue| DB
+    CC -->|sds Queue| SDS
+    CC -->|sas Queue| SAS
+    CC -->|mfd_trigger Queue| MFD
+    MFD -->|mfd_results Queue| CC
+    SAS -->|sas_results Queue| CC
+    XAI -->|Disk HFT Logs| AI
+```
+
+### 1.1 Detailed Microservice Directory & Responsibilities
+
+| Process Name | Entry Target | Key Functionality | Isolation Rationale |
+| :--- | :--- | :--- | :--- |
+| **`CentralController`** | `run_controller_process()` | Hosts the `Synapse HFT` gRPC server (port 50051) & Prometheus metrics (port 8001). Receives physical traffic frames and returns phase actuation signals. | Keeps hardware I/O non-blocking and isolated from neural training latency. |
+| **`AI_Process`** | `run_ai_process()` | Runs `EpisodeRunner`, PPO-TCN inference, GATv2 attention, and the Guardian Safety Firewall. | CPU/GPU intensive neural inference loop; isolated to maintain a fixed 50Hz step frequency. |
+| **`Watchdog`** | `run_watchdog()` | Continuously listens to process heartbeats (`wd` queue). Triggers hardware fallback if AI hangs (>500ms). | Real-time safety requirement; must run independently of AI process health. |
+| **`DashboardService (SDS)`** | `run_sds_worker()` | Bridges live telemetry from `sds` queue to the desktop UI and WebSocket streams. | Prevents GUI rendering or client network lag from impacting traffic control. |
+| **`AnalysisService (SAS)`** | `run_analysis_worker()` | Runs offline SQL queries against historical traffic data to compute infrastructure warrants. | Heavy analytical query execution isolated from production database writes. |
+| **`DatabaseWorker`** | `run_database_worker()` | Consumes state/reward tuples from the `db` queue and executes async bulk batch `INSERT` operations (PostgreSQL/SQLite). | Decouples DB disk I/O latency from the real-time control loop. |
+| **`XAI_Worker`** | `run_xai_worker()` | Loads `Qwen3 1.7B` LLM and `Captum` Integrated Gradients into GPU memory to generate natural-language explainability reports. | Huge VRAM footprint (1.7B parameters) and multi-second generation time isolated from real-time loop. |
+| **`MFD_Worker`** | `run_mfd_worker()` | Computes Macroscopic Fundamental Diagrams (network density vs. space-mean speed & flow) to detect regional gridlock. | Matrix aggregation over large spatial grids isolated from step-by-step PPO decisions. |
 
 ---
 
-## 3. The `EpisodeRunner` Inference Pipeline
+## 2. Inter-Process Communication (IPC) Channels & Schemas
 
-Inside the `AI_Process`, the `EpisodeRunner` loops at high frequency.
+CARINA uses a hybrid IPC model consisting of high-speed duplex `multiprocessing.Pipe` for real-time control and thread-safe bounded `multiprocessing.Queue` instances for event streaming.
+
+```text
+IPC Channel Summary:
+├── controller_conn <--> ai_conn (Duplex Pipe): Telemetry frames & Actuation signals (Zero serialization overhead)
+├── wd (Queue maxsize=500): Process heartbeats -> Watchdog
+├── sds (Queue maxsize=500): Telemetry frames -> DashboardService
+├── sas (Queue maxsize=500): Historical metrics -> AnalysisService
+├── db (Queue maxsize=500): State/Reward/Action tuples -> DatabaseWorker
+├── g_state / g_signal (Queue maxsize=500): Guardian State & Veto Signals
+├── sas_results (Queue maxsize=10): Infrastructure Warrants -> CentralController
+├── mfd_trigger (Queue maxsize=10): Trigger signal -> MFD_Worker
+└── mfd_results (Queue maxsize=10): MFD curves & capacity metrics -> CentralController
+```
+
+---
+
+## 3. The `EpisodeRunner` Inference & Safety Pipeline
+
+The `EpisodeRunner` inside `AI_Process` executes at up to 50Hz. Every tick follows a strict multi-layered execution pipeline:
 
 ```mermaid
 sequenceDiagram
-    participant Env as CentralController (Env)
+    autonumber
+    participant Controller as CentralController (gRPC)
+    participant Pipe as IPC Pipe
     participant ER as EpisodeRunner
-    participant DC as DecisionCoordinator
-    participant Auth as ActionFilter (Guardian)
-    
-    Env->>ER: Stream TrafficFrame (State)
-    ER->>DC: Request Action
-    DC->>ER: Propose Phase X (PPO-TCN)
-    ER->>Auth: Request Authorization
-    alt Symbolic/Neural Veto
-        Auth-->>ER: Veto! Force ACTION_KEEP_PHASE
-    else Safe
-        Auth-->>ER: Action Authorized
-    end
-    ER->>Env: Actuate Phase Hardware
-```
+    participant PPO as PPO-TCN Agent
+    participant Safety as SafetyAuditor (Guardian)
+    participant DB as Database Queue
 
-1. **State Observation**: Retrieves the `TrafficFrame` from the `CentralController` Pipe.
-2. **Action Proposal**: The `DecisionCoordinator` queries the `LocalAgent` for the next phase.
-3. **Safety Firewall (`SafetyAuditor`)**: The action is routed to the Auditor.
-   - It performs an instantaneous **Symbolic Audit**.
-   - If approved, it cross-references the **Preemptive Veto Map** (continuously generated by the asynchronous `GuardianWorker`). If the background thought process flagged the intersection with a high Spillback Risk (>0.8), a Neural Veto is applied instantly.
-   - In parallel, the `EpisodeRunner` streams the latest `augmented_state` (with GATv2 context) to the `GuardianStateQueue` to feed the next cycle of background thinking.
-4. **Hardware Actuation**: The authorized phase is transmitted back to the physical controller via gRPC.
-5. **Reward & Memory**: The `LearningCoordinator` stores the trajectory in the `ReplayMemory`.
-6. **Asynchronous Backpropagation**: Once the memory buffer hits the `update_timestep` threshold, the TCNs undergo backpropagation via the `PPOOptimizer`, completely isolated from the real-time decision timeline.
+    Controller->>Pipe: Send TrafficFrame (Sensors, Queues, Speeds)
+    Pipe->>ER: Read Frame
+    ER->>PPO: Predict Optimal Phase (Tactical + Strategic GATv2)
+    PPO-->>ER: Proposed Action (e.g., Phase 2 -> Phase 4)
+    ER->>Safety: Evaluate Action (Symbolic Rules + PAE Spillback Check)
+    alt Action Safe
+        Safety-->>ER: Action Authorized
+    else Rule Violation or High Spillback Risk (>0.8)
+        Safety-->>ER: Action Vetoed! Force Safe Fallback Phase
+    end
+    ER->>Pipe: Return ActuationSignal
+    Pipe->>Controller: Actuate Traffic Light Hardware
+    ER->>DB: Push (State, Action, Reward, NextState) to db Queue
+```
 
 ---
 
-## 4. The DA SILVA Maturation Curriculum
+## 4. Neuro-Symbolic Safety Architecture
 
-To prevent catastrophic physical accidents during the early stages of neural exploration, the `MaturityManager` enforces the **Dynamic Agent Safety Integrated Learning for Validated Autonomy (DA SILVA)** pipeline:
+CARINA guarantees **zero catastrophic physical failures** through a two-tiered neuro-symbolic firewall:
 
-- **CHILD (Shadow Mode)**: The agent predicts actions but the `ActionFilter` mathematically drops them. Loss is computed via imitation learning against the baseline controller.
-- **TEEN (Restricted Autonomy)**: The agent controls the intersection only during low-risk hours (e.g., 01:00 AM - 04:00 AM).
-- **ADULT (Full Autonomy)**: The `ChildhoodAnalyzer` continuously evaluates the agent. Only when Policy Entropy stabilizes (`< 0.15`) and the Cumulative Reward consistently beats the baseline, is the agent granted 24/7 full autonomous hardware access.
+1. **Symbolic Guard (Deterministic, 0ms Latency):**
+   - Enforces physical hardware rules: *Minimum Green Time* (e.g., 7s), *Yellow Clearance* (3s), *All-Red Interval* (2s), and *Pedestrian Minimum Crossing Time*.
+   - Prevents conflicting phases (e.g., green signals on intersecting lanes).
+
+2. **Neural Guard (Predictive PAE + Dueling DQN):**
+   - The **Predictive Autoencoder (PAE)** projects temporal queue histories into a low-dimensional latent space $Z$.
+   - Predicts **Spillback Risk** (the probability that queue buildup in lane $i$ will block upstream intersection $j$ within the next 30 seconds).
+   - If Spillback Risk exceeds threshold $\tau = 0.8$, a **Neural Veto** is fired preemptively to hold green on the clearing avenue.
+
+---
+
+## 5. Single Instance Locking & System Lifecycle
+
+To prevent port conflicts and dual-control race conditions on physical traffic hardware:
+- `carina.py` initializes a `SingleInstanceLock` bound to local TCP port `42123`.
+- If a user launches a second instance of CARINA, the second process detects port `42123` in use, sends a restore command to bring the existing UI to the foreground, and exits immediately.
+- On shutdown, `ProcessManager.shutdown_all()` executes a 10-stage teardown sequence (SIGTERM -> Graceful Join -> SIGKILL fallback -> Process Group cleanup) ensuring zero zombie (`<defunct>`) processes remain.

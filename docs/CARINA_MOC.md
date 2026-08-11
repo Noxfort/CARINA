@@ -2,23 +2,78 @@
 tags: [moc, hub, docs]
 aliases: [CARINA MOC, Home, Index]
 ---
-# 📚 CARINA Ultimate Documentation Hub
 
-Welcome to the **CARINA** technical documentation library. Because of the sheer scale and complexity of this AI ecosystem—spanning from deep reinforcement learning and neuro-symbolic safety to real-time high-frequency gRPC telemetry, Flet UI architectures, and massive multiprocessing orchestration—this library serves as the ultimate source of truth for developers, academic researchers, and enterprise integrators.
+# 📚 CARINA Technical Master Documentation Hub
 
-## 📖 The Complete Dimension of the System
+Welcome to the **CARINA** (Controlled Artificial Road-traffic Intelligence Network Architecture) technical documentation library. Designed as a massively concurrent, high-frequency Deep Reinforcement Learning ecosystem for real-time traffic light control, CARINA bridges high-level neuro-symbolic AI, real-time gRPC hardware actuation, and multi-process OS isolation.
 
-### 1. The Core Infrastructure
-- **[[ARCHITECTURE|Architecture Deep-Dive]]**: Exhaustive breakdown of the 7 concurrent OS processes, the `EpisodeRunner` pipeline, the GOMES multi-agent system, and the DA SILVA maturation curriculum.
-- **[[API_REFERENCE|API Reference & HFT Protocol]]**: Specifications for the `Synapse HFT` gRPC definitions. Details the exact Protobuf messages and the internal IPC (Inter-Process Communication) queues that wire the system together.
+This master documentation index provides deep technical coverage for core developers, academic researchers, and system integrators.
 
-### 2. Artificial Intelligence Subsystems
-- **[[RESEARCH_NOTES|Neural Research & Formulations]]**: Deep dive into the custom AI models driving the intelligence (PPO-TCN, Predictive Autoencoder (PAE) latent space projection, and Dueling DQN-TCN stream splitting).
-- **[[XAI_AND_SAS|Explainable AI & Infrastructure Analytics]]**: Understanding how the system translates math to human logic using the `Captum` library and `Qwen3` LLM, and how the Smart Analysis System generates engineering warrants.
+---
 
-### 3. Frontend & Dashboarding
-- **[[UI_AND_DASHBOARD|UI & Smart Dashboard Service]]**: Architectural layout of the native `Flet` desktop application, System Tray handlers, and the WebSocket servers streaming telemetry at sub-second latencies.
+## 🗺️ Codebase Map & Directory Hierarchy
 
-### 4. Codebase Extension & Manipulation
-- **[[DEVELOPER_GUIDES|Developer & Integration Guides]]**: Practical, step-by-step guides for modifying the core, handling `PyInstaller` frozen state builds, hooking into IPC queues, and migrating database schemas.
-- **[[TESTING|Testing & Validation]]**: Instructions for running the `pytest` suite, generating coverage reports, and writing mocks for safety-critical Guardian modules.
+```text
+CARINA_CORE/
+├── carina.py                   # Master Orchestrator (SingleInstanceLock, ProcessManager, UI/Tray)
+├── ARCHITECTURE.md             # 8-Process Multiprocessing Blueprint & IPC Topology
+├── pyproject.toml              # Build toolchain & project metadata
+├── requirements.txt            # Python dependencies (PyTorch, Flet, gRPC, Captum, etc.)
+│
+├── config/                     # Configuration Systems
+│   └── settings.ini            # System-wide parameters (gRPC, DB, AI, XAI, MFD, Logging)
+│
+├── proto/                      # gRPC Protocol Specifications
+│   └── synapse_hft.proto       # High-Frequency Telemetry & Actuation Protobuf Definitions
+│
+├── docs/                       # Comprehensive Documentation
+│   ├── CARINA_MOC.md           # Master Documentation Hub (This File)
+│   ├── API_REFERENCE.md        # Synapse HFT gRPC Protocol & IPC Queue Schema
+│   ├── RESEARCH_NOTES.md       # PPO-TCN, PAE, GATv2 & DA SILVA Mathematical Formulations
+│   ├── XAI_AND_SAS.md          # Explainable AI (Qwen3 LLM), SAS Analytics & MFD Engine
+│   ├── UI_AND_DASHBOARD.md     # Flet Desktop Application, System Tray & SDS Architecture
+│   ├── DEVELOPER_GUIDES.md     # Setup, Custom Agent Creation, PyInstaller & Settings
+│   └── TESTING.md              # Pytest Suite, Safety Mocks & Coverage Validation
+│
+├── src/                        # Primary Source Code
+│   ├── agents/                 # PPO-TCN, Dueling DQN, Guardian & Strategic Agents
+│   ├── analysis/               # Traffic metrics, flow aggregation & queue metrics
+│   ├── central_controller.py   # High-Frequency gRPC Telemetry Server
+│   ├── database/               # Async Database Worker (SQLite / PostgreSQL)
+│   ├── engine/                 # EpisodeRunner, DecisionCoordinator & LearningCoordinator
+│   ├── launcher/               # ProcessManager, SingleInstanceLock & UI Tray Manager
+│   ├── mfd/                    # Macroscopic Fundamental Diagram Analysis Worker
+│   ├── models/                 # Neural architectures (PAE, TCN, GATv2, Head networks)
+│   ├── safety/                 # Symbolic Veto Firewall & SafetyAuditor
+│   ├── sas/                    # Smart Analysis System (Offline Infrastructure Warrants)
+│   ├── sds/                    # Smart Dashboard Service (Flet UI bridge)
+│   ├── slm/                    # Local LLM Interface (Qwen3 1.7B integration)
+│   ├── watchdog/               # Real-time process heartbeat monitor & fail-safe fallback
+│   └── xai/                    # Captum Integrated Gradients & XAI Report Generator
+│
+├── ui/                         # Flet UI Views, Components, Theme & Assets
+└── tests/                      # Pytest Test Suite (Unit, Integration & Mocks)
+```
+
+---
+
+## 📖 System Dimension & Core Modules
+
+### 1. Core Infrastructure & Process Engineering
+- **[Architecture Deep-Dive](../ARCHITECTURE.md)**: Exhaustive technical blueprint detailing all 8 concurrent OS microservices, process isolation via `multiprocessing`, IPC Pipe/Queue channels, and the `EpisodeRunner` execution loop.
+- **[API Reference & HFT Protocol](API_REFERENCE.md)**: Complete specifications for the `Synapse HFT` gRPC interface, Protobuf message schemas, Prometheus metric endpoints (port 8001), and IPC queue schemas.
+
+### 2. Artificial Intelligence & Neuro-Symbolic Safety
+- **[Neural Research & Formulations](RESEARCH_NOTES.md)**: Deep mathematical formulations for PPO-TCN, Predictive Autoencoder (PAE) latent projection $Z$, Dueling DQN-TCN value/advantage streams, GATv2 Lite Graph Attention, and the DA SILVA maturation curriculum.
+- **[Explainable AI, SAS & MFD Analytics](XAI_AND_SAS.md)**: Operational details of the `XAI_Worker` (Captum Integrated Gradients + Qwen3 1.7B LLM), the `AnalysisService` (PostgreSQL offline analytics), and the `MFD_Worker` (Macroscopic Fundamental Diagram capacity estimation).
+
+### 3. Desktop Application & Monitoring
+- **[UI & Smart Dashboard Service](UI_AND_DASHBOARD.md)**: Architectural breakdown of the native `Flet` desktop UI, system tray integration, single instance socket locking (port 42123), live telemetry charts, and incident filtering.
+
+### 4. Developer Operations & Quality Assurance
+- **[Developer & Integration Guides](DEVELOPER_GUIDES.md)**: Complete guide for setting up environments, modifying `config/settings.ini`, extending custom agents, writing database migrations, and building frozen executables (`carina.spec`).
+- **[Testing & Validation](TESTING.md)**: Guidelines for executing `pytest`, generating coverage reports (`--cov=src`), mocking gRPC telemetry, and testing Guardian safety vetoes.
+
+---
+
+> 💡 **Obsidian Knowledge Graph:** This documentation suite maintains full native support for [Obsidian](https://obsidian.md/). Open `CARINA_CORE` as an Obsidian Vault to navigate the interactive technical graph.
