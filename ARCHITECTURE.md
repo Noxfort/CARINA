@@ -54,6 +54,18 @@ graph TD
 | **`XAI_Worker`** | `run_xai_worker()` | Loads `Qwen3 1.7B` LLM and `Captum` Integrated Gradients into GPU memory to generate natural-language explainability reports. | Huge VRAM footprint (1.7B parameters) and multi-second generation time isolated from real-time loop. |
 | **`MFD_Worker`** | `run_mfd_worker()` | Computes Macroscopic Fundamental Diagrams (network density vs. space-mean speed & flow) to detect regional gridlock. | Matrix aggregation over large spatial grids isolated from step-by-step PPO decisions. |
 
+### 1.2 The SOLID Hardware Controller Subsystem (`src/controller/`)
+
+To comply strictly with the **Single Responsibility Principle (SRP)**, the hardware controller layer is decoupled into specialized micro-modules:
+
+- **`HardwareConnectionManager` (`connection_manager.py`)**: Pure singleton orchestrator for hardware drivers.
+- **`ConnectionConfigRepository` (`connection_config_repo.py`)**: Manages persistence of IP configurations, CSV import/export, and database records.
+- **`ConnectionOperationHandler` (`connection_operation_handler.py`)**: Handles async driver instantiation and connection toggling.
+- **`IntersectionResolver` (`intersection_resolver.py`)**: Performs IP-to-intersection resolution and metadata queries.
+- **`SnmpTrapListener` (`hardware_event_listener.py`)**: Listens on UDP port 162 for active hardware SNMP trap events.
+- **`FailSafeManager` (`failsafe_manager.py`)**: Manages hardware failsafe states and emergency signal overrides.
+- **`TrafficFrameProcessor` (`traffic_frame_processor.py`)**: Parses incoming hardware telemetry streams.
+
 ---
 
 ## 2. Inter-Process Communication (IPC) Channels & Schemas
