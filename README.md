@@ -2,25 +2,44 @@
 tags: [readme, home, carina]
 aliases: [Projeto CARINA, Root]
 ---
+
 # 🚗 CARINA: Cognitive Autonomous Real-time Intersection Network Architecture
 
-![Status](https://img.shields.io/badge/Status-Active-brightgreen)
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c)
-![Flet](https://img.shields.io/badge/Flet-UI-00d2b4)
-![License](https://img.shields.io/badge/License-AGPL%20v3-blue)
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge&logo=github" alt="Status" />
+  <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white" alt="PyTorch" />
+  <img src="https://img.shields.io/badge/Flet-UI-00D2B4?style=for-the-badge&logo=flutter&logoColor=white" alt="Flet UI" />
+  <img src="https://img.shields.io/badge/gRPC-HFT-2DA6B0?style=for-the-badge&logo=grpc&logoColor=white" alt="gRPC" />
+  <img src="https://img.shields.io/badge/License-AGPL_v3-blue?style=for-the-badge" alt="License" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/Noxfort/CARINA">
+    <img src="https://github-readme-stats.vercel.app/api/pin/?username=Noxfort&repo=CARINA&theme=dark" alt="CARINA GitHub Repository Card" />
+  </a>
+</p>
 
 **CARINA** is a massively distributed Deep Reinforcement Learning ecosystem designed for real-time traffic control and smart city orchestration. Bypassing Python's Global Interpreter Lock (GIL) via 7 concurrent OS processes, it integrates a Tactical PPO agent and a Guardian Agent (Dueling DQN-TCN + Predictive Autoencoder) to provide neuro-symbolic safety. CARINA learns online directly in production via the sub-millisecond Synapse HFT protocol.
 
 ---
 
-## 📖 Obsidian Knowledge Vault
+## 📚 Documentation Hub & Knowledge Vault
 
-This repository is designed to be browsed natively in **Obsidian**. To explore the full architecture and internal workings of the system via our Knowledge Graph:
-1. Open [Obsidian](https://obsidian.md/).
-2. Select **"Open folder as vault"**.
-3. Choose the root directory of this repository (`CARINA_CORE`).
-4. 👉 **Start here:** [[CARINA_MOC|Central Documentation Hub]]
+Explore the full architecture, internal mechanics, and developer guides for the CARINA ecosystem:
+
+| Card / Subsystem | Focus Area | Direct Link |
+| :--- | :--- | :---: |
+| 📚 **Documentation Hub** | Central Index & Navigation for all technical docs | [Explore Hub](docs/CARINA_MOC.md) |
+| 🏛️ **Core Architecture** | 7 Concurrent OS processes, GOMES & DA SILVA curriculum | [View Blueprint](ARCHITECTURE.md) |
+| ⚡ **Synapse HFT API** | Sub-millisecond gRPC telemetry & Protobuf IPC specifications | [View API Reference](docs/API_REFERENCE.md) |
+| 🧠 **Neural Formulations** | PPO-TCN, Dueling DQN-TCN & Predictive Autoencoder (PAE) | [View Research](docs/RESEARCH_NOTES.md) |
+| 🔍 **Explainable AI (XAI)** | Captum Integrated Gradients & Qwen3 LLM engineering reports | [View XAI & SAS](docs/XAI_AND_SAS.md) |
+| 🖥️ **Flet Dashboard** | Native desktop UI running in an isolated process | [View UI Guide](docs/UI_AND_DASHBOARD.md) |
+| 🛠️ **Developer Guides** | Schema migrations, PyInstaller builds, IPC queues | [View Guides](docs/DEVELOPER_GUIDES.md) |
+| 🧪 **Testing & Validation** | Pytest suite, coverage reports & Guardian safety mocks | [View Guidelines](docs/TESTING.md) |
+
+> 💡 **Obsidian Vault Support:** This repository is also fully compatible with [Obsidian](https://obsidian.md/). Open this root folder as a vault and navigate from `CARINA_MOC.md`.
 
 ---
 
@@ -33,15 +52,15 @@ CARINA relies on the **Graph-based Operational Multi-agent Expert System (GOMES)
 - **Guardian Layer (Neuro-Symbolic):** A background firewall that instantaneously vetoes any action violating strict physical safety constraints.
 - **Explainable AI (XAI):** A massive `Qwen3 1.7B` LLM process coupled with `Captum` Integrated Gradients to generate natural-language engineering reports explaining neural reasoning.
 
-*See the full breakdown in the [[ARCHITECTURE|System Blueprint]]*
+*See the full breakdown in the [System Blueprint](ARCHITECTURE.md)*
 
 ---
 
 ## 🛠️ Key Features
 
-- **Synapse HFT Protocol:** High-frequency, bidirectional gRPC telemetry capable of sub-millisecond physical actuation. (See [[API_REFERENCE]])
-- **Decoupled Flet Frontend:** A beautiful, responsive desktop Dashboard Service (SDS) that runs completely isolated from the AI inference loop. (See [[UI_AND_DASHBOARD]])
-- **Smart Analysis System (SAS):** Offline background process that analyzes historical PostgreSQL data to suggest infrastructure modifications. (See [[XAI_AND_SAS]])
+- **Synapse HFT Protocol:** High-frequency, bidirectional gRPC telemetry capable of sub-millisecond physical actuation. (See [API Reference](docs/API_REFERENCE.md))
+- **Decoupled Flet Frontend:** A beautiful, responsive desktop Dashboard Service (SDS) that runs completely isolated from the AI inference loop. (See [UI & Dashboard](docs/UI_AND_DASHBOARD.md))
+- **Smart Analysis System (SAS):** Offline background process that analyzes historical PostgreSQL data to suggest infrastructure modifications. (See [XAI & SAS](docs/XAI_AND_SAS.md))
 - **Process Watchdog:** Deterministic fail-safes that automatically revert physical intersections to hardcoded states if the neural engines hang.
 
 ---
@@ -59,7 +78,7 @@ pip install -r requirements.txt
 
 ### 3. Database Setup (Optional but Recommended)
 By default, CARINA falls back to SQLite, but for full feature support (SAS and offline training data), set up your `config/settings.ini` to connect to PostgreSQL.
-*(Refer to [[DEVELOPER_GUIDES|Developer Integration Guide]])*
+*(Refer to [Developer Integration Guide](docs/DEVELOPER_GUIDES.md))*
 
 ### 4. Running the Ecosystem
 Launch the central orchestrator:
@@ -76,7 +95,7 @@ All Guardian rules and TCN inference pipelines are strictly tested.
 ```bash
 pytest tests/ -v --cov=src
 ```
-*(Read the [[TESTING|Testing Guidelines]])*
+*(Read the [Testing Guidelines](docs/TESTING.md))*
 
 ---
 
