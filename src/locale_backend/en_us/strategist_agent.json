@@ -1,0 +1,14 @@
+{
+  "strategist_agent": {
+    "building_graph": "[Strategist] Building Graph from: {net_file}",
+    "net_not_found": "SUMO Network file not found at: {net_file}. Graph not built.",
+    "building_graph_log": "Building Strategist Graph from: {net_file}",
+    "graph_built_success": "[Strategist] Graph built successfully. Nodes: {nodes}, Edges: {edges}",
+    "no_connections": "[Strategist] No connections found between traffic lights. Graph is disconnected.",
+    "build_failed": "Failed to build graph topology: {error}",
+    "topology_not_init": "Strategist Agent: Graph topology not initialized.",
+    "checkpoint_saved": "Strategist Agent checkpoint saved to {path}",
+    "checkpoint_loaded": "Strategist Agent checkpoint loaded from {path}",
+    "checkpoint_not_found": "Checkpoint not found at {path}"
+  }
+}

@@ -1,5 +1,11 @@
 {
   "central_controller": {
+    "grpc_import_error": "[CentralController] Failed to import generated gRPC modules. Ensure 'proto' folder exists and contains generated files.",
+    "traffic_recorder_fail": "[CentralController] Failed to initialize TrafficDataRecorder: {error}",
+    "starting": "[DIAGNOSTICS] Starting HFT CentralController.",
+    "manual_interrupt": "Manual interruption received.",
+    "grpc_fatal_error": "Fatal error in gRPC server: {error}",
+    "stopping": "Stopping CentralController...",
     "run": {
       "simulation_ended": "Simulation ended or TraCI connection lost.",
       "initial_connection_fail": "[CONTROLLER] Initial connection failure with SUMO. Terminating process.",

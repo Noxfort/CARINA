@@ -1,0 +1,9 @@
+{
+  "promotion_evaluator": {
+    "loaded_thresholds": "[PromotionEvaluator] Loaded thresholds from settings: CHILD t_min={child_t_min}, TEEN t_min={teen_t_min}",
+    "already_max": "Agent is already at maximum maturity or unknown phase.",
+    "not_enough_episodes": "Not enough episodes in phase. Required: {required}, Current: {current}",
+    "promoted_reason": "Efficiency {eff:.2%} exceeded dynamic threshold {thresh:.2%}",
+    "rejected_reason": "Efficiency {eff:.2%} is below dynamic threshold {thresh:.2%}"
+  }
+}

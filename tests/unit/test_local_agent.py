@@ -163,3 +163,50 @@ def test_pae_augmentation(local_agent):
             # Ensures it requested and used measurements in _augment_with_pae
             mock_pae.encode.assert_called()
             mock_cat.assert_called()
+
+
+def test_choose_action_thinking_cache(local_agent):
+    """Tests that choose_action only makes a new decision when the raw state changes."""
+    state1 = torch.tensor([[[1.0, 2.0, 3.0, 4.0, 5.0]]], dtype=torch.float32)
+    state2 = torch.tensor([[[1.0, 2.0, 3.0, 4.0, 5.0]]], dtype=torch.float32)
+    state3 = torch.tensor([[[5.0, 4.0, 3.0, 2.0, 1.0]]], dtype=torch.float32)
+
+    # Mock policy_net outputs
+    local_agent.policy_net = MagicMock()
+    mock_probs1 = torch.tensor([[0.8, 0.2]])
+    mock_val1 = torch.tensor([[0.5]])
+    mock_probs2 = torch.tensor([[0.1, 0.9]])
+    mock_val2 = torch.tensor([[0.9]])
+    
+    # We will configure side_effect to return different values on consecutive calls
+    local_agent.policy_net.side_effect = [(mock_probs1, mock_val1), (mock_probs2, mock_val2)]
+    
+    # First decision (new state)
+    dec1 = local_agent.choose_action(state1)
+    
+    # Second call (identical state) -> should return cached dec1
+    dec2 = local_agent.choose_action(state2)
+    
+    # Policy net should have been called only once
+    assert local_agent.policy_net.call_count == 1
+    assert dec1[0] == dec2[0]
+    
+    # Third call (different state) -> should run policy net again
+    dec3 = local_agent.choose_action(state3)
+    assert local_agent.policy_net.call_count == 2
+    
+    # Test cache reset on done
+    local_agent.memory = MagicMock()
+    local_agent.xai_memory = MagicMock()
+    act_mock = MagicMock()
+    act_mock.cpu().return_value.numpy.return_value = np.array([0])
+    lp_mock = MagicMock()
+    lp_mock.cpu().return_value.numpy.return_value = np.array([0.0])
+    val_mock = MagicMock()
+    val_mock.cpu().return_value.numpy.return_value = np.array([0.0])
+    
+    local_agent.push_memory([[1.0]*5], act_mock, lp_mock, 0.0, True, val_mock)
+    assert local_agent._last_raw_state is None
+    assert local_agent._last_decision is None
+
+

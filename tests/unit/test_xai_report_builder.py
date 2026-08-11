@@ -81,3 +81,112 @@ def test_xai_structured_report_builder_custom_block_order(tmp_path):
     assert success is True
     assert os.path.exists(output_docx)
     assert os.path.getsize(output_docx) > 0
+
+def test_mfd_structured_report_builder_generation(tmp_path):
+    output_docx = os.path.join(tmp_path, "test_mfd_report.docx")
+    
+    config = {
+        "logo_path": "",
+        "secretary_name": "Secretário de Mobilidade",
+        "secretary_title": "Titular",
+        "agency_name": "Prefeitura",
+        "department_name": "Trânsito",
+        "title": "RELATÓRIO MFD DE TESTE",
+        "mode": "MFD",
+        "font_name": "Calibri",
+        "font_size": 11,
+        "margin_top": 2.0,
+        "margin_bottom": 2.0,
+        "margin_left": 2.0,
+        "margin_right": 2.0,
+        "line_spacing": 1.15,
+        "alignment": "justify"
+    }
+    
+    context = {
+        "scenario": "mfd_scenario_test",
+        "engine_version": "CARINA TestEngine v1.0.0",
+        "image_path": "",
+        "text_content": "## Visão Global da Malha Viária\n- **Desde a última análise:** velocidade passou de **38,1 km/h** para **40,2 km/h**.\n- **Desde o início da operação:** manteve-se estável."
+    }
+    
+    builder = XaiStructuredReportBuilder()
+    success = builder.generate_report(output_docx, context, config)
+    
+    assert success is True
+    assert os.path.exists(output_docx)
+    assert os.path.getsize(output_docx) > 0
+
+
+def test_report_exporter_fallback_planning(tmp_path):
+    import base64
+    from ui.formatting.report_exporter import ReportExporter
+    from unittest.mock import MagicMock
+
+    # Setup directories
+    results_dir = os.path.join(tmp_path, "results")
+    maps_dir = os.path.join(results_dir, "maps")
+    os.makedirs(maps_dir, exist_ok=True)
+
+    # Create a dummy image
+    dummy_img_path = os.path.join(maps_dir, "map_planning.png")
+    # A tiny valid 1x1 PNG file
+    png_data = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==")
+    with open(dummy_img_path, "wb") as f:
+        f.write(png_data)
+
+    output_docx = os.path.join(tmp_path, "exported_fallback_report.docx")
+    mock_page = MagicMock()
+    mock_locale_manager = MagicMock()
+    mock_locale_manager.get_string.side_effect = lambda key, default=None, **kwargs: default
+
+    # Call export_report with empty image_base64 to trigger fallback
+    success = ReportExporter.export_report(
+        page=mock_page,
+        locale_manager=mock_locale_manager,
+        save_path=output_docx,
+        image_base64="",
+        text_content="Test planning text content",
+        results_dir=results_dir,
+        mode="PLANNING",
+        agent_id="test_agent"
+    )
+
+    assert success is True
+    assert os.path.exists(output_docx)
+    assert os.path.getsize(output_docx) > 0
+
+
+def test_chart_block_build_fallback(tmp_path):
+    import base64
+    from blocks.chart import ChartBlock
+    from docx import Document
+
+    results_dir = os.path.join(tmp_path, "results")
+    maps_dir = os.path.join(results_dir, "maps")
+    os.makedirs(maps_dir, exist_ok=True)
+
+    dummy_img_path = os.path.join(maps_dir, "map_planning.png")
+    png_data = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==")
+    with open(dummy_img_path, "wb") as f:
+        f.write(png_data)
+
+    doc = Document()
+    context = {
+        "image_path": "",
+        "results_dir": results_dir
+    }
+    config = {
+        "mode": "PLANNING",
+        "chart_title": "Planning Map",
+        "chart_caption": "Dummy Caption"
+    }
+
+    block = ChartBlock()
+    # This should not raise an exception and should successfully fall back
+    block.build(doc, context, config)
+
+    # Let's verify something was written to the doc
+    assert len(doc.paragraphs) > 0
+
+

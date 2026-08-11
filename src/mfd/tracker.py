@@ -47,7 +47,7 @@ class MFDTracker:
     """
 
     # Maximum history size (prevents unbounded memory growth)
-    MAX_HISTORY = 3600  # ~1 hour at 1 step/second
+    MAX_HISTORY = 120  # ~2 minutes at 1 step/second
 
     # Minimum steps before the peak estimate is considered reliable
     WARMUP_STEPS = 30
@@ -67,8 +67,8 @@ class MFDTracker:
         # Step counter
         self._step_count: int = 0
 
-        # History buffer
-        self._history: deque[MFDSnapshot] = deque(maxlen=self.MAX_HISTORY)
+        # Latest snapshot
+        self._latest_snapshot: Optional[MFDSnapshot] = None
 
         # EMA state
         self._ema_production: float = 0.0
@@ -119,12 +119,12 @@ class MFDTracker:
                     f"at accumulation {snapshot.accumulation:.2f} veh"
                 )
 
-        # Store in history
-        self._history.append(snapshot)
+        # Store only the latest snapshot
+        self._latest_snapshot = snapshot
 
     def get_latest(self) -> Optional[MFDSnapshot]:
         """Returns the most recent MFD snapshot, or None if no data."""
-        return self._history[-1] if self._history else None
+        return self._latest_snapshot
 
     def get_smoothed_metrics(self) -> Dict[str, Any]:
         """Returns the EMA-smoothed production and accumulation for the UI."""
@@ -147,22 +147,19 @@ class MFDTracker:
         Returns:
             List of dicts with 'accumulation', 'production', and 'timestamp' keys.
         """
-        source = list(self._history)
-        if last_n > 0:
-            source = source[-last_n:]
-
-        return [
-            {
-                'accumulation': s.accumulation,
-                'production': s.production,
-                'timestamp': s.timestamp
-            }
-            for s in source
-        ]
+        if self._latest_snapshot:
+            return [
+                {
+                    'accumulation': self._latest_snapshot.accumulation,
+                    'production': self._latest_snapshot.production,
+                    'timestamp': self._latest_snapshot.timestamp
+                }
+            ]
+        return []
 
     @property
     def history_size(self) -> int:
-        return len(self._history)
+        return 1 if self._latest_snapshot else 0
 
     def reset(self) -> None:
         """Resets all temporal state. Does NOT affect topology."""
@@ -171,5 +168,5 @@ class MFDTracker:
         self._step_count = 0
         self._ema_production = 0.0
         self._ema_accumulation = 0.0
-        self._history.clear()
+        self._latest_snapshot = None
         logger.info("[MFD] Tracker state reset.")

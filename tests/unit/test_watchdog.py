@@ -27,8 +27,8 @@ def watchdog_instance():
     """
     Creates an isolated instance of the Watchdog (Safety).
     """
-    # Create the instance setting 500ms of timeout
-    wd = Watchdog(timeout_ms=500)
+    # Create the instance setting 500ms of timeout and 0.0s grace period for instant test triggers
+    wd = Watchdog(timeout_ms=500, grace_period_sec=0.0)
     return wd
 
 @pytest.mark.unit

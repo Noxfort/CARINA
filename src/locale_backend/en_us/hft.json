@@ -1,0 +1,33 @@
+{
+  "hft_server": {
+    "import_failed": "[HFTServer] Failed to import generated gRPC modules. Ensure 'proto' folder exists and contains generated files.",
+    "receiving_scenario": "[HFT] Receiving scenario from Synapse (Hash: {hash})...",
+    "empty_map": "[HFT] LoadScenario received without file content.",
+    "empty_map_msg": "Empty map content",
+    "control_started": "🚀 [SYSTEM] HFT Control Started. Latch Unlocked natively. State is now RUNNING.",
+    "control_stopped": "🛑 [SYSTEM] HFT Control Stopped. State is now IDLE.",
+    "heartbeat_error": "[HFT] Failed to send Heartbeat: {error}",
+    "stream_error": "[HFT] Error in traffic stream: {error}",
+    "connection_lost": "❌ [HFT] Stream Connection Lost: {error}"
+  },
+  "hft_worker": {
+    "started": "[HFT Worker] Async worker thread started.",
+    "processing_error": "[HFT Worker] Error processing frame: {error}",
+    "stopped": "[HFT Worker] Worker thread stopped."
+  },
+  "hft_diagnostics": {
+    "initialized": "[HFT Diagnostics] HFT Diagnostics initialized at: {path}",
+    "session_summary": "[HFT Diagnostics] Session Summary: {frames} frames received | Avg recv latency: {recv:.2f}ms | Avg controller time: {ctrl:.2f}ms | Avg total time: {total:.2f}ms | Max queue depth: {max_q}"
+  },
+  "hft_session": {
+    "map_saved": "[HFT Session] Map {map_file} saved to {map_path}",
+    "peak_schedule_saved": "[HFT Session] Peak schedule saved to {schedule_path}",
+    "scenario_accepted": "Scenario accepted and saved successfully to {map_path}"
+  },
+  "grpc_server": {
+    "starting": "[gRPC] Starting gRPC HFT Server on port {port}...",
+    "running": "[gRPC] gRPC HFT Server running on port {port}.",
+    "stopping": "[gRPC] Stopping gRPC HFT Server...",
+    "stopped": "[gRPC] gRPC HFT Server stopped."
+  }
+}

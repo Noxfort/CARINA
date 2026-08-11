@@ -1,0 +1,6 @@
+{
+  "safety_rules": {
+    "loaded": "[SafetyRules] Regras de segurança carregadas de {path}",
+    "load_failed": "[SafetyRules] Falha ao carregar safety_rules.json ({error}). Usando fallback padrão de engenharia."
+  }
+}

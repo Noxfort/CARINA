@@ -1,0 +1,6 @@
+{
+  "safety_rules": {
+    "loaded": "[SafetyRules] Safety rules loaded from {path}",
+    "load_failed": "[SafetyRules] Failed to load safety_rules.json ({error}). Using engineering default fallback."
+  }
+}

@@ -43,6 +43,7 @@ from ui.interfaces.map_protocols import (
     MapControlsAssemblerProtocol
 )
 from ui.handlers.locale_manager import LocaleManager
+from ui.builders.map_components_factory import MapComponentsFactory
 
 class LiveCanvasMapWidget(ft.Container):
     """
@@ -67,21 +68,32 @@ class LiveCanvasMapWidget(ft.Container):
         self.get_panel_state_callback = get_panel_state_callback
         self.on_panel_update_callback = on_panel_update_callback
         
-        # Initialize Layout and Controls Assembler specialists
-        self.viewport_manager: MapViewportManagerProtocol = self.create_viewport_manager()
-        self.controls_assembler: MapControlsAssemblerProtocol = self.create_controls_assembler()
+        # Initialize Layout and Controls Assembler specialists via factory
+        self.viewport_manager: MapViewportManagerProtocol = MapComponentsFactory.create_viewport_manager()
+        self.controls_assembler: MapControlsAssemblerProtocol = MapComponentsFactory.create_controls_assembler()
         
-        self.interaction_handler: InteractionHandlerProtocol = self.create_interaction_handler()
+        self.interaction_handler: InteractionHandlerProtocol = MapComponentsFactory.create_interaction_handler(
+            viewport_width=self.viewport_manager.width,
+            viewport_height=self.viewport_manager.height,
+            on_update=self._safe_update
+        )
         self.last_mouse_x = self.viewport_manager.width / 2
         self.last_mouse_y = self.viewport_manager.height / 2
         
-        self.street_interaction_handler: StreetInteractionHandlerProtocol = self.create_street_interaction_handler()
+        self.street_interaction_handler: StreetInteractionHandlerProtocol = MapComponentsFactory.create_street_interaction_handler()
         
         # Use the decoupled Event Router
-        self.event_router: EventRouterProtocol = self.create_event_router(on_semaphore_click, on_street_click)
+        self.event_router: EventRouterProtocol = MapComponentsFactory.create_event_router(
+            interaction_handler=self.interaction_handler,
+            street_interaction_handler=self.street_interaction_handler,
+            on_update=self._safe_update,
+            on_semaphore_click=on_semaphore_click,
+            on_street_click=on_street_click
+        )
         
         # Bind the street handler's callback to the event router
         self.street_interaction_handler.on_street_selected = self.event_router.handle_street_click
+
         
         self.drawer: MapDrawerProtocol | None = None
         self.animator: MapAnimatorProtocol | None = None
@@ -209,7 +221,7 @@ class LiveCanvasMapWidget(ft.Container):
         self.interaction_handler.base_width = self.viewport_manager.width
         self.interaction_handler.base_height = self.viewport_manager.height
         
-        self.drawer = self.create_drawer(nodes, edges)
+        self.drawer = MapComponentsFactory.create_drawer(nodes, edges)
         self.drawer.calculate_transformations(self.viewport_manager.width, self.viewport_manager.height)
         
         edge_paths = self.drawer.draw_initial_map(self.canvas, stroke_width=7.0)
@@ -223,12 +235,17 @@ class LiveCanvasMapWidget(ft.Container):
         
         self.map_stack.controls = stack_controls
         
-        self.map_state_manager = self.create_state_manager(
+        self.map_state_manager = MapComponentsFactory.create_state_manager(
+            canvas=self.canvas,
+            stack=self.map_stack,
             edge_paths=edge_paths,
             interactive_widgets=interactive_widgets_map
         )
 
-        self.animator = self.create_animator(
+        self.animator = MapComponentsFactory.create_animator(
+            widget_to_update=self,
+            get_panel_state_callback=self.get_panel_state_callback,
+            on_panel_update_callback=self.on_panel_update_callback,
             edge_paths=edge_paths,
             interactive_widgets=interactive_widgets_map,
             topology_edges=edges
@@ -251,64 +268,3 @@ class LiveCanvasMapWidget(ft.Container):
                 self.update()
             except Exception:
                 pass
-
-    # ------------------------------------------------------------------
-    # Factory Methods (DIP / OCP / ISP Compliance)
-    # ------------------------------------------------------------------
-    def create_viewport_manager(self) -> MapViewportManagerProtocol:
-        from ui.managers.map_viewport_manager import MapViewportManager
-        return MapViewportManager()
-
-    def create_controls_assembler(self) -> MapControlsAssemblerProtocol:
-        from ui.builders.map_controls_assembler import MapControlsAssembler
-        return MapControlsAssembler()
-
-    def create_interaction_handler(self) -> InteractionHandlerProtocol:
-        from ui.handlers.map_interaction_handler import MapInteractionHandler
-        return MapInteractionHandler(
-            base_width=self.viewport_manager.width, 
-            base_height=self.viewport_manager.height, 
-            on_update_callback=self._safe_update
-        )
-
-    def create_street_interaction_handler(self) -> StreetInteractionHandlerProtocol:
-        from ui.handlers.street_interaction_handler import StreetInteractionHandler
-        return StreetInteractionHandler(on_street_selected=None)
-
-    def create_event_router(
-        self,
-        on_semaphore_click: Callable[[str | None], None],
-        on_street_click: Callable[[str | None], None]
-    ) -> EventRouterProtocol:
-        from ui.handlers.map_event_router import MapEventRouter
-        return MapEventRouter(
-            interaction_handler=self.interaction_handler,
-            street_interaction_handler=self.street_interaction_handler,
-            safe_update_callback=self._safe_update,
-            on_semaphore_click=on_semaphore_click,
-            on_street_click=on_street_click
-        )
-
-    def create_drawer(self, nodes: Dict, edges: List) -> MapDrawerProtocol:
-        from ui.renderers.map_drawer import MapDrawer
-        return MapDrawer(nodes, edges)
-
-    def create_state_manager(self, edge_paths: Dict, interactive_widgets: Dict) -> MapStateManagerProtocol:
-        from ui.managers.map_state_manager import MapStateManager
-        return MapStateManager(
-            canvas=self.canvas,
-            stack=self.map_stack,
-            edge_paths=edge_paths,
-            interactive_widgets=interactive_widgets
-        )
-
-    def create_animator(self, edge_paths: Dict, interactive_widgets: Dict, topology_edges: List) -> MapAnimatorProtocol:
-        from ui.animators.map_animator import MapAnimator
-        return MapAnimator(
-            widget_to_update=self,
-            get_panel_state_callback=self.get_panel_state_callback,
-            on_panel_update_callback=self.on_panel_update_callback,
-            edge_paths=edge_paths,
-            semaforo_widgets=interactive_widgets,
-            topology_edges=topology_edges
-        )

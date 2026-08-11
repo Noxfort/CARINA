@@ -14,93 +14,102 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-# File: ui/clients/infrastructure_client.py
+# File: ui/clients/infrastructure_client.py (Pure In-Memory IPC Client)
 # Author: Gabriel Moraes
 # Date: 2026-06-09
 
-"""
-Define o InfrastructureClient.
-
-Nesta versão, ele foi refatorado para operar de forma assíncrona usando uma
-thread, evitando que a busca por arquivos congele a interface do usuário.
-"""
-
 import os
-import json
 import logging
 import threading
+import time
 from typing import Callable
 
 class InfrastructureClient:
     """
-    Busca o status da análise de infraestrutura em uma thread separada.
+    Escuta a fila de resultados IPC da análise de infraestrutura em uma thread separada, 
+    garantindo comunicação 100% em memória sem criar arquivos de cache ou status no disco.
     """
-    # --- CHANGE 1: The constructor now receives a callback function ---
-    def __init__(self, on_complete_callback: Callable[[dict], None]):
-        """
-        Inicializa o cliente.
-
-        Args:
-            on_complete_callback: A função que será chamada pela thread de trabalho
-                                  quando a busca pelo arquivo terminar.
-        """
+    def __init__(self, on_complete_callback: Callable[[dict], None], sas_result_queue=None):
         self.project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         self.on_complete = on_complete_callback
+        self.sas_result_queue = sas_result_queue
 
-    def _find_latest_status_file(self) -> str | None:
-        """Encontra o caminho absoluto para o arquivo analysis_status.json mais recente."""
-        # (The internal logic of this method remains the same)
-        try:
-            from src.utils.paths import get_base_output_dir
-            results_dir = os.path.join(get_base_output_dir(), "results")
-            if not os.path.exists(results_dir): return None
-            
-            ignored_dirs = {"database"}
-            all_scenarios = [
-                d for d in os.listdir(results_dir) 
-                if os.path.isdir(os.path.join(results_dir, d)) and d not in ignored_dirs
-            ]
-            if not all_scenarios: return None
-
-            latest_scenario_name = max(all_scenarios, key=lambda d: os.path.getmtime(os.path.join(results_dir, d)))
-            status_file = os.path.join(
-                results_dir, latest_scenario_name, "infrastructure_analysis", "analysis_status.json"
-            )
-            return status_file if os.path.exists(status_file) else None
-        except Exception as e:
-            logging.error(f"[INFRA_CLIENT] Erro ao procurar arquivo de status: {e}")
-            return None
-
-    # --- CHANGE 2: The search logic is now in a target method for the thread ---
-    def _fetch_thread_target(self):
-        """
-        Este é o método que a thread de trabalho executa em segundo plano.
-        Ele faz a busca lenta pelo arquivo e depois chama o callback com o resultado.
-        """
-        status_file_path = self._find_latest_status_file()
+    def _fetch_thread_target(self, trigger_time: float = None):
         result = {}
+        start_poll = time.time()
+        time_margin = 2.0  # 2 seconds tolerance for timestamp comparison
 
-        if not status_file_path:
+        min_valid_timestamp = (trigger_time - time_margin) if trigger_time is not None else 0.0
+
+        # Dynamically resolve sas_result_queue if not provided at instantiation
+        queue = self.sas_result_queue
+        if queue is None:
+            try:
+                import ui.main_ui as ui_module
+                queue = getattr(ui_module, 'sas_result_queue', None)
+            except Exception as ex:
+                logging.error(f"[InfrastructureClient] Error resolving sas_result_queue dynamically: {ex}")
+
+        if queue is None:
+            logging.error("[InfrastructureClient] sas_result_queue está NULO. Não é possível receber resultados IPC do backend.")
             result = {
                 "status": "error",
-                "message": "Nenhum relatório de análise encontrado. Execute uma simulação primeiro."
+                "message": "Fila IPC de resultados (sas_result_queue) não foi conectada pela interface."
             }
-        else:
+            if self.on_complete:
+                self.on_complete(result)
+            return
+
+        logging.info(f"[InfrastructureClient] Iniciando busca assíncrona por resposta da análise SAS (sem limite de tempo)...")
+
+        # Drain any old/stale messages sitting in the IPC queue before waiting for fresh analysis.
+        try:
+            while True:
+                item = queue.get_nowait()
+                if isinstance(item, dict):
+                    item_time = item.get("timestamp", time.time())
+                    if item_time >= min_valid_timestamp:
+                        logging.info(f"[InfrastructureClient] Mensagem válida capturada na fase de drain (timestamp={item_time}).")
+                        result = item
+                        break
+                    else:
+                        logging.info(f"[InfrastructureClient] Mensagem antiga descartada na limpeza (timestamp={item_time} < min_valid={min_valid_timestamp}).")
+        except Exception:
+            pass
+
+        if result:
+            if self.on_complete:
+                self.on_complete(result)
+            return
+
+        # Poll continuously without timeout for triggered requests
+        while True:
             try:
-                with open(status_file_path, "r", encoding="utf-8") as f:
-                    result = json.load(f)
-            except Exception as e:
-                result = {"status": "error", "message": f"Erro ao ler o arquivo de status: {e}"}
+                ipc_result = queue.get(block=True, timeout=0.5)
+                if ipc_result and isinstance(ipc_result, dict):
+                    msg_time = ipc_result.get("timestamp", time.time())
+                    if msg_time >= min_valid_timestamp:
+                        logging.info(f"[InfrastructureClient] Sucesso: Novo relatório de análise recebido da fila IPC (status={ipc_result.get('status')}).")
+                        result = ipc_result
+                        break
+                    else:
+                        logging.warning(f"[InfrastructureClient] Ignorando resultado IPC com timestamp antigo: {msg_time} < {min_valid_timestamp}")
+            except Exception:
+                pass
+
+            # Passive poll timeout (only when trigger_time is None)
+            if trigger_time is None and (time.time() - start_poll >= 5.0):
+                break
+
+        if not result and trigger_time is None:
+            result = {
+                "status": "error",
+                "message": "Nenhuma análise recebida da Engine."
+            }
         
-        # Calls the callback provided by PlanningView with the result dictionary
-        if self.on_complete:
+        if result and self.on_complete:
             self.on_complete(result)
 
-    # --- CHANGE 3: New public method to start the search ---
-    def start_fetching_latest_analysis(self):
-        """
-        Inicia a busca pelo arquivo de análise em uma nova thread.
-        Este método retorna imediatamente, sem bloquear a UI.
-        """
-        thread = threading.Thread(target=self._fetch_thread_target, daemon=True)
+    def start_fetching_latest_analysis(self, trigger_time: float = None):
+        thread = threading.Thread(target=self._fetch_thread_target, args=(trigger_time,), daemon=True)
         thread.start()

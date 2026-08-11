@@ -1,0 +1,35 @@
+{
+    "timestamp": "2026-08-07 11:35:51",
+    "global_stats": {
+        "average_speed_m_s": 48.14,
+        "average_queue_length": 173.27,
+        "average_efficiency": 0.9479,
+        "average_production": 12627466.5275
+    },
+    "intersections_stats": {
+        "1193472678": {
+            "average_speed_m_s": 29.42,
+            "average_queue_length": 201.78,
+            "average_production": 742551.9964,
+            "average_accumulation": 30094.5576
+        },
+        "1193472566": {
+            "average_speed_m_s": 32.24,
+            "average_queue_length": 160.4,
+            "average_production": 479062.5501,
+            "average_accumulation": 19894.2912
+        },
+        "1193472473": {
+            "average_speed_m_s": 61.23,
+            "average_queue_length": 109.6,
+            "average_production": 287515.5483,
+            "average_accumulation": 12593.9834
+        },
+        "1116667894": {
+            "average_speed_m_s": 15.23,
+            "average_queue_length": 221.29,
+            "average_production": 344909.91,
+            "average_accumulation": 39969.1801
+        }
+    }
+}

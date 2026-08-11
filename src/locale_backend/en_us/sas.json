@@ -59,5 +59,11 @@
       "fatal_error": "[SAS_WORKER] Fatal and unhandled error in SAS worker: {error}",
       "worker_finished": "[SAS_WORKER] SAS Process finished."
     }
+  },
+  "sas_recorder": {
+    "init": "[TrafficDataRecorder] Initialized. Topology edges: {count}, batch_size: {batch_size}",
+    "async_flush_error": "[TrafficDataRecorder] Async flush failed: {error}",
+    "topology_updated": "[TrafficDataRecorder] Topology updated with {count} edges.",
+    "queue_full": "[TrafficDataRecorder] DB flush queue is FULL! Dropping samples."
   }
 }

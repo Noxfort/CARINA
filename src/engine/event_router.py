@@ -91,8 +91,9 @@ class EventRouter:
                     if hft_command:
                         self._execute_command(hft_command[0], hft_command[1], hft_command[2])
 
-            except EOFError:
+            except (EOFError, KeyboardInterrupt, SystemExit):
                 self.trainer.is_running = False
+                break
             except Exception as e:
                 logging.error(f"Event Loop Error: {e}", exc_info=True)
                 
@@ -120,7 +121,8 @@ class EventRouter:
             )
             
         elif module == "hardware" and func == "toggle_connection":
-            self.trainer.connection_manager.toggle_connection(args[0], args[1])
+            action = args[2] if len(args) > 2 else "toggle"
+            self.trainer.connection_manager.toggle_connection(args[0], args[1], action=action)
 
         elif module == "hardware" and func == "apply_override":
             if self.trainer.action_supervisor:

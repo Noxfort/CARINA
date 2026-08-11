@@ -83,4 +83,9 @@ class Orchestrator:
         except Exception as e:
             logging.error(lm.get_string("sds_orchestrator.run.fatal_error", error=e), exc_info=True)
         finally:
+            if hasattr(self, 'ws_server') and self.ws_server:
+                try:
+                    self.ws_server.stop()
+                except Exception:
+                    pass
             logging.info(lm.get_string("sds_orchestrator.run.orchestrator_finished"))

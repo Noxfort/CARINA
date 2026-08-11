@@ -1,0 +1,15 @@
+{
+  "metrics_manager": {
+    "server_started": "[{process}-METRICS] Servidor Prometheus iniciado na porta {port}",
+    "port_in_use": "[{process}-METRICS] Porta {port} ocupada (processo zumbi?).",
+    "port_error": "[{process}-METRICS] Erro ao iniciar na porta {port}: {error}",
+    "generic_error": "[{process}-METRICS] Erro genérico na porta {port}: {error}",
+    "trying_fallback": "[{process}-METRICS] Tentando porta alternativa {port}...",
+    "fallback_started": "[{process}-METRICS] Servidor Prometheus iniciado na porta {port} (Fallback)",
+    "server_disabled": "[{process}-METRICS] Não foi possível iniciar o servidor de métricas (Metrics desativado): {error}",
+    "thread_critical_error": "[{process}-METRICS] Falha crítica ao criar thread do servidor: {error}",
+    "unknown_type": "[{process}-METRICS] Tipo de métrica desconhecido: {type}",
+    "registered": "[{process}-METRICS] Métrica '{name}' registrada.",
+    "already_registered": "[{process}-METRICS] Métrica '{name}' já registrada ou erro: {error}"
+  }
+}

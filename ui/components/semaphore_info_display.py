@@ -49,6 +49,66 @@ class SemaphoreInfoDisplayWidget(ft.Column):
         )
         self.maturity_phase_label = ft.Text(size=12, color=ft.Colors.WHITE54)
         self.maturity_phase_text = ft.Text("---", weight=ft.FontWeight.BOLD, size=16)
+
+        # Hardware Metadata UI Controls (Marca e Modelo)
+        self.hardware_brand_label = ft.Text("Marca:", size=11, color=ft.Colors.WHITE54)
+        self.hardware_brand_text = ft.Text(
+            "Desconectado",
+            weight=ft.FontWeight.BOLD,
+            size=12,
+            color=ft.Colors.CYAN_200,
+            overflow=ft.TextOverflow.ELLIPSIS,
+            max_lines=1,
+            tooltip="Desconectado"
+        )
+        self.hardware_model_label = ft.Text("Modelo:", size=11, color=ft.Colors.WHITE54)
+        self.hardware_model_text = ft.Text(
+            "Desconectado",
+            weight=ft.FontWeight.BOLD,
+            size=12,
+            color=ft.Colors.CYAN_200,
+            overflow=ft.TextOverflow.ELLIPSIS,
+            max_lines=1,
+            tooltip="Desconectado"
+        )
+
+        self.hardware_info_row = ft.Container(
+            content=ft.Row(
+                controls=[
+                    ft.Icon(ft.Icons.MEMORY_ROUNDED, color=ft.Colors.CYAN_400, size=22),
+                    ft.Column(
+                        controls=[
+                            ft.Row(
+                                controls=[
+                                    self.hardware_brand_label,
+                                    ft.Container(content=self.hardware_brand_text, expand=True)
+                                ],
+                                spacing=4,
+                                alignment=ft.MainAxisAlignment.START
+                            ),
+                            ft.Row(
+                                controls=[
+                                    self.hardware_model_label,
+                                    ft.Container(content=self.hardware_model_text, expand=True)
+                                ],
+                                spacing=4,
+                                alignment=ft.MainAxisAlignment.START
+                            ),
+                        ],
+                        spacing=2,
+                        expand=True
+                    )
+                ],
+                alignment=ft.MainAxisAlignment.START,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=10
+            ),
+            padding=ft.padding.symmetric(horizontal=12, vertical=8),
+            border=ft.border.all(1, ft.colors.CYAN_900),
+            border_radius=8,
+            bgcolor=ft.colors.SURFACE_VARIANT,
+            margin=ft.margin.only(bottom=4)
+        )
         
         self.lane_states_title = ft.Text(weight=ft.FontWeight.BOLD)
         self.lane_states_column = ft.Column(
@@ -62,14 +122,13 @@ class SemaphoreInfoDisplayWidget(ft.Column):
             border_radius=5,
             padding=ft.padding.all(8)
         )
-        
-        # Green and Yellow time fields removed as per request
 
         self.controls = [
             ft.Row(
                 [ft.Icon(ft.Icons.TRAFFIC_ROUNDED), self.semaphore_id_text], 
                 alignment=ft.MainAxisAlignment.CENTER
             ),
+            self.hardware_info_row,
             ft.Row(
                 [
                     ft.Icon(ft.Icons.SCHOOL_ROUNDED, color=ft.Colors.WHITE54, size=30),
@@ -97,6 +156,8 @@ class SemaphoreInfoDisplayWidget(ft.Column):
         self.semaphore_id_text_template = lm.get_string("dashboard_view.semaphore_controls_title_prefix")
         self.semaphore_id_text.label = self.semaphore_id_text_template
         self.maturity_phase_label.value = lm.get_string("dashboard_view.maturity_phase_label")
+        self.hardware_brand_label.value = lm.get_string("dashboard_view.hardware_brand_label", default="Marca:")
+        self.hardware_model_label.value = lm.get_string("dashboard_view.hardware_model_label", default="Modelo:")
         self.lane_states_title.value = lm.get_string("dashboard_view.lane_states_title")
         if self.page: self.update()
 
@@ -108,6 +169,43 @@ class SemaphoreInfoDisplayWidget(ft.Column):
         if self._current_semaphore_id != semaphore_id:
             self._current_semaphore_id = semaphore_id
             self.semaphore_id_text.value = self.alias_manager.get_alias(semaphore_id)
+            self._last_known_brand_id = semaphore_id
+            self._last_known_brand = None
+            self._last_known_model = None
+        
+        # Update Brand & Model using 3-state logic
+        not_connected_label = self.locale_manager.get_string("dashboard_view.not_connected", default="Desconectado")
+        not_informed_label = self.locale_manager.get_string("dashboard_view.not_informed", default="Não informado")
+
+        brand = None
+        model = None
+
+        try:
+            from src.controller.connection_manager import HardwareConnectionManager
+            conn_hw = HardwareConnectionManager.get_global_hardware_info(semaphore_id)
+            if conn_hw and conn_hw.get("is_connected"):
+                brand = conn_hw.get("brand") if conn_hw.get("brand") else not_informed_label
+                model = conn_hw.get("model") if conn_hw.get("model") else not_informed_label
+            else:
+                brand = not_connected_label
+                model = not_connected_label
+        except Exception:
+            pass
+
+        # Fallback to semaphore_data if conn_hw was not available
+        if not brand or brand == not_connected_label:
+            if semaphore_data and semaphore_data.get("brand"):
+                brand = semaphore_data.get("brand")
+                model = semaphore_data.get("model", not_informed_label)
+
+        if not brand:
+            brand = not_connected_label
+            model = not_connected_label
+
+        self.hardware_brand_text.value = str(brand)
+        self.hardware_brand_text.tooltip = str(brand)
+        self.hardware_model_text.value = str(model)
+        self.hardware_model_text.tooltip = str(model)
         
         # Update Maturity Phase
         translation_key = f"maturity_phases.{phase_key.upper()}"

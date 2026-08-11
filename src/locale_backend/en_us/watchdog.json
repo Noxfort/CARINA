@@ -1,10 +1,20 @@
 {
   "watchdog": {
-    "run": {
-      "process_started": "Watchdog process started. Sending continuous safety signal.",
-      "shutdown_signal": "Watchdog receiving shutdown signal.",
-      "loop_error": "Error in Watchdog loop: {error}",
-      "process_finished": "Watchdog process finished."
-    }
+    "init": "Watchdog Logic initialized with {timeout}ms timeout threshold and {grace}s grace period.",
+    "triggered": "WATCHDOG TRIGGERED: Synapse silence detected ({elapsed:.1f}ms > {threshold:.0f}ms). Switching to FIXED-TIME mode. [triggers: {consecutive} consecutive, {total} total]",
+    "flapping": "WATCHDOG FLAPPING DETECTED: {consecutive} consecutive triggers. This indicates a SYSTEMIC latency issue. Check HFT diagnostics log.",
+    "activation_error": "Error executing Watchdog activation callback: {error}",
+    "recovery": "WATCHDOG RECOVERY: Signal restored. Resuming Neural Network control. [was {consecutive} consecutive trigger(s)]",
+    "deactivation_error": "Error executing Watchdog deactivation callback: {error}",
+    "process_started": "--- Watchdog Process Started ---",
+    "timeout_loaded": "Loaded timeout from settings: {timeout}ms",
+    "settings_not_found": "Settings file not found at {path}. Using default timeout: {timeout}ms",
+    "settings_error": "Error reading settings: {error}. Using default timeout.",
+    "failsafe_triggered": "[Watchdog] ⚠️ FAILSAFE TRIGGERED — Synapse connection lost.",
+    "heartbeat_restored": "[Watchdog] ✅ RECOVERY — Synapse heartbeat restored. AI Neural Network may resume control.",
+    "loop_active": "Watchdog monitoring loop active. Waiting for Heartbeats...",
+    "stop_signal": "Stop signal received. Shutting down Watchdog.",
+    "loop_error": "Error in Watchdog loop: {error}",
+    "wait_error": "Error in Watchdog wait phase: {error}"
   }
 }

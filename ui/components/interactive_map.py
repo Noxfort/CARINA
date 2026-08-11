@@ -33,11 +33,12 @@ class InteractiveMap(ft.Container):
     matrix rendering to PlanningMapRenderer. (SOLID SRP/DIP compliance).
     """
 
-    def __init__(self, project_root: str, on_node_click=None):
+    def __init__(self, project_root: str, on_node_click=None, on_topology_loaded=None):
         super().__init__(expand=True)
         
         self.project_root = project_root
         self.on_node_click = on_node_click 
+        self.on_topology_loaded = on_topology_loaded
         
         self.topology = None
         self.drawn_nodes_cache = [] 
@@ -106,6 +107,11 @@ class InteractiveMap(ft.Container):
             
             self.interaction_handler.center_and_reset_zoom()
             self.update()
+            if self.on_topology_loaded:
+                try:
+                    self.on_topology_loaded()
+                except Exception as ex:
+                    print(f"[InteractiveMap Orchestrator] Error calling on_topology_loaded: {ex}")
         else:
             print(f"[InteractiveMap Orchestrator] Map Asset Loader failed to find topology.")
 

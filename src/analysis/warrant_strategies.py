@@ -28,20 +28,70 @@ class BaseWarrant(ABC):
 
 class VolumeWarrant(BaseWarrant):
     def evaluate(self, all_edges: dict, primary_edges: dict, secondary_edges: dict, params: dict) -> dict:
-        min_primary = params.get('min_volume_primary', 500)
-        min_secondary = params.get('min_volume_secondary', 150)
-        
-        vol_primary = self._compute_avg_volume(primary_edges)
-        vol_secondary = self._compute_avg_volume(secondary_edges)
+        legacy = params.get('_legacy_data', {})
+        if not primary_edges and not secondary_edges and legacy:
+            vol_primary = legacy.get('volume', 0.0)
+            vol_secondary = legacy.get('vol_secondary', 0.0)
+        else:
+            vol_primary = self._compute_avg_volume(primary_edges)
+            vol_secondary = self._compute_avg_volume(secondary_edges)
 
-        met = (vol_primary >= min_primary and vol_secondary >= min_secondary)
+        # Get lane counts and speed limits to look up the correct MUTCD Table 4C-1 thresholds
+        lanes_primary = 1
+        speed_primary = 0.0
+        for samples in primary_edges.values():
+            if samples:
+                sample = samples[0]
+                lanes_primary = max(lanes_primary, sample.get('num_lanes', 1))
+                speed_primary = max(speed_primary, sample.get('speed_limit', 0))
+
+        lanes_secondary = 1
+        for samples in secondary_edges.values():
+            if samples:
+                sample = samples[0]
+                lanes_secondary = max(lanes_secondary, sample.get('num_lanes', 1))
+
+        # Check speed limit (40 mph ≈ 70 km/h ≈ 19.44 m/s)
+        high_speed = (speed_primary > 19.44)
+
+        # Condition A Thresholds (Minimum Vehicular Volume)
+        if lanes_primary >= 2:
+            cond_a_major = 600
+            cond_a_minor = 200 if lanes_secondary >= 2 else 150
+        else:
+            cond_a_major = 500
+            cond_a_minor = 200 if lanes_secondary >= 2 else 150
+
+        # Condition B Thresholds (Interruption of Continuous Traffic)
+        if lanes_primary >= 2:
+            cond_b_major = 900
+            cond_b_minor = 100 if lanes_secondary >= 2 else 75
+        else:
+            cond_b_major = 750
+            cond_b_minor = 100 if lanes_secondary >= 2 else 75
+
+        # Apply 70% factor if speed limit is high
+        if high_speed:
+            cond_a_major = int(cond_a_major * 0.7)
+            cond_a_minor = int(cond_a_minor * 0.7)
+            cond_b_major = int(cond_b_major * 0.7)
+            cond_b_minor = int(cond_b_minor * 0.7)
+
+        # Check if Condition A or B is met
+        met_a = (vol_primary >= cond_a_major and vol_secondary >= cond_a_minor)
+        # For interruption of continuous traffic, both major and minor approach volumes must be met
+        met_b = (vol_primary >= cond_b_major and vol_secondary >= cond_b_minor)
+        met = met_a or met_b
+
+        threshold_primary = cond_a_major if met_a or not met_b else cond_b_major
+        threshold_secondary = cond_a_minor if met_a or not met_b else cond_b_minor
 
         return {
             'met': met,
             'avg_volume_primary': round(vol_primary, 1),
             'avg_volume_secondary': round(vol_secondary, 1),
-            'threshold_primary': min_primary,
-            'threshold_secondary': min_secondary,
+            'threshold_primary': threshold_primary,
+            'threshold_secondary': threshold_secondary,
         }
 
     def _compute_avg_volume(self, edges: dict) -> float:
@@ -57,16 +107,22 @@ class VolumeWarrant(BaseWarrant):
 class DelayWarrant(BaseWarrant):
     def evaluate(self, all_edges: dict, primary_edges: dict, secondary_edges: dict, params: dict) -> dict:
         unacceptable_delay = params.get('unacceptable_delay', 90.0)
+        legacy = params.get('_legacy_data', {})
         all_delays = []
 
-        for edge_id, samples in secondary_edges.items():
-            for s in samples:
-                edge_length = s.get('edge_length', 0)
-                v_real = s.get('mean_speed', 0)
-                v_limit = s.get('speed_limit', 0)
-                delay = compute_delay(edge_length, v_real, v_limit)
-                if edge_length > 0 and v_real > 0.1: # Only track valid samples
-                    all_delays.append(delay)
+        if not secondary_edges and legacy:
+            avg_delay = legacy.get('avg_delay', 0.0)
+            if avg_delay > 0:
+                all_delays.append(avg_delay)
+        else:
+            for edge_id, samples in secondary_edges.items():
+                for s in samples:
+                    edge_length = s.get('edge_length', 0)
+                    v_real = s.get('mean_speed', 0)
+                    v_limit = s.get('speed_limit', 0)
+                    delay = compute_delay(edge_length, v_real, v_limit)
+                    if edge_length > 0 and v_real > 0.1: # Only track valid samples
+                        all_delays.append(delay)
 
         avg_delay = sum(all_delays) / len(all_delays) if all_delays else 0.0
         met = avg_delay > unacceptable_delay

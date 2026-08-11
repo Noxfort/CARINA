@@ -6,10 +6,24 @@
     "initialize": {
       "start": "[STRATEGIC_COORD] Inicializando o subsistema estratégico...",
       "max_state_dim": "[STRATEGIC_COORD] Dimensão máxima do estado local (para padding): {size}",
-      "model_created": "[STRATEGIC_COORD] Modelo GAT Estrategista criado e movido para o dispositivo: {device}."
+      "model_created": "[STRATEGIC_COORD] Modelo GAT Estrategista criado e movido para o dispositivo: {device}.",
+      "edge_index_created": "[StrategicCoordinator] graph_edge_index criado no {device} com shape: {shape}",
+      "no_logic_found": "Nenhuma definição de lógica encontrada para TL {tl_id}, usando 0 fases verdes.",
+      "dim_error": "Erro ao obter dimensões para TL {tl_id}: {error}",
+      "zero_dim_error": "max_state_dim calculated as zero or negative. Cannot initialize GAT model."
     },
     "update": {
-      "running": "[STRATEGIC_COORD] A executar atualização do GAT (Tempo: {time}s)"
+      "running": "[STRATEGIC_COORD] A executar atualização do GAT (Tempo: {time}s)",
+      "edge_index_not_init": "[StrategicCoordinator] graph_edge_index não inicializado. Pulando update.",
+      "invalid_state_debug": "Estado inválido ou ausente para {tl_id} no tempo {time}. Usando padding.",
+      "no_valid_features": "Nenhum feature de nó válido para processar no tempo {time}.",
+      "shape_mismatch": "Shape mismatch: output_vectors ({out}) vs node_features ({features}). Não foi possível atualizar strategic_vectors.",
+      "no_valid_agents": "Nenhum agente com estado válido no tempo {time}. strategic_vectors não atualizados.",
+      "gat_exec_error": "Erro durante a execução do GAT model: {error}"
+    },
+    "vector": {
+      "not_init_warning": "strategic_vectors não inicializado ou índice {idx} fora dos limites para tl_id {tl_id}.",
+      "index_error": "IndexError ao acessar strategic_vectors no índice {idx} para tl_id {tl_id}. Shape: {shape}"
     }
   }
 }

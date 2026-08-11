@@ -76,32 +76,76 @@ class SettingsManager:
         
         'tensorboard_enabled': 'TENSORBOARD', 'tensorboard_log_dir': 'TENSORBOARD',
         
-        # --- CARINA XAI Report Settings ---
-        'xai_logo_path': 'XAI_REPORT',
-        'xai_secretary_name': 'XAI_REPORT',
-        'xai_secretary_title': 'XAI_REPORT',
-        'xai_agency_name': 'XAI_REPORT',
-        'xai_department_name': 'XAI_REPORT',
-        'xai_report_title': 'XAI_REPORT',
-        'xai_block_order': 'XAI_REPORT',
-        'xai_font_name': 'XAI_REPORT',
-        'xai_font_size': 'XAI_REPORT',
-        'xai_margin_top': 'XAI_REPORT',
-        'xai_margin_bottom': 'XAI_REPORT',
-        'xai_margin_left': 'XAI_REPORT',
-        'xai_margin_right': 'XAI_REPORT',
-        'xai_line_spacing': 'XAI_REPORT',
-        'xai_alignment': 'XAI_REPORT'
+        # --- CARINA Universal Report Formatting Settings ---
+        'decimal_separator': 'REPORT_FORMATTING',
+        'report_logo_path': 'REPORT_FORMATTING',
+        'report_city': 'REPORT_FORMATTING',
+        'report_state_uf': 'REPORT_FORMATTING',
+        'report_secretary_name': 'REPORT_FORMATTING',
+        'report_secretary_title': 'REPORT_FORMATTING',
+        'report_agency_name': 'REPORT_FORMATTING',
+        'report_department_name': 'REPORT_FORMATTING',
+        'report_title': 'REPORT_FORMATTING',
+        'report_block_order': 'REPORT_FORMATTING',
+        'report_font_name': 'REPORT_FORMATTING',
+        'report_font_size': 'REPORT_FORMATTING',
+        'report_margin_top': 'REPORT_FORMATTING',
+        'report_margin_bottom': 'REPORT_FORMATTING',
+        'report_margin_left': 'REPORT_FORMATTING',
+        'report_margin_right': 'REPORT_FORMATTING',
+        'report_line_spacing': 'REPORT_FORMATTING',
+        'report_alignment': 'REPORT_FORMATTING',
+        'report_speed_unit': 'REPORT_FORMATTING',
+        'report_ordinance_enabled': 'REPORT_FORMATTING',
+        'report_ordinance_number': 'REPORT_FORMATTING',
+        'report_slm_device': 'REPORT_FORMATTING',
+        'report_slm_gpu_layers': 'REPORT_FORMATTING',
+
+        # Legacy XAI key aliases mapped to REPORT_FORMATTING section
+        'xai_logo_path': 'REPORT_FORMATTING',
+        'xai_secretary_name': 'REPORT_FORMATTING',
+        'xai_secretary_title': 'REPORT_FORMATTING',
+        'xai_agency_name': 'REPORT_FORMATTING',
+        'xai_department_name': 'REPORT_FORMATTING',
+        'xai_report_title': 'REPORT_FORMATTING',
+        'xai_block_order': 'REPORT_FORMATTING',
+        'xai_font_name': 'REPORT_FORMATTING',
+        'xai_font_size': 'REPORT_FORMATTING',
+        'xai_margin_top': 'REPORT_FORMATTING',
+        'xai_margin_bottom': 'REPORT_FORMATTING',
+        'xai_margin_left': 'REPORT_FORMATTING',
+        'xai_margin_right': 'REPORT_FORMATTING',
+        'xai_line_spacing': 'REPORT_FORMATTING',
+        'xai_alignment': 'REPORT_FORMATTING',
+        'xai_speed_unit': 'REPORT_FORMATTING',
+        'xai_slm_device': 'REPORT_FORMATTING',
+        'xai_slm_gpu_layers': 'REPORT_FORMATTING'
     }
 
-    def __init__(self):
+    def __init__(self, locale_manager=None):
         """
         Initializes the manager, locating the settings.ini file using resource_path.
         """
-        # --- CHANGE 2: Use resource_path for self.config_path ---
+        self.locale_manager = locale_manager
         self.config_path = resource_path(os.path.join("config", "settings.ini"))
-        # --- END OF CHANGE 2 ---
-        logging.info(f"[SettingsManager] Gerenciador de configurações apontando para: {self.config_path}")
+        log_msg = self._get_string("settings_manager.init", default="[SettingsManager] Settings manager pointing to: {path}", path=self.config_path)
+        logging.debug(log_msg)
+
+    def _get_string(self, key: str, default: str = None, **kwargs) -> str:
+        if self.locale_manager and hasattr(self.locale_manager, 'get_string'):
+            return self.locale_manager.get_string(key, default=default, **kwargs)
+        return default.format(**kwargs) if default and kwargs else (default or key)
+
+    def load_config(self) -> configparser.ConfigParser:
+        """
+        Reads and returns the configparser.ConfigParser instance for the settings.ini file.
+        """
+        config = configparser.ConfigParser()
+        if not os.path.exists(self.config_path):
+            logging.error(self._get_string("settings_manager.not_found", default="Configuration file not found at {path}", path=self.config_path))
+            raise FileNotFoundError(f"Settings file not found at {self.config_path}")
+        config.read(self.config_path, encoding='utf-8')
+        return config
 
     def load_settings(self) -> Dict[str, Any]:
         """
@@ -110,7 +154,7 @@ class SettingsManager:
         """
         config = configparser.ConfigParser()
         if not os.path.exists(self.config_path):
-            logging.error(f"Arquivo de configuração não encontrado em {self.config_path}")
+            logging.error(self._get_string("settings_manager.not_found", default="Configuration file not found at {path}", path=self.config_path))
             return {}
 
         config.read(self.config_path, encoding='utf-8')
@@ -146,8 +190,19 @@ class SettingsManager:
         
         for env_key, settings_key in env_overrides.items():
             env_val = os.getenv(env_key)
-            if env_val:
+            if env_val and settings_key not in settings_dict:
                 settings_dict[settings_key] = env_val
+
+        # --- UNIFIED REPORT FORMATTING ALIASES (XAI, MFD, PLANNING) ---
+        for k, v in list(settings_dict.items()):
+            if k.startswith("xai_"):
+                report_alias = "report_" + k[4:]
+                if report_alias not in settings_dict:
+                    settings_dict[report_alias] = v
+            elif k.startswith("report_"):
+                xai_alias = "xai_" + k[7:]
+                if xai_alias not in settings_dict:
+                    settings_dict[xai_alias] = v
 
         return settings_dict
 
@@ -158,7 +213,7 @@ class SettingsManager:
         """
         config = configparser.ConfigParser()
         if not os.path.exists(self.config_path):
-            logging.error(f"Arquivo de configuração não encontrado. Não é possível salvar.")
+            logging.error(self._get_string("settings_manager.save_not_found", default="Configuration file not found. Unable to save."))
             return
 
         config.read(self.config_path, encoding='utf-8')
@@ -178,6 +233,6 @@ class SettingsManager:
         try:
             with open(self.config_path, 'w', encoding='utf-8') as configfile:
                 config.write(configfile)
-            logging.info(f"Configurações salvas com sucesso em {self.config_path}")
+            logging.info(self._get_string("settings_manager.save_success", default="Settings saved successfully at {path}", path=self.config_path))
         except IOError as e:
-            logging.error(f"Falha ao escrever no arquivo de configuração: {e}")
+            logging.error(self._get_string("settings_manager.save_error", default="Failed to write configuration file: {error}", error=e))

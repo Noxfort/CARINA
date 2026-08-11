@@ -119,7 +119,7 @@ class XaiClient:
         )
         thread.start()
 
-    def _analysis_worker_thread_target(self, agent_id: str, timeout_seconds: int = 300):
+    def _analysis_worker_thread_target(self, agent_id: str, timeout_seconds: int = 900):
         """
         Main worker loop for the analysis request.
         Writes a .request file and polls for a .response file.

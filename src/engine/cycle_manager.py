@@ -21,6 +21,7 @@
 import os
 import logging
 import numpy as np
+import torch
 from multiprocessing.connection import Connection
 from typing import Dict, Any
 
@@ -56,7 +57,7 @@ class CycleManager:
             agents (Dict): Dicionário de agentes ativos.
             accumulated_metrics (Dict): Métricas brutas coletadas durante o episódio.
         """
-        logging.info(f"--- FIM DO CICLO DE TREINO (Passo {step_counter}) | AVALIAÇÃO DE MATURIDADE ---")
+        logging.info(f"--- FIM DO CICLO (Passo {step_counter}) | AVALIAÇÃO DE MATURIDADE ---")
         
         # 1. Metrics Aggregation
         agent_metrics_summary = self._aggregate_metrics(accumulated_metrics)
@@ -71,6 +72,15 @@ class CycleManager:
         
         # 3. Physical Checkpoints (Now it will save with the ALREADY updated phase)
         self._save_checkpoints(agents)
+        
+        # Clear agent memory buffers to prevent RAM leak in HFT mode
+        for agent in agents.values():
+            if hasattr(agent, 'memory'):
+                agent.memory.clear()
+                
+        # Force empty PyTorch CUDA cache if GPU is available to prevent fragmentation/leak
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         
         # 4. Sync with UI
         if promotion_occurred:
@@ -102,8 +112,16 @@ class CycleManager:
         """Calcula a média das recompensas e entropias acumuladas."""
         summary = {}
         for tl_id, metrics in accumulated_metrics.items():
-            mean_reward = np.mean(metrics['rewards']) if metrics['rewards'] else 0.0
-            mean_entropy = np.mean(metrics['entropies']) if metrics['entropies'] else 0.0
+            count = metrics.get('count', 0)
+            if count > 0:
+                mean_reward = metrics['reward_sum'] / count
+                mean_entropy = metrics['entropy_sum'] / count
+            else:
+                # Fallback support for lists
+                rewards_list = metrics.get('rewards', [])
+                entropies_list = metrics.get('entropies', [])
+                mean_reward = np.mean(rewards_list) if rewards_list else 0.0
+                mean_entropy = np.mean(entropies_list) if entropies_list else 0.0
             
             summary[tl_id] = {
                 'reward': mean_reward,

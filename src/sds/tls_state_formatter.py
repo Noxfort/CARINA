@@ -111,17 +111,39 @@ class TlsStateFormatter:
         tls_phases = raw_data.get('tls_phases', {})
         panel_data = {}
         
+        hw_info_map = raw_data.get('hardware_status', {})
+        
         for tl_id, phase in tls_phases.items():
             str_tl_id = str(tl_id)
             incoming_edges = TlsStateFormatter._tl_incoming_edges.get(str_tl_id, [])
             
             # Now passing tl_id and phase explicitly to the Provider
             junction_state = TlsStateProvider.get_live_states_for_junction(incoming_edges, str_tl_id, phase)
+
+            # Retrieve brand & model if available in hardware status or query active ConnectionManager
+            tl_hw = hw_info_map.get(str_tl_id, {}) or hw_info_map.get(tl_id, {})
+            brand = tl_hw.get("brand")
+            model = tl_hw.get("model")
+
+            if not brand or brand in ["Não informado", "Desconectado"]:
+                try:
+                    from src.controller.connection_manager import HardwareConnectionManager
+                    conn_hw = HardwareConnectionManager.get_global_hardware_info(str_tl_id)
+                    if conn_hw:
+                        brand = conn_hw.get("brand", "Desconectado")
+                        model = conn_hw.get("model", "Desconectado")
+                except Exception:
+                    pass
+
+            brand = brand if brand else "Desconectado"
+            model = model if model else "Desconectado"
                 
             panel_data[str_tl_id] = { 
                 "phase": phase, 
                 "lanes_state": junction_state.get("lanes_state", {}),
-                "display_state": junction_state.get("display_state", "RED") 
+                "display_state": junction_state.get("display_state", "RED"),
+                "brand": brand,
+                "model": model
             }
             
         return panel_data

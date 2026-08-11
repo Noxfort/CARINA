@@ -1,0 +1,50 @@
+{
+  "pt_br": {
+    "speed_improved": "MELHORIA SIGNIFICATIVA",
+    "prod_expanded": "GANHO DE ESCOAMENTO",
+    "queue_reduced": "REDUÇÃO DE FILAS",
+    "delay_reduced": "REDUÇÃO DE ATRASO",
+    "eff_optimized": "OTIMIZAÇÃO PLENA",
+    "stable": "ESTÁVEL"
+  },
+  "en": {
+    "speed_improved": "SIGNIFICANT IMPROVEMENT",
+    "prod_expanded": "CAPACITY EXPANSION",
+    "queue_reduced": "QUEUE REDUCTION",
+    "delay_reduced": "DELAY REDUCTION",
+    "eff_optimized": "FULL OPTIMIZATION",
+    "stable": "STABLE"
+  },
+  "es": {
+    "speed_improved": "MEJORA SIGNIFICATIVA",
+    "prod_expanded": "EXPANSIÓN DE CAPACIDAD",
+    "queue_reduced": "REDUCCIÓN DE COLAS",
+    "delay_reduced": "REDUCCIÓN DE DEMORA",
+    "eff_optimized": "OPTIMIZACIÓN PLENA",
+    "stable": "ESTABLE"
+  },
+  "fr": {
+    "speed_improved": "AMÉLIORATION SIGNIFICATIVE",
+    "prod_expanded": "AUGMENTATION DU DÉBIT",
+    "queue_reduced": "RÉDUCTION DES FILES",
+    "delay_reduced": "RÉDUCTION DU RETARD",
+    "eff_optimized": "OPTIMISATION COMPLÈTE",
+    "stable": "STABLE"
+  },
+  "ru": {
+    "speed_improved": "ЗНАЧИТЕЛЬНОЕ УЛУЧШЕНИЕ",
+    "prod_expanded": "УВЕЛИЧЕНИЕ ПРОПУСКНОЙ СПОСОБНОСТИ",
+    "queue_reduced": "СОКРАЩЕНИЕ ОЧЕРЕДЕЙ",
+    "delay_reduced": "СОКРАЩЕНИЕ ЗАДЕРЖЕК",
+    "eff_optimized": "ПОЛНАЯ ОПТИМИЗАЦИЯ",
+    "stable": "СТАБИЛЬНО"
+  },
+  "zh": {
+    "speed_improved": "显著提升",
+    "prod_expanded": "通行能力扩大",
+    "queue_reduced": "排队减少",
+    "delay_reduced": "延误减少",
+    "eff_optimized": "全面优化",
+    "stable": "稳定"
+  }
+}

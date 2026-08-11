@@ -1,0 +1,7 @@
+{
+  "audit_logger": {
+    "read_error": "[AuditLogger] Error reading audit log: {error}",
+    "save_error": "[AuditLogger] Error saving audit log: {error}",
+    "action_logged": "[AUDIT] User '{username}' performed '{action}'. Details: {details}"
+  }
+}

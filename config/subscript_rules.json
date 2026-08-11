@@ -1,0 +1,14 @@
+{
+  "subscript_regex_pattern": "\\b([a-zA-Z]{1,3})_\\{?([a-zA-Z0-9]+)\\}?|\\b(v)(real|limite)\\b|\\b(F)(ideal)\\b|\\b(P)(95)\\b",
+  "recognized_subscript_terms": [
+    "v_real",
+    "v_limite",
+    "F_ideal",
+    "P_95",
+    "P95",
+    "v_reg",
+    "v_med",
+    "N_crit",
+    "Q_max"
+  ]
+}

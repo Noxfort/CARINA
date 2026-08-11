@@ -52,24 +52,19 @@ class DataBufferManager:
 
     def add_sample(self, timestamp: float, edge_data: Dict[str, Dict[str, float]]) -> None:
         """
-        Adds a new sample to the collection buffer.
+        Adds a new sample to the collection buffer, keeping only the latest to minimize RAM usage.
         
         Args:
             timestamp (float): The timestamp of the sample
             edge_data (Dict): Dictionary with edge_id as key and dict with 'occupancy', 'speed', 'queue' as values
         """
         with self.buffer_lock:
-            # Add data to buffer as (timestamp, value) tuples
             for edge_id, metrics in edge_data.items():
-                self.data_buffer[edge_id]['occ'].append((timestamp, metrics.get('occupancy', 0.0)))
-                self.data_buffer[edge_id]['spd'].append((timestamp, metrics.get('speed', 0.0)))
-                self.data_buffer[edge_id]['q'].append((timestamp, metrics.get('queue', 0.0)))
+                self.data_buffer[edge_id]['occ'] = [(timestamp, metrics.get('occupancy', 0.0))]
+                self.data_buffer[edge_id]['spd'] = [(timestamp, metrics.get('speed', 0.0))]
+                self.data_buffer[edge_id]['q'] = [(timestamp, metrics.get('queue', 0.0))]
             
             self.stats['samples_collected'] += 1
-            
-            # Prevent buffer from growing too large
-            if self.stats['samples_collected'] % 1000 == 0:
-                self._trim_buffer()
 
     def get_buffer_data(self) -> Dict[str, Dict[str, list]]:
         """

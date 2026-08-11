@@ -1,18 +1,13 @@
 {
   "action_supervisor": {
     "init": {
-      "actuator_created": "O 'Atuador' do ambiente (ActionSupervisor) foi criado.",
-      "min_green_time_rule": "Regra de segurança ativada: Tempo mínimo de verde = {time}s."
+      "actuator_created": "ActionSupervisor inicializado com o ConnectionManager."
     },
-    "reset": {
-      "success": "Supervisor de Ações resetado com sucesso."
-    },
-    "veto": {
-      "received": "[SUPERVISOR] Veto do Guardião recebido para o semáforo {tl_id}. Ação {action} será bloqueada."
-    },
-    "apply": {
-      "action_blocked": "[SUPERVISOR] Ação {action} bloqueada pelo Guardião para o semáforo {tl_id}.",
-      "min_time_not_met": "Tempo mínimo de verde ainda não atingido para o semáforo {tl_id}. Ação ignorada."
-    }
+    "veto_blocked": "[{tl_id}] Ação bloqueada pelo veto do Guardian.",
+    "override_active": "[{tl_id}] Ignorando send_stage_hold devido a sobreposição ativa: {state}",
+    "shutdown_global": "[ActionSupervisor] DESLIGAMENTO global: Parando heartbeat para o semáforo {ip}",
+    "flash_sent": "[{tl_id}] Comando FLASH (Alerta) enviado ao hardware via ActionSupervisor.",
+    "dark_sent": "[{tl_id}] Comando DARK (Desligado) enviado ao hardware via ActionSupervisor.",
+    "normal_returned": "[{tl_id}] Semáforo retornado à operação normal pelo operador."
   }
 }

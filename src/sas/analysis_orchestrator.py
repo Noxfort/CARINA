@@ -33,22 +33,24 @@ if src_path not in sys.path:
 
 from sas.data_collector import DataCollector
 from sas.analyzer_engine import AnalyzerEngine
+from sas.analysis_handler import AnalysisHandler
 from database.database_manager import DatabaseManager
 
 if TYPE_CHECKING:
     from utils.locale_manager_backend import LocaleManagerBackend
 
-class AnalysisOrchestrator:
-    """The maestro that manages the workflow of the SAS service."""
 
-    def __init__(self, sas_data_queue: Queue, settings: configparser.ConfigParser, db_data_queue: Queue, locale_manager: 'LocaleManagerBackend'):
+class AnalysisOrchestrator:
+    """The maestro that manages the workflow of the SAS service, delegating processing to AnalysisHandler."""
+
+    def __init__(self, sas_data_queue: Queue, settings: configparser.ConfigParser, db_data_queue: Queue, locale_manager: 'LocaleManagerBackend', sas_result_queue: Queue = None):
         self.data_queue = sas_data_queue
         self.settings = settings
         self.locale_manager = locale_manager
         lm = self.locale_manager
         
         self.collector = DataCollector(self.locale_manager)
-        self.engine = AnalyzerEngine(self.settings, db_data_queue, self.locale_manager)
+        self.engine = AnalyzerEngine(self.settings, db_data_queue, self.locale_manager, sas_result_queue)
         
         # DatabaseManager for V2 DB-based analysis (historical traffic samples)
         try:
@@ -63,6 +65,12 @@ class AnalysisOrchestrator:
         logging.info(lm.get_string("sas_orchestrator.init.analysis_frequency_set", freq=self.frequency))
             
         self.last_analysis_time = 0
+        self.last_scenario_name = "hft_live_session"
+        self.last_net_file_path = None
+        self.current_run_id = None
+        self.last_sim_time = None
+
+        self.handler = AnalysisHandler(self)
 
         logging.info(lm.get_string("sas_orchestrator.init.orchestrator_created"))
 
@@ -100,7 +108,7 @@ class AnalysisOrchestrator:
         """
         Inicia o serviço e entra no loop principal de coleta e análise.
         """
-        current_run_id = None
+        self.current_run_id = None
         lm = self.locale_manager
         try:
             logging.info(lm.get_string("sas_orchestrator.run.main_loop_start"))
@@ -109,48 +117,8 @@ class AnalysisOrchestrator:
 
                 if raw_sim_data is None:
                     break
-                
-                # --- FIX: HFT Packet Filtering ---
-                # The RequestProcessor sends Tuples (type, payload) to the UI (SDS).
-                # SAS (Analysis) should ignore these packages and focus only on the full simulation dictionaries.
-                if isinstance(raw_sim_data, tuple):
-                    continue
-                # ------------------------------------------
 
-                if current_run_id is None and isinstance(raw_sim_data.get("run_id"), int):
-                    current_run_id = raw_sim_data["run_id"]
-                    logging.info(lm.get_string("sas_orchestrator.run.run_id_captured", run_id=current_run_id))
-
-                self.collector.collect(raw_sim_data)
-
-                current_sim_time = raw_sim_data.get('sim_time', 0)
-                
-                is_past_initial_delay = current_sim_time >= self.initial_delay
-                is_time_for_analysis = (current_sim_time - self.last_analysis_time) >= self.frequency
-
-                if is_past_initial_delay and is_time_for_analysis:
-                    logging.info(lm.get_string("sas_orchestrator.run.analysis_triggered", time=current_sim_time))
-
-                    accumulated_data = self.collector.get_accumulated_data()
-                    
-                    if accumulated_data and current_run_id is not None:
-                        scenario_name = raw_sim_data.get('scenario_name', 'default_scenario')
-                        net_file_path = raw_sim_data.get('net_file')
-                        
-                        self.engine.run_analysis(
-                            accumulated_data=accumulated_data, 
-                            sim_duration=current_sim_time, 
-                            scenario_name=scenario_name,
-                            net_file_path=net_file_path,
-                            run_id=current_run_id,
-                            db_manager=self.db_manager
-                        )
-                    elif current_run_id is None:
-                        logging.warning(lm.get_string("sas_orchestrator.run.analysis_skipped_no_run_id"))
-                    
-                    self.last_analysis_time = current_sim_time
-                    self.collector.reset()
-                    logging.info(lm.get_string("sas_orchestrator.run.analysis_cycle_complete"))
+                self.handler.process_message(raw_sim_data)
 
         except KeyboardInterrupt:
             logging.info(lm.get_string("sas_orchestrator.run.interrupt_received"))

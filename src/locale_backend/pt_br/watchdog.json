@@ -1,10 +1,20 @@
 {
   "watchdog": {
-    "run": {
-      "process_started": "Processo do Watchdog iniciado. Enviando sinal de segurança contínuo.",
-      "shutdown_signal": "Watchdog recebendo sinal para encerrar.",
-      "loop_error": "Erro no loop do Watchdog: {error}",
-      "process_finished": "Processo do Watchdog finalizado."
-    }
+    "init": "Watchdog Logic inicializado com limite de tempo limite de {timeout}ms e período de carência de {grace}s.",
+    "triggered": "WATCHDOG ATIVADO: Silêncio do Synapse detectado ({elapsed:.1f}ms > {threshold:.0f}ms). Alternando para modo TEMPO-FIXO. [gatilhos: {consecutive} consecutivos, {total} total]",
+    "flapping": "FLAPPING DO WATCHDOG DETECTADO: {consecutive} gatilhos consecutivos. Isto indica um problema SISTÊMICO de latência. Verifique o log de diagnósticos HFT.",
+    "activation_error": "Erro ao executar callback de ativação do Watchdog: {error}",
+    "recovery": "RECUPERAÇÃO DO WATCHDOG: Sinal restaurado. Retomando controle da Rede Neural. [havia {consecutive} gatilho(s) consecutivo(s)]",
+    "deactivation_error": "Erro ao executar callback de desativação do Watchdog: {error}",
+    "process_started": "--- Processo Watchdog Iniciado ---",
+    "timeout_loaded": "Limite de tempo limite carregado das configurações: {timeout}ms",
+    "settings_not_found": "Arquivo de configurações não encontrado em {path}. Usando tempo limite padrão: {timeout}ms",
+    "settings_error": "Erro ao ler configurações: {error}. Usando tempo limite padrão.",
+    "failsafe_triggered": "[Watchdog] ⚠️ FAILSAFE ATIVADO — Conexão com Synapse perdida.",
+    "heartbeat_restored": "[Watchdog] ✅ RECUPERAÇÃO — Heartbeat do Synapse restaurado. Rede Neural de IA pode retomar o controle.",
+    "loop_active": "Loop de monitoramento do Watchdog ativo. Aguardando Heartbeats...",
+    "stop_signal": "Sinal de parada recebido. Encerrando Watchdog.",
+    "loop_error": "Erro no loop do Watchdog: {error}",
+    "wait_error": "Erro na fase de aguardo do Watchdog: {error}"
   }
 }

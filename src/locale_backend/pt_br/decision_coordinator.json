@@ -1,0 +1,7 @@
+{
+  "decision_coordinator": {
+    "traci_missing": "SUMO_HOME não definido, a importação de TraCIException pode falhar.",
+    "init_info": "[COORDINATOR] Coordenador Resolutivo ativado (Grafo Topológico Esparso: {count}x{count}).",
+    "decision_error": "[Coordinator] Erro na decisão para {tl_id}: {error}"
+  }
+}

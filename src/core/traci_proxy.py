@@ -21,13 +21,19 @@
 import logging
 from multiprocessing.connection import Connection
 
-_PIPE_CONN: Connection = None
+_LOCALE_MANAGER = None
 
-def init_proxy_pipe(pipe_conn: Connection):
+def init_proxy_pipe(pipe_conn: Connection, locale_manager=None):
     """Initializes the Pipe connection for this proxy process."""
-    global _PIPE_CONN
+    global _PIPE_CONN, _LOCALE_MANAGER
     _PIPE_CONN = pipe_conn
-    logging.info("[TRACI_PROXY] Proxy communication pipe initialized.")
+    _LOCALE_MANAGER = locale_manager
+    logging.info(_get_string("traci_proxy.init", default="[TRACI_PROXY] Proxy communication pipe initialized."))
+
+def _get_string(key: str, default: str = None, **kwargs) -> str:
+    if _LOCALE_MANAGER and hasattr(_LOCALE_MANAGER, 'get_string'):
+        return _LOCALE_MANAGER.get_string(key, default=default, **kwargs)
+    return default.format(**kwargs) if default and kwargs else (default or key)
 
 class _TraciModuleProxy:
     """A generic class that represents a TraCI submodule (e.g., simulation, trafficlight)."""
@@ -39,7 +45,7 @@ class _TraciModuleProxy:
         def _proxy_call(*args, **kwargs):
             """Packages and sends the function call to the CentralController via Pipe."""
             if _PIPE_CONN is None:
-                raise RuntimeError("The TraCI Proxy connection (Pipe) has not been initialized.")
+                raise RuntimeError(_get_string("traci_proxy.not_init", default="The TraCI Proxy connection (Pipe) has not been initialized."))
 
             request = (self._module_name, func_name, args, kwargs)
             
@@ -56,21 +62,21 @@ class _TraciModuleProxy:
 # --- Fake Top-Level TraCI Functions ---
 
 def connect(*args, **kwargs):
-    logging.info("[TRACI_PROXY] Call to 'connect' intercepted and ignored.")
+    logging.info(_get_string("traci_proxy.connect_intercepted", default="[TRACI_PROXY] Call to 'connect' intercepted and ignored."))
     pass
 
 def close(*args, **kwargs):
-    logging.info("[TRACI_PROXY] Call to 'close' intercepted and ignored.")
+    logging.info(_get_string("traci_proxy.close_intercepted", default="[TRACI_PROXY] Call to 'close' intercepted and ignored."))
     pass
 
 def setOrder(*args, **kwargs):
-    logging.info("[TRACI_PROXY] Call to 'setOrder' intercepted and ignored.")
+    logging.info(_get_string("traci_proxy.set_order_intercepted", default="[TRACI_PROXY] Call to 'setOrder' intercepted and ignored."))
     pass
 
 def load(*args, **kwargs):
-    logging.info("[TRACI_PROXY] Command 'load' intercepted and sent to Central Controller.")
+    logging.info(_get_string("traci_proxy.load_intercepted", default="[TRACI_PROXY] Command 'load' intercepted and sent to Central Controller."))
     if _PIPE_CONN is None:
-        raise RuntimeError("The TraCI Proxy connection (Pipe) has not been initialized.")
+        raise RuntimeError(_get_string("traci_proxy.not_init", default="The TraCI Proxy connection (Pipe) has not been initialized."))
     
     request = ('traci', 'load', args, kwargs)
     _PIPE_CONN.send(request)
@@ -82,7 +88,7 @@ def load(*args, **kwargs):
 
 def simulationStep(*args, **kwargs):
     if _PIPE_CONN is None:
-        raise RuntimeError("The TraCI Proxy connection (Pipe) has not been initialized.")
+        raise RuntimeError(_get_string("traci_proxy.not_init", default="The TraCI Proxy connection (Pipe) has not been initialized."))
         
     request = ('traci', 'simulationStep', args, kwargs)
     _PIPE_CONN.send(request)
@@ -95,7 +101,7 @@ def update_maturity_state(maturity_dict: dict):
     This is not a real TraCI function but uses the same proxy mechanism.
     """
     if _PIPE_CONN is None:
-        raise RuntimeError("The TraCI Proxy connection (Pipe) has not been initialized.")
+        raise RuntimeError(_get_string("traci_proxy.not_init", default="The TraCI Proxy connection (Pipe) has not been initialized."))
     
     # Packages the call as a 'custom' command
     request = ('custom', 'update_maturity_state', (maturity_dict,), {})

@@ -80,7 +80,7 @@ class GuardianAgent:
         self.all_red_time = SafetyRules.get_all_red()
         self.red_time = SafetyRules.get_red()
         
-        logging.info(f"[GUARDIAN] Initialized with Safety Rules -> Green: {self.green_time}s | Yellow: {self.yellow_time}s | All-Red: {self.all_red_time}s | Red: {self.red_time}s")
+        logging.info(self.locale_manager.get_string("guardian_agent.init", default="[GUARDIAN] Initialized with Safety Rules -> Green: {green}s | Yellow: {yellow}s | All-Red: {all_red}s | Red: {red}s", green=self.green_time, yellow=self.yellow_time, all_red=self.all_red_time, red=self.red_time))
 
         # --- Neural Layer (D3QN + TCN + PAE Fusion) ---
         self.n_observations = n_observations
@@ -104,8 +104,8 @@ class GuardianAgent:
         self.steps_done = 0
         self.scaler = torch.amp.GradScaler(enabled=(self.device.type == 'cuda'))
         
-        pae_status = f"PAE latent={self.pae_latent_dim}" if self.shared_pae else "without PAE"
-        logging.info(f"[GUARDIAN] Neural Layer: D3QN_TCN ({pae_status}) | AMP: {self.scaler.is_enabled()}")
+        pae_status = self.locale_manager.get_string("guardian_agent.pae_with", default="PAE latent={dim}", dim=self.pae_latent_dim) if self.shared_pae else self.locale_manager.get_string("guardian_agent.pae_without", default="without PAE")
+        logging.info(self.locale_manager.get_string("guardian_agent.neural_layer", default="[GUARDIAN] Neural Layer: D3QN_TCN ({pae_status}) | AMP: {amp}", pae_status=pae_status, amp=self.scaler.is_enabled()))
 
     def _load_hyperparameters(self, cfg: Any) -> None:
         """Loads hyperparameters from configuration."""
@@ -143,7 +143,7 @@ class GuardianAgent:
 
     def _get_pae_latent(self, seq_tensor: torch.Tensor) -> torch.Tensor:
         """
-        Projects the last frame of the sequence into the PAE latent space
+        Projects the sequence of states into the PAE latent space
         for spillback risk projection.
         
         Returns:
@@ -151,8 +151,7 @@ class GuardianAgent:
         """
         if self.shared_pae is not None:
             with torch.no_grad():
-                last_frame = seq_tensor[:, -1, :]  # [batch, n_obs]
-                return self.shared_pae.encode(last_frame)  # [batch, latent_dim]
+                return self.shared_pae.encode(seq_tensor)  # [batch, latent_dim]
         return torch.zeros(seq_tensor.size(0), self.pae_latent_dim, device=self.device)
 
     def select_action(self, state: List[float], context: Dict[str, Any]) -> Tuple[int, str]:
@@ -170,9 +169,9 @@ class GuardianAgent:
         # 2. Neural layer (Spillback projection)
         risk_level = self.evaluate_spillback_risk(state, tl_id)
         if risk_level >= 1.0:
-            return self.ACTION_KEEP_STAGE, "High spillback risk detected (Neural)"
+            return self.ACTION_KEEP_STAGE, self.locale_manager.get_string("guardian_agent.reasons.spillback", default="High spillback risk detected (Neural)")
             
-        return self.ACTION_CHANGE_STAGE, "Neuro-Symbolic audit passed"
+        return self.ACTION_CHANGE_STAGE, self.locale_manager.get_string("guardian_agent.reasons.neuro_passed", default="Neuro-Symbolic audit passed")
 
     def symbolic_audit(self, context: Dict[str, Any]) -> Tuple[int, str]:
         """
@@ -189,14 +188,14 @@ class GuardianAgent:
         if has_y:
             # Rule: Yellow Time Violation
             if current_stage_duration < self.yellow_time:
-                return self.ACTION_KEEP_STAGE, "Minimum Yellow limits"
+                return self.ACTION_KEEP_STAGE, self.locale_manager.get_string("guardian_agent.reasons.min_yellow", default="Minimum Yellow limits")
         elif has_g:
             # Rule: Minimum Green Time Violation
             if current_stage_duration < self.green_time:
-                return self.ACTION_KEEP_STAGE, "Minimum Green limits"
+                return self.ACTION_KEEP_STAGE, self.locale_manager.get_string("guardian_agent.reasons.min_green", default="Minimum Green limits")
             # Rule 2: No Flow / Empty Road (Ghost Green)
             if not next_stage_has_flow:
-                return self.ACTION_KEEP_STAGE, "Ghost Green constraint"
+                return self.ACTION_KEEP_STAGE, self.locale_manager.get_string("guardian_agent.reasons.ghost_green", default="Ghost Green constraint")
         else:
             # If it has neither Y nor G, it's a Red stage
             is_clearance_red = context.get('is_clearance_red', True)
@@ -204,10 +203,10 @@ class GuardianAgent:
             
             # Rule: Red Time Violation
             if current_stage_duration < threshold:
-                reason = "Minimum All Red limits" if is_clearance_red else "Minimum Red limits"
+                reason = self.locale_manager.get_string("guardian_agent.reasons.min_all_red", default="Minimum All Red limits") if is_clearance_red else self.locale_manager.get_string("guardian_agent.reasons.min_red", default="Minimum Red limits")
                 return self.ACTION_KEEP_STAGE, reason
 
-        return self.ACTION_CHANGE_STAGE, "Symbolic audit passed"
+        return self.ACTION_CHANGE_STAGE, self.locale_manager.get_string("guardian_agent.reasons.symbolic_passed", default="Symbolic audit passed")
 
     def evaluate_spillback_risk(self, state: List[float], tl_id: str) -> float:
         """

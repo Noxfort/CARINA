@@ -24,8 +24,19 @@ in real-time, with support for universal characters (UTF-8) and different log le
 for each output.
 """
 import logging
+from logging.handlers import RotatingFileHandler
 import sys
 import os
+import gzip
+
+def gzip_namer(name: str) -> str:
+    return name + ".gz"
+
+def gzip_rotator(source: str, dest: str) -> None:
+    with open(source, 'rb') as sf:
+        with gzip.open(dest, 'wb') as df:
+            df.writelines(sf)
+    os.remove(source)
 
 def setup_logging(log_dir: str):
     """
@@ -58,7 +69,9 @@ def setup_logging(log_dir: str):
 
     # --- FIX (Part 2): Configure FileHandler to record EVERYTHING ---
     # 1. Handler to save the logs to a file, specifying UTF-8 encoding
-    file_handler = logging.FileHandler(log_file_path, encoding='utf-8')
+    file_handler = RotatingFileHandler(log_file_path, maxBytes=10 * 1024 * 1024, backupCount=100, encoding='utf-8')
+    file_handler.namer = gzip_namer
+    file_handler.rotator = gzip_rotator
     file_handler.setFormatter(log_formatter)
     file_handler.setLevel(logging.DEBUG) # Writes everything from DEBUG to CRITICAL to the file.
     file_handler.addFilter(FletAsyncShutdownFilter())

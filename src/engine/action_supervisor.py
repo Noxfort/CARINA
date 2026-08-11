@@ -80,7 +80,7 @@ class ActionSupervisor:
         for tl_id, action in list(actions.items()):
             # 1. Check Guardian Veto
             if tl_id in self.vetoed_actions and self.vetoed_actions[tl_id] == action:
-                logging.info(f"[{tl_id}] Action blocked by Guardian veto.")
+                logging.info(self.lm.get_string("action_supervisor.veto_blocked", default="[{tl_id}] Action blocked by Guardian veto.", tl_id=tl_id))
                 del self.vetoed_actions[tl_id]
                 actions[tl_id] = 1  # Force to HOLD
 
@@ -89,7 +89,7 @@ class ActionSupervisor:
         Sends the hold command for the specified stage to the hardware driver.
         """
         if self.override_states.get(tl_id) in ("ALERT", "OFF"):
-            logging.debug(f"[{tl_id}] Skipping send_stage_hold because of active override: {self.override_states[tl_id]}")
+            logging.debug(self.lm.get_string("action_supervisor.override_active", default="[{tl_id}] Skipping send_stage_hold because of active override: {state}", tl_id=tl_id, state=self.override_states[tl_id]))
             return
             
         driver = self.connection_manager.active_connections.get(tl_id)
@@ -110,7 +110,7 @@ class ActionSupervisor:
         """
         if tl_id == "ALL" and state == "SHUTDOWN":
             for driver in self.connection_manager.active_connections.values():
-                logging.critical(f"[ActionSupervisor] SHUTDOWN global: Stopping heartbeat for traffic light {driver.ip_address}")
+                logging.critical(self.lm.get_string("action_supervisor.shutdown_global", default="[ActionSupervisor] Global SHUTDOWN: Stopping heartbeat for traffic light {ip}", ip=driver.ip_address))
                 driver.shutdown()
             return
             
@@ -120,16 +120,16 @@ class ActionSupervisor:
                 self.override_states[tl_id] = "ALERT"
                 driver.apply_action({'action_type': 'flash'})
                 driver.log_carina_override("ALERT")
-                logging.info(f"[{tl_id}] FLASH (Alert) command sent to hardware via ActionSupervisor.")
+                logging.info(self.lm.get_string("action_supervisor.flash_sent", default="[{tl_id}] FLASH (Alert) command sent to hardware via ActionSupervisor.", tl_id=tl_id))
             elif state == "OFF":
                 self.override_states[tl_id] = "OFF"
                 driver.apply_action({'action_type': 'dark'})
                 driver.log_carina_override("OFF")
-                logging.info(f"[{tl_id}] DARK (Off) command sent to hardware via ActionSupervisor.")
+                logging.info(self.lm.get_string("action_supervisor.dark_sent", default="[{tl_id}] DARK (Off) command sent to hardware via ActionSupervisor.", tl_id=tl_id))
             elif state == "NORMAL":
                 prev_state = self.override_states.pop(tl_id, None)
                 if prev_state == "ALERT":
                     driver.apply_action({'action_type': 'release_flash'})
                 elif prev_state == "OFF":
                     driver.apply_action({'action_type': 'release_dark'})
-                logging.info(f"[{tl_id}] Traffic light returned to normal operation by operator.")
+                logging.info(self.lm.get_string("action_supervisor.normal_returned", default="[{tl_id}] Traffic light returned to normal operation by operator.", tl_id=tl_id))

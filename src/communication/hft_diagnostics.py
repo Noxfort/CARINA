@@ -48,9 +48,20 @@ class HFTDiagnostics:
     Handles logging sub-systems and metrics recording for the HFT Link.
     This class ensures all diagnostic logic is decoupled from the main networking layer.
     """
-    def __init__(self):
+class HFTDiagnostics:
+    """
+    Handles logging sub-systems and metrics recording for the HFT Link.
+    This class ensures all diagnostic logic is decoupled from the main networking layer.
+    """
+    def __init__(self, locale_manager=None):
+        self.locale_manager = locale_manager
         self.interval_logger = self._setup_interval_logger()
         self.diagnostics_logger = self._setup_diagnostics_logger()
+
+    def _get_string(self, key: str, default: str = None, **kwargs) -> str:
+        if self.locale_manager and hasattr(self.locale_manager, 'get_string'):
+            return self.locale_manager.get_string(key, default=default, **kwargs)
+        return default.format(**kwargs) if default and kwargs else (default or key)
 
     def _setup_interval_logger(self) -> Optional[logging.Logger]:
         """
@@ -75,7 +86,7 @@ class HFTDiagnostics:
             
             return logger
         except Exception as e:
-            logging.error(f"[HFT] Failed to setup interval logger: {e}")
+            logging.error(self._get_string("hft_diagnostics.interval_setup_error", default="[HFT] Failed to setup interval logger: {error}", error=e))
             return None
 
     def _setup_diagnostics_logger(self) -> Optional[logging.Logger]:
@@ -101,7 +112,7 @@ class HFTDiagnostics:
             
             return logger
         except Exception as e:
-            logging.error(f"[HFT] Failed to setup diagnostics logger: {e}")
+            logging.error(self._get_string("hft_diagnostics.setup_error", default="[HFT] Failed to setup diagnostics logger: {error}", error=e))
             return None
 
     def log_recv_delta(self, current_recv_time: float, delta_ms: float, queue_depth: int):
@@ -116,8 +127,7 @@ class HFTDiagnostics:
         
         if delta_ms > 300000:
             logging.warning(
-                f"[HFT] 🔴 Synapse delivery delay: recv_delta={delta_ms:.1f}ms "
-                f"(>300000ms). The delay is on the SYNAPSE/network side."
+                self._get_string("hft_diagnostics.delay_warning", default="[HFT] 🔴 Synapse delivery delay: recv_delta={delta:.1f}ms (>300000ms). The delay is on the SYNAPSE/network side.", delta=delta_ms)
             )
 
     def log_processing(self, recv_time: float, proc_delta_ms: float, queue_depth: int, backpressure_threshold: int):
@@ -130,12 +140,10 @@ class HFTDiagnostics:
         
         if queue_depth > backpressure_threshold:
             logging.warning(
-                f"[HFT] ⚠️ Backpressure detected! queue_depth={queue_depth} "
-                f"(>{backpressure_threshold}). CARINA processing can't keep up."
+                self._get_string("hft_diagnostics.backpressure_warning", default="[HFT] ⚠️ Backpressure detected! queue_depth={depth} (>{thresh}). CARINA processing can't keep up.", depth=queue_depth, thresh=backpressure_threshold)
             )
             
         if proc_delta_ms > 100:
             logging.warning(
-                f"[HFT] ⏱️ Slow frame processing: {proc_delta_ms:.1f}ms "
-                f"(>100ms threshold). CARINA-side bottleneck."
+                self._get_string("hft_diagnostics.slow_processing_warning", default="[HFT] ⏱️ Slow frame processing: {delta:.1f}ms (>100ms threshold). CARINA-side bottleneck.", delta=proc_delta_ms)
             )

@@ -43,9 +43,11 @@ class LocaleManagerBackend:
         # Try loading configuration
         try:
             settings_manager = SettingsManager()
-            initial_lang_code = settings_manager.get_setting('General', 'language', 'pt_br')
+            settings = settings_manager.load_settings()
+            initial_lang_code = settings.get('language') or 'pt_br'
             logging.info(f"Lendo idioma de settings.ini: '{initial_lang_code}'")
-        except Exception:
+        except Exception as e:
+            logging.warning(f"Erro ao ler idioma de settings.ini: {e}")
             initial_lang_code = 'pt_br'
         
         self.load_language(initial_lang_code)

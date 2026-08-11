@@ -85,3 +85,21 @@ def get_base_output_dir() -> str:
     carina_dir = os.path.join(documents_dir, "Carina")
     os.makedirs(carina_dir, exist_ok=True)
     return carina_dir
+
+def get_user_config_dir() -> str:
+    """
+    Returns the standard directory for user configuration and data,
+    which is persistent and hidden, following OS standards (e.g. XDG on Linux).
+    """
+    import sys
+    if sys.platform.startswith('win'):
+        base_dir = os.environ.get('APPDATA') or os.path.expanduser('~/AppData/Roaming')
+    elif sys.platform.startswith('darwin'):
+        base_dir = os.path.expanduser('~/Library/Application Support')
+    else:
+        # Linux / Unix XDG standard
+        base_dir = os.environ.get('XDG_CONFIG_HOME') or os.path.expanduser('~/.config')
+    
+    config_dir = os.path.join(base_dir, 'carina')
+    os.makedirs(config_dir, exist_ok=True)
+    return config_dir

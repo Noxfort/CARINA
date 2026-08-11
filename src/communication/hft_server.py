@@ -81,17 +81,24 @@ class CarinaHFTImpl(pb2_grpc.HFTLinkServicer): # type: ignore
     accurate diagnosis of whether latency comes from Synapse or CARINA.
     """
 
-    def __init__(self, controller_instance):
+    def __init__(self, controller_instance, locale_manager=None):
         """
         Args:
             controller_instance: Reference to the CentralController to delegate logic.
+            locale_manager: Optional LocaleManagerBackend instance.
         """
         self.controller = controller_instance
+        self.locale_manager = locale_manager
         self.state = "IDLE"
         
         # Facade Instantiations (SRP compliant)
-        self.diagnostics = HFTDiagnostics()
-        self.worker = HFTWorker(controller=self.controller, diagnostics=self.diagnostics, server_ref=self)
+        self.diagnostics = HFTDiagnostics(locale_manager=locale_manager)
+        self.worker = HFTWorker(controller=self.controller, diagnostics=self.diagnostics, server_ref=self, locale_manager=locale_manager)
+
+    def _get_string(self, key: str, default: str = None, **kwargs) -> str:
+        if self.locale_manager and hasattr(self.locale_manager, 'get_string'):
+            return self.locale_manager.get_string(key, default=default, **kwargs)
+        return default.format(**kwargs) if default and kwargs else (default or key)
 
     # ------------------------------------------------------------------
     # gRPC Service Methods
@@ -105,16 +112,17 @@ class CarinaHFTImpl(pb2_grpc.HFTLinkServicer): # type: ignore
         Receives the traffic network topology (map) from Synapse.
         Delegates map saving logic to HFTSessionManager, then triggers logic in Controller.
         """
-        logging.info(f"[HFT] Receiving scenario from Synapse (Hash: {request.map_hash})...")
+        logging.info(self._get_string("hft_server.receiving_scenario", default="[HFT] Receiving scenario from Synapse (Hash: {hash})...", hash=request.map_hash))
         
         if not request.map_file_content:
-            logging.warning("[HFT] LoadScenario received without file content.")
-            return pb2.ScenarioStatus(accepted=False, message="Empty map content")
+            logging.warning(self._get_string("hft_server.empty_map", default="[HFT] LoadScenario received without file content."))
+            return pb2.ScenarioStatus(accepted=False, message=self._get_string("hft_server.empty_map_msg", default="Empty map content"))
             
         success, msg, map_path, maps_dir = HFTSessionManager.save_map_and_schedule(
             map_file_content=request.map_file_content,
             map_file_name=request.map_file_name,
-            peak_schedule_json=request.peak_schedule_json
+            peak_schedule_json=request.peak_schedule_json,
+            locale_manager=self.locale_manager
         )
         
         if success:
@@ -138,12 +146,12 @@ class CarinaHFTImpl(pb2_grpc.HFTLinkServicer): # type: ignore
             if hasattr(self.controller, 'ui_command_queue'):
                 self.controller.ui_command_queue.put({"type": "carina_ready"})
                 
-            print(f"🚀 [SYSTEM] HFT Control Started. Latch Unlocked natively. State is now RUNNING.")
+            print(self._get_string("hft_server.control_started", default="🚀 [SYSTEM] HFT Control Started. Latch Unlocked natively. State is now RUNNING."))
         elif cmd == pb2.ControlCommand.STOP:
             self.state = "IDLE"
             self.worker.stop()
             self.controller.stop_ai_session()
-            print(f"🛑 [SYSTEM] HFT Control Stopped. State is now IDLE.")
+            print(self._get_string("hft_server.control_stopped", default="🛑 [SYSTEM] HFT Control Stopped. State is now IDLE."))
         return pb2.CommandResponse(success=True, new_state=self.state)
 
     def StreamTraffic(self, request_iterator, context):
@@ -160,8 +168,14 @@ class CarinaHFTImpl(pb2_grpc.HFTLinkServicer): # type: ignore
         last_recv_time = 0.0
         last_recv_perf = 0.0
 
-        # Ensure worker thread is running
+        # Ensure worker thread is running and state is RUNNING
         self.worker.start()
+        if self.state != "RUNNING":
+            self.state = "RUNNING"
+            try:
+                self.controller.start_ai_session()
+            except Exception as session_err:
+                logging.warning(f"[HFT] Could not start AI session on stream arrival: {session_err}")
 
         try:
             for frame in request_iterator:
@@ -175,7 +189,7 @@ class CarinaHFTImpl(pb2_grpc.HFTLinkServicer): # type: ignore
                     self.controller.watchdog_queue.put("HEARTBEAT", block=False)
                     self.controller.failsafe_manager.record_frame_received()
                 except Exception as e:
-                    logging.error(f"[HFT] Failed to send Heartbeat: {e}")
+                    logging.error(self._get_string("hft_server.heartbeat_error", default="[HFT] Failed to send Heartbeat: {error}", error=e))
                 
                 # ── 2. RECV DELTA CALCULATION & LOGGING ──
                 if msg_counter > 1 and last_recv_time > 0:
@@ -190,8 +204,8 @@ class CarinaHFTImpl(pb2_grpc.HFTLinkServicer): # type: ignore
                 self.worker.enqueue(frame, current_recv_time)
                     
         except Exception as e:
-            logging.error(f"[HFT] Error in traffic stream: {e}")
-            print(f"❌ [HFT] Stream Connection Lost: {e}")
+            logging.error(self._get_string("hft_server.stream_error", default="[HFT] Error in traffic stream: {error}", error=e))
+            print(self._get_string("hft_server.connection_lost", default="❌ [HFT] Stream Connection Lost: {error}", error=e))
         finally:
             self.worker.stop()
             

@@ -1,0 +1,21 @@
+{
+  "controller": {
+    "traffic_frame": {
+      "recording_error": "[TrafficFrameProcessor] Data recording error: {error}",
+      "ai_send_error": "Error sending frame to AI: {error}",
+      "ai_blocked_failsafe": "[TrafficFrameProcessor] AI dispatch blocked — FixedTimeController is active.",
+      "rich_update_error": "Error putting rich update on SDS queue: {error}",
+      "slow_processing": "[TrafficFrameProcessor] ⏱️ Slow processing: {delta:.1f}ms (>{thresh:.0f}ms). Seq: {seq}"
+    },
+    "latch": {
+      "unlocked": "✅ [LATCH] Front-end and API fully loaded. Unlocking AI Engine for decision making.",
+      "waiting_ui": "⚠️ [LATCH] AI Engine paused: waiting for Front-End (UI) readiness ('carina_ready'). Frames will be dropped.",
+      "waiting_backend": "⚠️ [LATCH] AI Engine paused: waiting for Backend components to finish loading."
+    },
+    "stage_validator": {
+      "invalid_len": "[StageValidator] TLS '{tls_id}' stage {index}: state length {len} != expected {expected}",
+      "invalid_char": "[StageValidator] TLS '{tls_id}' stage {index}: invalid signal character '{char}' at position {pos}",
+      "shared_greens": "[StageValidator] TLS '{tls_id}': signal links {overlap} are green in both stage {i} and stage {j} (shared movements — safe in sequential operation)."
+    }
+  }
+}

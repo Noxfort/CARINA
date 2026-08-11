@@ -90,6 +90,21 @@ class AgentManager:
             if hasattr(state_extractor, 'load_topology'):
                 state_extractor.load_topology(map_path)
                 logging.info("[AgentManager] StateExtractor topology initialized.")
+                
+                # Re-initialize PAE dynamically with correct augmented dimension
+                max_obs_size = 0
+                for tl_id in state_extractor.tl_incoming_edges.keys():
+                    obs_size = state_extractor.get_observation_space_size(tl_id)
+                    if obs_size > max_obs_size:
+                        max_obs_size = obs_size
+                        
+                if max_obs_size > 0:
+                    logging.info(f"[AgentManager] Adjusting PAE input_dim dynamically from {self.shared_pae.input_dim} to {max_obs_size} with history_len=16")
+                    pae_latent_dim = self.settings.getint('PAE', 'latent_dim', fallback=16)
+                    pae_lr = self.settings.getfloat('PAE', 'learning_rate', fallback=5e-4)
+                    self.shared_pae = PredictiveAutoencoder(
+                        input_dim=max_obs_size, latent_dim=pae_latent_dim, lr=pae_lr, history_len=16
+                    ).to(self.device)
         except Exception as e:
             logging.error(f"[AgentManager] Failed to initialize StateExtractor: {e}", exc_info=True)
         # -----------------------------------------------------------------------

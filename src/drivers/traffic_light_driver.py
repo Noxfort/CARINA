@@ -41,11 +41,12 @@ class TrafficLightDriver:
     Abstracts the underlying hardware protocol from the AI agents.
     """
 
-    def __init__(self, intersection_id: str, ip_address: str, port: int, community_string: str = 'public', green_stages: list = None) -> None:
+    def __init__(self, intersection_id: str, ip_address: str, port: int, community_string: str = 'public', green_stages: list = None, locale_manager: Any = None) -> None:
         self.intersection_id = intersection_id
         self.ip_address = ip_address
         self.port = port
         self.community_string = community_string
+        self.locale_manager = locale_manager
         
         self.hardware_driver: Optional[BaseTrafficDriver] = None
         self.is_connected = False
@@ -54,8 +55,13 @@ class TrafficLightDriver:
         self.green_stages = green_stages if green_stages is not None else []
         self.stage_states = self._load_stage_states_from_map()
         
-        logger.info(f"[Intersection {self.intersection_id}] Initializing TrafficLightDriver...")
+        logger.info(self._get_string("drivers.traffic_light.init", default="[Intersection {id}] Initializing TrafficLightDriver...", id=self.intersection_id))
         self._connect()
+
+    def _get_string(self, key: str, default: str = None, **kwargs) -> str:
+        if self.locale_manager and hasattr(self.locale_manager, 'get_string'):
+            return self.locale_manager.get_string(key, default=default, **kwargs)
+        return default.format(**kwargs) if default and kwargs else (default or key)
 
     def _connect(self) -> None:
         """
@@ -71,11 +77,11 @@ class TrafficLightDriver:
         
         if self.hardware_driver is not None:
             self.is_connected = True
-            logger.info(f"[Intersection {self.intersection_id}] Connected via {self.hardware_driver.get_protocol_name()}")
+            logger.info(self._get_string("drivers.traffic_light.connected", default="[Intersection {id}] Connected via {protocol}", id=self.intersection_id, protocol=self.hardware_driver.get_protocol_name()))
             self.hardware_driver.start_heartbeat()
         else:
             self.is_connected = False
-            logger.error(f"[Intersection {self.intersection_id}] Failed to connect to hardware at {self.ip_address}:{self.port}")
+            logger.error(self._get_string("drivers.traffic_light.connect_failed", default="[Intersection {id}] Failed to connect to hardware at {ip}:{port}", id=self.intersection_id, ip=self.ip_address, port=self.port))
 
     def _load_stage_states_from_map(self) -> dict:
         """
@@ -86,7 +92,7 @@ class TrafficLightDriver:
             from src.controller.map_discoverer import MapTopologyDiscoverer
             map_file = MapTopologyDiscoverer.get_map_file()
             if not map_file or not os.path.exists(map_file):
-                logger.warning(f"[Intersection {self.intersection_id}] Map file not found: {map_file}")
+                logger.warning(self._get_string("drivers.traffic_light.map_not_found", default="[Intersection {id}] Map file not found: {path}", id=self.intersection_id, path=map_file))
                 return {}
 
             import gzip
@@ -106,7 +112,7 @@ class TrafficLightDriver:
                             states[idx] = state
             return states
         except Exception as e:
-            logger.error(f"[Intersection {self.intersection_id}] Failed to load stage states from map: {e}")
+            logger.error(self._get_string("drivers.traffic_light.map_load_failed", default="[Intersection {id}] Failed to load stage states from map: {error}", id=self.intersection_id, error=e))
             return {}
 
     def apply_logical_action(self, action: int, current_stage_idx: int, green_stages: list, stage_codes: dict = None) -> bool:
@@ -118,7 +124,7 @@ class TrafficLightDriver:
         self.green_stages = green_stages
 
         if not self.is_connected or self.hardware_driver is None:
-            logger.warning(f"[Intersection {self.intersection_id}] Cannot apply logical action. Driver is disconnected.")
+            logger.warning(self._get_string("drivers.traffic_light.action_disconnected", default="[Intersection {id}] Cannot apply logical action. Driver is disconnected.", id=self.intersection_id))
             return False
 
         return self.hardware_driver.apply_logical_action(action, current_stage_idx, green_stages, stage_codes)
@@ -152,7 +158,7 @@ class TrafficLightDriver:
                 with open(log_file, "a", encoding="utf-8") as f:
                     f.write(f"estágio {stage_num}: {state_str}\n")
         except Exception as e:
-            logger.error(f"[Intersection {self.intersection_id}] Error writing to carina_colors.log: {e}")
+            logger.error(self._get_string("drivers.traffic_light.colors_log_error", default="[Intersection {id}] Error writing to carina_colors.log: {error}", id=self.intersection_id, error=e))
 
     def log_carina_override(self, override_type: str) -> None:
         """
@@ -167,19 +173,19 @@ class TrafficLightDriver:
             with open(log_file, "a", encoding="utf-8") as f:
                 f.write(f"estágio {label}: {label}\n")
         except Exception as e:
-            logger.error(f"[Intersection {self.intersection_id}] Error writing override to carina_colors.log: {e}")
+            logger.error(self._get_string("drivers.traffic_light.override_log_error", default="[Intersection {id}] Error writing override to carina_colors.log: {error}", id=self.intersection_id, error=e))
 
     def apply_action(self, action_data: Dict[str, Any]) -> bool:
         """
         Receives an action from the CARINA AI engine and forwards it to the hardware.
         """
         if not self.is_connected or self.hardware_driver is None:
-            logger.warning(f"[Intersection {self.intersection_id}] Cannot apply action. Driver is disconnected.")
+            logger.warning(self._get_string("drivers.traffic_light.action_disconnected", default="[Intersection {id}] Cannot apply action. Driver is disconnected.", id=self.intersection_id))
             return False
             
-        logger.debug(f"[Intersection {self.intersection_id}] Applying action: {action_data}")
+        logger.debug(self._get_string("drivers.traffic_light.applying_action", default="[Intersection {id}] Applying action: {action}", id=self.intersection_id, action=action_data))
         if cmd_logger:
-            cmd_logger.info(f"CARINA enviando comando para {self.intersection_id} ({self.ip_address}): {action_data}")
+            cmd_logger.info(self._get_string("drivers.traffic_light.cmd_sending", default="CARINA sending command to {id} ({ip}): {action}", id=self.intersection_id, ip=self.ip_address, action=action_data))
             
         return self.hardware_driver.send_action(action_data)
 
@@ -192,6 +198,8 @@ class TrafficLightDriver:
                 "intersection_id": self.intersection_id,
                 "status": "offline",
                 "protocol": "none",
+                "brand": "Não informado",
+                "model": "Não informado",
                 "active_greens": 0,
                 "active_yellows": 0,
                 "active_reds": 0,
@@ -200,6 +208,8 @@ class TrafficLightDriver:
             
         telemetry = self.hardware_driver.get_telemetry()
         telemetry["intersection_id"] = self.intersection_id
+        telemetry["brand"] = getattr(self.hardware_driver, "brand", "Não informado")
+        telemetry["model"] = getattr(self.hardware_driver, "model", "Não informado")
         return telemetry
 
     def shutdown(self) -> None:
@@ -207,7 +217,7 @@ class TrafficLightDriver:
         Safely disconnects the driver, stopping the heartbeat and returning control to local mode.
         """
         if self.hardware_driver is not None:
-            logger.info(f"[Intersection {self.intersection_id}] Shutting down driver. Stopping heartbeat...")
+            logger.info(self._get_string("drivers.traffic_light.shutdown", default="[Intersection {id}] Shutting down driver. Stopping heartbeat...", id=self.intersection_id))
             self.hardware_driver.stop_heartbeat()
             self.is_connected = False
             self.hardware_driver = None

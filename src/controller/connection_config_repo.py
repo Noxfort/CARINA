@@ -72,3 +72,116 @@ class ConnectionConfigRepository:
         except Exception as e:
             logger.error(f"Failed to import CSV configuration: {e}")
         return configs
+
+    @staticmethod
+    def save_connection_db(intersection_id: str, ip_address: str, locale_manager=None) -> bool:
+        """
+        Saves or updates an intersection IP connection config in PostgreSQL/SQLite database.
+        """
+        try:
+            from src.database.db_engine import DatabaseEngine
+            engine = DatabaseEngine(locale_manager=locale_manager)
+            conn = engine.get_connection()
+            if not conn:
+                return False
+            cursor = conn.cursor()
+            if engine.db_type == "postgres":
+                cursor.execute("""
+                    INSERT INTO hardware_controller_connections (intersection_id, ip_address, auto_connect, last_connected)
+                    VALUES (%s, %s, TRUE, NOW())
+                    ON CONFLICT (intersection_id) 
+                    DO UPDATE SET ip_address = EXCLUDED.ip_address, auto_connect = TRUE, last_connected = NOW();
+                """, (str(intersection_id), str(ip_address)))
+            else:
+                cursor.execute("""
+                    INSERT INTO hardware_controller_connections (intersection_id, ip_address, auto_connect, last_connected)
+                    VALUES (?, ?, TRUE, CURRENT_TIMESTAMP)
+                    ON CONFLICT(intersection_id) 
+                    DO UPDATE SET ip_address = excluded.ip_address, auto_connect = TRUE, last_connected = CURRENT_TIMESTAMP;
+                """, (str(intersection_id), str(ip_address)))
+            conn.commit()
+            conn.close()
+            logger.info(f"[DB Persistence] Saved hardware connection for '{intersection_id}' at {ip_address}")
+            return True
+        except Exception as e:
+            logger.error(f"[DB Persistence] Failed to save hardware connection to database: {e}")
+            return False
+
+    @staticmethod
+    def remove_connection_db(intersection_id: str, locale_manager=None) -> bool:
+        """
+        Deletes the intersection IP connection record completely from PostgreSQL/SQLite database.
+        Deletes both the raw ID and any 'tl_' prefixed variant to ensure complete cleanup.
+        """
+        try:
+            from src.database.db_engine import DatabaseEngine
+            engine = DatabaseEngine(locale_manager=locale_manager)
+            conn = engine.get_connection()
+            if not conn:
+                return False
+            cursor = conn.cursor()
+            
+            clean_id = str(intersection_id).strip()
+            alt_id = clean_id.replace("tl_", "") if clean_id.startswith("tl_") else f"tl_{clean_id}"
+            
+            if engine.db_type == "postgres":
+                cursor.execute(
+                    "DELETE FROM hardware_controller_connections WHERE intersection_id = %s OR intersection_id = %s;",
+                    (clean_id, alt_id)
+                )
+            else:
+                cursor.execute(
+                    "DELETE FROM hardware_controller_connections WHERE intersection_id = ? OR intersection_id = ?;",
+                    (clean_id, alt_id)
+                )
+            conn.commit()
+            conn.close()
+            logger.info(f"[DB Persistence] Deleted connection record for '{clean_id}' and '{alt_id}' from database.")
+            return True
+        except Exception as e:
+            logger.error(f"[DB Persistence] Failed to delete hardware connection from database: {e}")
+            return False
+
+    @staticmethod
+    def load_all_connections_db(locale_manager=None) -> Dict[str, str]:
+        """
+        Loads all saved auto-connect hardware connections from PostgreSQL/SQLite database.
+        """
+        configs = {}
+        try:
+            from src.database.db_engine import DatabaseEngine
+            engine = DatabaseEngine(locale_manager=locale_manager)
+            conn = engine.get_connection()
+            if not conn:
+                return configs
+            cursor = conn.cursor()
+            cursor.execute("SELECT intersection_id, ip_address FROM hardware_controller_connections WHERE auto_connect = TRUE;")
+            rows = cursor.fetchall()
+            for row in rows:
+                configs[str(row[0])] = str(row[1])
+            conn.close()
+            logger.info(f"[DB Persistence] Loaded {len(configs)} saved hardware connection configs from database.")
+        except Exception as e:
+            logger.error(f"[DB Persistence] Failed to load hardware connections from database: {e}")
+        return configs
+
+    @staticmethod
+    def clear_all_connections_db(locale_manager=None) -> bool:
+        """
+        Deletes all hardware connection entries completely from PostgreSQL/SQLite database.
+        """
+        try:
+            from src.database.db_engine import DatabaseEngine
+            engine = DatabaseEngine(locale_manager=locale_manager)
+            conn = engine.get_connection()
+            if not conn:
+                return False
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM hardware_controller_connections;")
+            conn.commit()
+            conn.close()
+            logger.info("[DB Persistence] Cleared (deleted) all hardware connection records from database.")
+            return True
+        except Exception as e:
+            logger.error(f"[DB Persistence] Failed to clear hardware connections in database: {e}")
+            return False

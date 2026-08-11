@@ -85,12 +85,12 @@ class OnPolicyBuffer:
 
     def clear(self):
         """Limpa o buffer. Deve ser chamado após cada ciclo de aprendizado."""
-        del self.actions[:]
-        del self.states[:]
-        del self.log_probs[:]
-        del self.rewards[:]
-        del self.dones[:]
-        del self.state_values[:]
+        self.actions = []
+        self.states = []
+        self.log_probs = []
+        self.rewards = []
+        self.dones = []
+        self.state_values = []
 
     def __len__(self) -> int:
         """Returns the number of transitions stored in the buffer."""

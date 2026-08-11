@@ -24,6 +24,7 @@ import os
 import numpy as np
 import sumolib
 from typing import TYPE_CHECKING, Dict, List, Any
+from utils.historical_aggregator import HistoricalAggregator
 
 if TYPE_CHECKING:
     from utils.locale_manager_backend import LocaleManagerBackend
@@ -51,10 +52,16 @@ class StateExtractor:
         # Maps ID_SEMAFORO -> { ID_FASE: STRING_ESTADO }
         self.tl_stage_codes: Dict[str, Dict[int, str]] = {}
         
+        # Maps ID_SEMAFORO -> { ID_FASE: DURATION }
+        self.tl_stage_durations: Dict[str, Dict[int, float]] = {}
+        
         # NEW: Maps ID_SEMAFORO -> List of Lane Lists by Index
         # Ex: 'C1' -> [ ['edge1_0', 'edge1_1'], ['edge2_0'] ]
         # Where the index of the external list matches the character in the state string.
         self.tl_controlled_lanes_map: Dict[str, List[List[str]]] = {}
+        
+        # Historical aggregators for 5-minute context
+        self.aggregators: Dict[str, HistoricalAggregator] = {}
         
         self.topology_loaded = False
         
@@ -71,7 +78,9 @@ class StateExtractor:
             self.tl_incoming_edges.clear()
             self.tl_green_stages.clear()
             self.tl_stage_codes.clear()
+            self.tl_stage_durations.clear()
             self.tl_controlled_lanes_map.clear()
+            self.aggregators.clear()
             
             for tls in net.getTrafficLights():
                 tl_id = tls.getID()
@@ -115,6 +124,7 @@ class StateExtractor:
                 # Program Extraction (Phases and Colors)
                 programs = tls.getPrograms()
                 self.tl_stage_codes[tl_id] = {}
+                self.tl_stage_durations[tl_id] = {}
                 
                 if programs:
                     logic = next(iter(programs.values()))
@@ -122,12 +132,19 @@ class StateExtractor:
                     for i, stage in enumerate(logic.getPhases()):
                         state = stage.state
                         self.tl_stage_codes[tl_id][i] = state
-                        green_stages.append(i)
+                        self.tl_stage_durations[tl_id][i] = float(stage.duration)
+                        state_upper = state.upper()
+                        # A stage is green if it has green phases and no yellow phases
+                        if ('G' in state_upper) and ('Y' not in state_upper):
+                            green_stages.append(i)
                             
                     self.tl_green_stages[tl_id] = green_stages
+                    logging.info(f"[StateExtractor] TL {tl_id} loaded from network file: {len(self.tl_stage_codes[tl_id])} stages detected. Green stages: {green_stages}")
                 else:
-                    self.tl_green_stages[tl_id] = [0, 2]
-                    self.tl_stage_codes[tl_id] = {0: "G", 1: "y", 2: "G", 3: "y"}
+                    self.tl_green_stages[tl_id] = [0, 3]
+                    self.tl_stage_codes[tl_id] = {0: "G", 1: "y", 2: "r", 3: "G", 4: "y", 5: "r"}
+                    # Fallback durations: stage 2 is clearance (3s), stage 5 is normal red (10s)
+                    self.tl_stage_durations[tl_id] = {0: 30.0, 1: 4.0, 2: 3.0, 3: 30.0, 4: 4.0, 5: 10.0}
 
             self.topology_loaded = True
             logging.info(f"Topologia carregada. {len(self.tl_incoming_edges)} semáforos mapeados.")
@@ -173,14 +190,21 @@ class StateExtractor:
             telemetry = traffic_frame['tls_telemetry'].get(tl_id, {})
             ped_calls = 1.0 if telemetry.get('active_ped_calls', 0) > 0 else 0.0
             
-        return np.array(sensor_data + phase_one_hot + [ped_calls], dtype=np.float32)
+        raw_state = np.array(sensor_data + phase_one_hot + [ped_calls], dtype=np.float32)
+        
+        # Apply 5-minute historical aggregation
+        if tl_id not in self.aggregators:
+            self.aggregators[tl_id] = HistoricalAggregator(len(raw_state))
+            
+        return self.aggregators[tl_id].update(raw_state)
 
     def get_observation_space_size(self, tl_id: str) -> int:
         if not self.topology_loaded: return 0
         num_edges = len(self.tl_incoming_edges.get(tl_id, []))
         num_phases = len(self.tl_green_stages.get(tl_id, []))
         if num_phases == 0: num_phases = 1
-        return (num_edges * 3) + num_phases + 1 # +1 for pedestrian calls
+        raw_size = (num_edges * 3) + num_phases + 1 # +1 for pedestrian calls
+        return raw_size * 5
 
     def get_phase_lane_states(self, tl_id: str, phase_index: int) -> Dict[str, str]:
         """

@@ -31,12 +31,14 @@ class MFDSnapshot:
     __slots__ = (
         'timestamp', 'accumulation', 'production',
         'mean_speed', 'mean_density', 'mean_flow',
-        'efficiency', 'congestion_ratio', 'active_edges'
+        'efficiency', 'congestion_ratio', 'active_edges',
+        'intersections'
     )
 
     def __init__(self, timestamp: float, accumulation: float, production: float,
                  mean_speed: float, mean_density: float, mean_flow: float,
-                 efficiency: float, congestion_ratio: float, active_edges: int):
+                 efficiency: float, congestion_ratio: float, active_edges: int,
+                 intersections: dict = None):
         self.timestamp = timestamp
         self.accumulation = accumulation
         self.production = production
@@ -46,6 +48,7 @@ class MFDSnapshot:
         self.efficiency = efficiency
         self.congestion_ratio = congestion_ratio
         self.active_edges = active_edges
+        self.intersections = intersections if intersections is not None else {}
 
     def to_dict(self) -> dict:
         """Serializes the snapshot into a JSON-safe dictionary."""
@@ -58,7 +61,8 @@ class MFDSnapshot:
             'mean_flow': round(self.mean_flow, 4),
             'efficiency': round(self.efficiency, 4),
             'congestion_ratio': round(self.congestion_ratio, 4),
-            'active_edges': self.active_edges
+            'active_edges': self.active_edges,
+            'intersections': self.intersections
         }
 
     @staticmethod
@@ -73,5 +77,6 @@ class MFDSnapshot:
             mean_flow=0.0,
             efficiency=1.0 if assume_optimal else 0.0,
             congestion_ratio=0.0,
-            active_edges=0
+            active_edges=0,
+            intersections={}
         )

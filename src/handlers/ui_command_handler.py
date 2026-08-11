@@ -28,12 +28,14 @@ class UICommandHandler:
     Handles all commands incoming from the Front-End (UI). 
     Actions include saving settings, changing global modes, and manual overrides.
     """
-    def __init__(self, locale_manager, override_manager, failsafe_manager, security_manager, sds_data_queue):
+    def __init__(self, locale_manager, override_manager, failsafe_manager, security_manager, sds_data_queue, sas_data_queue=None, mfd_trigger_queue=None):
         self.locale_manager = locale_manager
         self.override_manager = override_manager
         self.failsafe_manager = failsafe_manager
         self.security_manager = security_manager
         self.sds_data_queue = sds_data_queue
+        self.sas_data_queue = sas_data_queue
+        self.mfd_trigger_queue = mfd_trigger_queue
         self.audit_logger = AuditLogger()
         self.last_auth_user = "Sistema"
         self.on_ui_ready = None
@@ -199,5 +201,17 @@ class UICommandHandler:
             logging.info("✅ [RequestProcessor] Comando de 'carina_ready' recebido da Interface Gráfica.")
             if self.on_ui_ready and callable(self.on_ui_ready):
                 self.on_ui_ready()
+        elif cmd_type == "trigger_analysis":
+            logging.info("[UICommandHandler] Recebido comando para forçar análise de planejamento.")
+            if self.sas_data_queue:
+                self.sas_data_queue.put(("trigger_analysis", {}))
+            else:
+                logging.warning("[UICommandHandler] sas_data_queue não disponível para forçar análise.")
+        elif cmd_type == "trigger_mfd_analysis":
+            logging.info("[UICommandHandler] Recebido comando para forçar análise MFD.")
+            if self.mfd_trigger_queue:
+                self.mfd_trigger_queue.put(("trigger_mfd", {}))
+            else:
+                logging.warning("[UICommandHandler] mfd_trigger_queue não disponível para forçar análise MFD.")
         else:
             logging.warning(f"[RequestProcessor] Comando UI desconhecido recebido: {cmd_type}")

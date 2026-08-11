@@ -45,13 +45,15 @@ class StrategistAgent:
         heads: int = 4,
         lr: float = 0.001,
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
-        map_path: str = "results/hft_live_session/maps/hft_live_session.net.xml"
+        map_path: str = "results/hft_live_session/maps/hft_live_session.net.xml",
+        locale_manager=None
     ):
         """
         Initializes the Strategist Agent and builds the static graph from the SUMO net file.
         """
         self.device = torch.device(device)
         self.logger = logging.getLogger(__name__)
+        self.locale_manager = locale_manager
         
         # Initialize GAT model
         self.model = GATv2Lite(input_dim, hidden_dim, output_dim, heads=heads).to(self.device)
@@ -66,20 +68,25 @@ class StrategistAgent:
         # Build graph from file immediately upon instantiation
         self._build_topology_from_sumo(map_path)
 
+    def _get_string(self, key: str, default: str = None, **kwargs) -> str:
+        if self.locale_manager and hasattr(self.locale_manager, 'get_string'):
+            return self.locale_manager.get_string(key, default=default, **kwargs)
+        return default.format(**kwargs) if default and kwargs else (default or key)
+
     def _build_topology_from_sumo(self, net_file: str) -> None:
         """
         Parses the SUMO .net.xml file to extract traffic lights as nodes
         and physical connections as edges using BFS traversal.
         """
-        print(f"INFO: [Strategist] Building Graph from: {net_file}")
+        print(f"INFO: " + self._get_string("strategist_agent.building_graph", default="[Strategist] Building Graph from: {net_file}", net_file=net_file))
         
         if not os.path.exists(net_file):
-            msg = f"SUMO Network file not found at: {net_file}. Graph not built."
+            msg = self._get_string("strategist_agent.net_not_found", default="SUMO Network file not found at: {net_file}. Graph not built.", net_file=net_file)
             print(f"ERROR: [Strategist] {msg}")
             self.logger.error(msg)
             return
 
-        self.logger.info(f"Building Strategist Graph from: {net_file}")
+        self.logger.info(self._get_string("strategist_agent.building_graph_log", default="Building Strategist Graph from: {net_file}", net_file=net_file))
         
         try:
             # Load the network with sumolib
@@ -122,17 +129,17 @@ class StrategistAgent:
                 edge_index_tensor = torch.tensor([source_nodes, target_nodes], dtype=torch.long)
                 self.edge_index = edge_index_tensor.to(self.device)
                 
-                success_msg = f"INFO: [Strategist] Graph built successfully. Nodes: {self.num_nodes}, Edges: {len(source_nodes)}"
-                print(success_msg)
+                success_msg = self._get_string("strategist_agent.graph_built_success", default="[Strategist] Graph built successfully. Nodes: {nodes}, Edges: {edges}", nodes=self.num_nodes, edges=len(source_nodes))
+                print(f"INFO: {success_msg}")
                 self.logger.info(success_msg)
             else:
-                warn_msg = "WARNING: [Strategist] No connections found between traffic lights. Graph is disconnected."
-                print(warn_msg)
+                warn_msg = self._get_string("strategist_agent.no_connections", default="[Strategist] No connections found between traffic lights. Graph is disconnected.")
+                print(f"WARNING: {warn_msg}")
                 self.logger.warning(warn_msg)
                 self.edge_index = torch.empty((2, 0), dtype=torch.long, device=self.device)
 
         except Exception as e:
-            err_msg = f"Failed to build graph topology: {e}"
+            err_msg = self._get_string("strategist_agent.build_failed", default="Failed to build graph topology: {error}", error=e)
             print(f"ERROR: [Strategist] {err_msg}")
             self.logger.error(err_msg)
             raise e
@@ -189,7 +196,7 @@ class StrategistAgent:
         graph_edges = edge_index if edge_index is not None else self.edge_index
         
         if graph_edges is None:
-            raise RuntimeError("Strategist Agent: Graph topology not initialized.")
+            raise RuntimeError(self._get_string("strategist_agent.topology_not_init", default="Strategist Agent: Graph topology not initialized."))
 
         with torch.no_grad():
             x = node_features.to(self.device)
@@ -207,14 +214,14 @@ class StrategistAgent:
 
     def save_checkpoint(self, path: str) -> None:
         torch.save(self.model.state_dict(), path)
-        self.logger.info(f"Strategist Agent checkpoint saved to {path}")
+        self.logger.info(self._get_string("strategist_agent.checkpoint_saved", default="Strategist Agent checkpoint saved to {path}", path=path))
 
     def load_checkpoint(self, path: str) -> None:
         if os.path.exists(path):
             self.model.load_state_dict(torch.load(path, map_location=self.device))
-            self.logger.info(f"Strategist Agent checkpoint loaded from {path}")
+            self.logger.info(self._get_string("strategist_agent.checkpoint_loaded", default="Strategist Agent checkpoint loaded from {path}", path=path))
         else:
-            self.logger.warning(f"Checkpoint not found at {path}")
+            self.logger.warning(self._get_string("strategist_agent.checkpoint_not_found", default="Checkpoint not found at {path}", path=path))
 
     def get_node_index(self, tls_id: str) -> int:
         return self.tls_id_to_idx.get(tls_id, -1)

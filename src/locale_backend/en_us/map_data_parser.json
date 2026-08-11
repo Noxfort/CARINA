@@ -1,0 +1,11 @@
+{
+  "map_data_parser": {
+    "reading_nodes": "[MapParser] Reading nodes file: {path}",
+    "no_nodes": "[MapParser] No nodes found in .nod.xml file.",
+    "reading_edges": "[MapParser] Reading edges file: {path}",
+    "no_edges": "[MapParser] No processable edges found in .edg.xml file.",
+    "read_success": "[MapParser] Reading completed: {nodes} nodes, {edges} edges, and {lanes} lanes mapped.",
+    "file_not_found": "[MapParser] ERROR: Map file not found: {filename}",
+    "read_error": "[MapParser] ERROR reading map XML files: {error}"
+  }
+}

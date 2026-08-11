@@ -19,7 +19,7 @@
 # Date: October 13, 2025
 
 import logging
-from collections import defaultdict
+from collections import defaultdict, deque
 import math
 import sys
 import os
@@ -44,7 +44,10 @@ class DataCollector:
         self.total_vehicles_departed_per_lane = defaultdict(int)
         self.conflict_events_per_junction = defaultdict(int)
         self._last_step_vehicles_per_lane = {}
-        self.calibration_data_points = []
+        # MEMORY FIX: Bounded buffer prevents indefinite growth in long-running sessions.
+        # 10,000 entries ≈ ~4 MB max, covers sufficient history for heatmap calibration.
+        self.calibration_data_points = deque(maxlen=10000)
+        self._collect_step_counter = 0
 
         # --- PERFORMANCE FIX (Part 1): Cache Attributes ---
         self.lane_to_edge_map = None
@@ -60,6 +63,7 @@ class DataCollector:
         self.conflict_events_per_junction.clear()
         self._last_step_vehicles_per_lane.clear()
         self.calibration_data_points.clear()
+        self._collect_step_counter = 0
 
         # Resets caches so they are reloaded on the next run
         self.lane_to_edge_map = None
@@ -82,6 +86,7 @@ class DataCollector:
 
     def collect(self, raw_data: dict):
         if not raw_data: return
+        self._collect_step_counter += 1
 
         # --- PERFORMANCE FIX (Part 2): Lazy Map Loading ---
         # It only reads the XML file the first time.
@@ -139,7 +144,11 @@ class DataCollector:
                     'bad_events': total_bad_events 
                 })
 
-        self._last_step_vehicles_per_lane = current_vehicles_per_lane
+        # MEMORY FIX: Shallow-copy only the lane IDs we need, breaking the reference
+        # to the full raw_sim_data dict so the GC can free it promptly.
+        self._last_step_vehicles_per_lane = {
+            lane_id: list(veh_ids) for lane_id, veh_ids in current_vehicles_per_lane.items()
+        }
 
     def get_accumulated_data(self) -> dict:
         processed_data = {

@@ -19,6 +19,16 @@
       "closing": "[CONN_MANAGER] Fechando conexão com o SUMO...",
       "already_lost": "[CONN_MANAGER] Conexão com o SUMO já estava perdida ao tentar fechar.",
       "no_connection": "[CONN_MANAGER] Nenhuma conexão ativa para fechar."
+    },
+    "hw_manager": {
+      "disconnecting": "[{id}] Desconectando controle de hardware...",
+      "no_ip_error": "[{id}] Não é possível conectar: Nenhum endereço IP fornecido.",
+      "invalid_ip_format": "[{id}] Endereço IP inválido: nenhum IPv4 válido encontrado na entrada.",
+      "invalid_ip_range": "[{id}] Endereço IP inválido: '{ip}' não é um IPv4 válido.",
+      "connecting": "[{id}] Tentando conectar ao hardware no IP {ip} (Porta {port})...",
+      "bulk_testing": "[Bulk Import] Testando conexão para {id} em {ip}...",
+      "bulk_finished": "Importação e conexão em massa finalizadas: {success}/{total} conectados com sucesso.",
+      "shutdown_all": "Encerrando todas as conexões ativas de hardware..."
     }
   }
 }

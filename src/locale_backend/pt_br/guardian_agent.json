@@ -1,7 +1,18 @@
 {
   "guardian_agent": {
-    "init": {
-      "success": "   -> [GUARDIÃO] Cérebro de IA (Dueling DQN) criado. AMP ativado: {enabled}"
+    "init": "[GUARDIAN] Inicializado com Regras de Segurança -> Verde: {green}s | Amarelo: {yellow}s | Vermelho Total: {all_red}s | Vermelho: {red}s",
+    "neural_layer": "[GUARDIAN] Camada Neural: D3QN_TCN ({pae_status}) | AMP: {amp}",
+    "pae_with": "PAE latente={dim}",
+    "pae_without": "sem PAE",
+    "reasons": {
+      "spillback": "Risco elevado de transbordamento detectado (Neural)",
+      "neuro_passed": "Auditoria Neuro-Simbólica aprovada",
+      "min_yellow": "Limites mínimos de Amarelo",
+      "min_green": "Limites mínimos de Verde",
+      "ghost_green": "Restrição de Verde Fantasma (Sem Fluxo)",
+      "min_all_red": "Limites mínimos de Vermelho Total",
+      "min_red": "Limites mínimos de Vermelho",
+      "symbolic_passed": "Auditoria Simbólica aprovada"
     }
   }
 }

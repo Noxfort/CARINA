@@ -38,6 +38,15 @@ class DashboardView(ft.Container):
         }
         
     def _on_panel_update(self, selected_id: str, semaphore_data: Dict, phase: str, mode: str):
+        if semaphore_data and (not semaphore_data.get("brand") or semaphore_data.get("brand") == "Não informado"):
+            try:
+                from src.controller.connection_manager import HardwareConnectionManager
+                hw_info = HardwareConnectionManager.get_global_hardware_info(selected_id)
+                if hw_info and hw_info.get("brand") != "Não informado":
+                    semaphore_data["brand"] = hw_info.get("brand")
+                    semaphore_data["model"] = hw_info.get("model")
+            except Exception:
+                pass
         self.control_panel.exibir_controles_semaforo(selected_id, semaphore_data, phase, mode)
 
     def __init__(self, control_client: ControlClient, locale_manager: LocaleManager, security_ui=None):
@@ -80,7 +89,19 @@ class DashboardView(ft.Container):
         )
         
         self.current_mode = self.locale_manager.get_string("dashboard_view.mode_auto")
- 
+        
+        # Pre-initialize map canvas so UI renders immediately on window open
+        try:
+            asset_loader = MapAssetLoader()
+            map_data = asset_loader.load_map_data()
+            if map_data:
+                nodes, _, _ = map_data
+                traffic_light_ids = [node_id for node_id, data in nodes.items() if data.get('type') == 'traffic_light']
+                self.maturity_phases = {tl_id: "UNKNOWN" for tl_id in traffic_light_ids}
+                self.map_widget.initialize_map(map_data)
+                self.is_initialized = True
+        except Exception as err:
+            logging.warning(f"[DashboardView] Error pre-loading map data: {err}")
     def update_translations(self, lm: LocaleManager):
         self.current_mode = lm.get_string("dashboard_view.mode_auto")
         self.control_panel.update_translations(lm)
@@ -186,10 +207,20 @@ class DashboardView(ft.Container):
         panel_data_source = getattr(self, 'latest_panel_data', {})
         semaphore_data = {}
         
-        for pid in possible_ids:
-            if pid in panel_data_source:
-                semaphore_data = panel_data_source[pid]
-                break
+        # Retrieve or query brand/model from HardwareConnectionManager
+        if not semaphore_data or semaphore_data.get("brand") in [None, "Não informado"]:
+            try:
+                from src.controller.connection_manager import HardwareConnectionManager
+                for pid in possible_ids:
+                    hw_info = HardwareConnectionManager.get_global_hardware_info(pid)
+                    if hw_info and hw_info.get("brand") != "Não informado":
+                        if not semaphore_data:
+                            semaphore_data = {}
+                        semaphore_data["brand"] = hw_info.get("brand")
+                        semaphore_data["model"] = hw_info.get("model")
+                        break
+            except Exception as e:
+                logging.debug(f"[DashboardView] Error fetching hardware info: {e}")
         
         if not semaphore_data:
             logging.warning(f"[Dashboard] Dados de painel não encontrados para {semaphore_id} (Tentado: {possible_ids})")

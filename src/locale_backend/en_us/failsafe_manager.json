@@ -1,0 +1,11 @@
+{
+  "failsafe_manager": {
+    "entering_watchdog": "[FailsafeManager] 🚨 ENTERING WATCHDOG MODE (Fixed-Time Fallback). AI Neural Network PAUSED. Event #{event}.",
+    "commanding_all_red": "[FailsafeManager] ⚠️ COMMANDING LOCAL CONTROLLER: Execute ALL_RED transition followed by local fixed-time plans.",
+    "mqtt_incident_error": "Error reporting failsafe incident via MQTT: {error}",
+    "signal_restored": "[FailsafeManager] ✅ SYNAPSE SIGNAL RESTORED after {elapsed:.1f}s. Resuming AI Neural Network control.",
+    "commanding_resume": "[FailsafeManager] ✅ COMMANDING LOCAL CONTROLLER: Resume remote AI control.",
+    "mqtt_recovery_error": "Error reporting recovery incident via MQTT: {error}",
+    "wakeup_error": "Error sending wakeup signal to AI: {error}"
+  }
+}

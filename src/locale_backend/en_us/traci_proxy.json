@@ -1,0 +1,10 @@
+{
+  "traci_proxy": {
+    "init": "[TRACI_PROXY] Proxy communication pipe initialized.",
+    "not_init": "The TraCI Proxy connection (Pipe) has not been initialized.",
+    "connect_intercepted": "[TRACI_PROXY] Call to 'connect' intercepted and ignored.",
+    "close_intercepted": "[TRACI_PROXY] Call to 'close' intercepted and ignored.",
+    "set_order_intercepted": "[TRACI_PROXY] Call to 'setOrder' intercepted and ignored.",
+    "load_intercepted": "[TRACI_PROXY] Command 'load' intercepted and sent to Central Controller."
+  }
+}

@@ -229,82 +229,14 @@ class XaiViewerWidget(ft.Column):
 
     def _on_save_docx_result(self, e):
         if e.path and self.generated_txt_content and self.generated_img_base64:
-            save_path = e.path
-            if not save_path.lower().endswith(".docx"):
-                save_path += ".docx"
-                
-            import tempfile
-            import base64
-            
-            tmp_img_path = None
-            try:
-                # Create temporary file for chart image
-                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_img:
-                    tmp_img.write(base64.b64decode(self.generated_img_base64))
-                    tmp_img_path = tmp_img.name
-                
-                from xai.structured_report_builder import XaiStructuredReportBuilder
-                from utils.settings_manager import SettingsManager
-                
-                settings = SettingsManager().load_settings()
-                
-                def get_cfg(key: str, json_key: str, default_val: str) -> str:
-                    val = settings.get(key)
-                    if val is not None and val.strip() != "":
-                        return val
-                    return self.locale_manager.get_string(f"xai_report.report_defaults.{json_key}", default=default_val)
-                
-                config = {
-                    "logo_path": settings.get("xai_logo_path"),
-                    "secretary_name": get_cfg("xai_secretary_name", "secretary_name", "Dr. Gabriel Moraes"),
-                    "secretary_title": get_cfg("xai_secretary_title", "secretary_title", "Secretário de Mobilidade e Trânsito"),
-                    "agency_name": get_cfg("xai_agency_name", "agency_name", "Prefeitura Municipal / Secretaria de Trânsito"),
-                    "department_name": get_cfg("xai_department_name", "department_name", "Departamento de Mobilidade Inteligente"),
-                    "title": get_cfg("xai_report_title", "title", "LAUDO TÉCNICO DE EXPLICABILIDADE DE IA (XAI)"),
-                    "font_name": get_cfg("xai_font_name", "font_name", "Arial"),
-                    "font_size": float(get_cfg("xai_font_size", "font_size", "11")),
-                    "margin_top": float(get_cfg("xai_margin_top", "margin_top", "1.0")),
-                    "margin_bottom": float(get_cfg("xai_margin_bottom", "margin_bottom", "1.0")),
-                    "margin_left": float(get_cfg("xai_margin_left", "margin_left", "1.0")),
-                    "margin_right": float(get_cfg("xai_margin_right", "margin_right", "1.0")),
-                    "line_spacing": float(get_cfg("xai_line_spacing", "line_spacing", "1.15")),
-                    "alignment": get_cfg("xai_alignment", "alignment", "justify"),
-                    "locale_manager": self.locale_manager,
-                    "mode": "XAI"
-                }
-                
-                block_order_str = get_cfg("xai_block_order", "block_order", "header,title,metadata,chart,content,signature")
-                block_order = [b.strip() for b in block_order_str.split(",") if b.strip()]
-                
-                context = {
-                    "agent_id": self.selected_agent_id,
-                    "scenario": os.path.basename(self.results_dir),
-                    "engine_version": "CARINA v1.0.0",
-                    "image_path": tmp_img_path,
-                    "text_content": self.generated_txt_content
-                }
-                
-                builder = XaiStructuredReportBuilder(block_order=block_order)
-                success = builder.generate_report(save_path, context, config)
-                
-                if success:
-                    success_msg = self.locale_manager.get_string("xai_viewer.export_success", default="Laudo exportado com sucesso para: {path}", path=save_path)
-                    self.page.snack_bar = ft.SnackBar(content=ft.Text(success_msg))
-                    self.page.snack_bar.open = True
-                else:
-                    error_msg = self.locale_manager.get_string("xai_viewer.export_error", default="Erro ao gerar o laudo técnico.")
-                    self.page.snack_bar = ft.SnackBar(content=ft.Text(error_msg))
-                    self.page.snack_bar.open = True
-                self.page.update()
-                
-            except Exception as ex:
-                catch_msg = self.locale_manager.get_string("xai_viewer.export_catch_error", default="Erro ao exportar laudo: {error}", error=str(ex))
-                self.page.snack_bar = ft.SnackBar(content=ft.Text(catch_msg))
-                self.page.snack_bar.open = True
-                self.page.update()
-            finally:
-                if tmp_img_path and os.path.exists(tmp_img_path):
-                    try:
-                        os.remove(tmp_img_path)
-                    except:
-                        pass
+            from ui.formatting.report_exporter import ReportExporter
+            ReportExporter.export_report(
+                page=self.page,
+                locale_manager=self.locale_manager,
+                save_path=e.path,
+                image_base64=self.generated_img_base64,
+                text_content=self.generated_txt_content,
+                results_dir=self.results_dir,
+                mode="XAI",
+                agent_id=self.selected_agent_id
+            )

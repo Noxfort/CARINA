@@ -51,8 +51,8 @@ class GlobalControlsWidget(ft.Card):
         self.style_inactive = ft.ButtonStyle()
 
         self.dialog_title_text = ft.Text(size=30, weight=ft.FontWeight.BOLD)
-        self.dialog_confirm_button = ft.ElevatedButton(on_click=self._confirm_action)
-        self.dialog_cancel_button = ft.TextButton(on_click=self._cancel_action)
+        self.dialog_confirm_button = ft.ElevatedButton(self.locale_manager.get_string("dialogs.confirm_button", default="Confirmar"), on_click=self._confirm_action)
+        self.dialog_cancel_button = ft.TextButton(self.locale_manager.get_string("dialogs.cancel_button", default="Cancelar"), on_click=self._cancel_action)
         
         self._content_text = ft.Text(size=16)
         self._username_field = ft.TextField(label="Usuário (admin)", width=270)

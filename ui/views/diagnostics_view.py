@@ -32,7 +32,7 @@ src_path = os.path.abspath(os.path.join(current_dir, "..", ".."))
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-from utils.paths import get_base_output_dir # <--- THE MAGIC FIX
+from src.utils.paths import get_base_output_dir
 from ui.handlers.locale_manager import LocaleManager
 from ui.widgets.mfd_viewer_widget import MfdViewerWidget
 from ui.widgets.xai_viewer_widget import XaiViewerWidget
@@ -45,9 +45,10 @@ class DiagnosticsView(ft.Column):
     ATUALIZAÇÃO: Usa get_base_output_dir() para garantir que a UI
     olhe para a mesma pasta 'results' que o Backend.
     """
-    def __init__(self, locale_manager: LocaleManager):
+    def __init__(self, locale_manager: LocaleManager, control_client=None):
         super().__init__()
         self.locale_manager = locale_manager
+        self.control_client = control_client
         self.expand = True 
         
         # --- PATH CORRECTION ---
@@ -62,7 +63,8 @@ class DiagnosticsView(ft.Column):
         # Widgets
         self.mfd_viewer = MfdViewerWidget(
             locale_manager,
-            results_dir=self.results_dir
+            results_dir=self.results_dir,
+            control_client=self.control_client
         )
         
         # XAI Widget now receives the CORRECT directory

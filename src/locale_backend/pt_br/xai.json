@@ -1,11 +1,14 @@
 {
   "xai": {
-    "mfd_chart_title": "Diagrama Fundamental Macroscópico (MFD) - Curva de Otimização",
-    "mfd_xlabel": "Acumulação (veículos)",
-    "mfd_ylabel": "Produção (veículos·m/s)",
-    "mfd_cbar_label": "Passos de Simulação",
-    "mfd_scatter_label": "Estado da Simulação",
-    "mfd_peak_label": "Capacidade Ótima (Pico MFD)",
+    "mfd_chart_title": "Relatório de Fluidez do Trânsito (Curva MFD)",
+    "mfd_xlabel": "Quantidade de Veículos em Circulação (Acumulação)",
+    "mfd_ylabel": "Capacidade de Escoamento / Fluidez do Trânsito",
+    "mfd_cbar_label": "Evolução do Tempo (Passos)",
+    "mfd_scatter_label": "Pontos de Medição",
+    "mfd_peak_label": "Ponto de Fluidez Máxima (Capacidade Limite)",
+    "mfd_free_flow_zone": "Zona Verde: Fluxo Livre (Trânsito Fluindo)",
+    "mfd_optimal_zone": "Zona Amarela: Eficiência Máxima",
+    "mfd_congestion_zone": "Zona Vermelha: Congestionamento (Fluxo Lento)",
     "mfd_fallback_report": "Relatório de Desempenho MFD:\n- Passos Totais: {total_steps}\n- Eficiência Média: {avg_eff:.2%}\n- Eficiência Máxima: {max_eff:.2%}\n- Produção Máxima: {peak_prod:.2f}\n- Divisão de Estados: {state_pct}"
   }
 }

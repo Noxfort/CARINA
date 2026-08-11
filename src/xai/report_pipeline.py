@@ -44,7 +44,7 @@ class ReportPipeline:
         self.locale_manager = LocaleManagerBackend()
         
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-        self.transducer_script = os.path.join(project_root, 'src', 'xai', 'semantic_transducer.py')
+        self.transducer_script = os.path.join(project_root, 'src', 'slm', 'semantic_transducer.py')
 
     def generate_full_report(self, agent: LocalAgent, agent_id: str) -> Dict[str, Any]:
         """Runs Captum -> Parses Chart Data -> Runs Transducer in memory, returns encoded data."""
@@ -66,24 +66,47 @@ class ReportPipeline:
         
         final_report_text = ""
         if raw_attributions:
+            try:
+                settings_manager = SettingsManager()
+                settings = settings_manager.load_settings()
+                device = settings.get("xai_slm_device", "auto")
+                gpu_layers = settings.get("xai_slm_gpu_layers", "16")
+                speed_unit = settings.get("xai_speed_unit", "m/s").lower()
+                if speed_unit == "imperial":
+                    speed_unit = "mph"
+            except Exception:
+                device = "auto"
+                gpu_layers = "16"
+                speed_unit = "m/s"
+
             # 3. Trigger Subprocess Compiler via stdin/stdout
             transducer_input = {
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "mode": "AUTO",
                 "attributions": raw_attributions,
-                "language": self.locale_manager.get_language()
+                "language": self.locale_manager.get_language(),
+                "speed_unit": speed_unit
             }
             
             try:
                 logging.info(f"[ReportPipeline] Invoking Semantic Transducer LLM for {agent_id} in memory...")
-                
-                cmd = [sys.executable, self.transducer_script]
+
+                cmd = [
+                    sys.executable,
+                    self.transducer_script,
+                    "--device", str(device),
+                    "--gpu_layers", str(gpu_layers)
+                ]
+                env = os.environ.copy()
+                src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+                env["PYTHONPATH"] = src_dir + os.pathsep + env.get("PYTHONPATH", "")
                 proc = subprocess.run(
                     cmd,
                     input=json.dumps(transducer_input),
                     capture_output=True,
                     text=True,
-                    encoding='utf-8'
+                    encoding='utf-8',
+                    env=env
                 )
                 
                 if proc.returncode == 0:

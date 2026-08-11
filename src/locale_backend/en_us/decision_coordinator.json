@@ -1,0 +1,7 @@
+{
+  "decision_coordinator": {
+    "traci_missing": "SUMO_HOME not set, TraCIException import may fail.",
+    "init_info": "[COORDINATOR] Resolutive Coordinator activated (Sparse Topological Graph: {count}x{count}).",
+    "decision_error": "[Coordinator] Error in decision for {tl_id}: {error}"
+  }
+}

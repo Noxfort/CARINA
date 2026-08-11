@@ -38,11 +38,10 @@ class CaptumModelWrapper(nn.Module):
         # If we have PAE, augment the input with the latent vector
         if self.shared_pae is not None:
             with torch.no_grad():
-                last_frame = x[:, -1, :]  # [batch, n_obs]
                 # Extract only the original features (without latent) for the encode
                 original_dim = self.shared_pae.input_dim
-                original_frame = last_frame[:, :original_dim]
-                latent = self.shared_pae.encode(original_frame)
+                original_seq = x[:, :, :original_dim]
+                latent = self.shared_pae.encode(original_seq)
                 latent_expanded = latent.unsqueeze(1).expand(-1, x.size(1), -1)
                 x = torch.cat([x, latent_expanded], dim=-1)
         else:

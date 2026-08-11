@@ -1,0 +1,7 @@
+{
+  "audit_logger": {
+    "read_error": "[AuditLogger] Erro ao ler auditoria: {error}",
+    "save_error": "[AuditLogger] Erro ao salvar auditoria: {error}",
+    "action_logged": "[AUDIT] Usuário '{username}' realizou '{action}'. Detalhes: {details}"
+  }
+}

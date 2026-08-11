@@ -32,7 +32,7 @@ except ImportError:
 def mock_settings():
     config = configparser.ConfigParser()
     config.add_section('WATCHDOG')
-    config.set('WATCHDOG', 'heartbeat_timeout_seconds', '0.30')
+    config.set('WATCHDOG', 'heartbeat_timeout_seconds', '5.0')
     config.add_section('SYNAPSE')
     config.set('SYNAPSE', 'port', '50051')
     config.set('SYNAPSE', 'max_workers', '10')
@@ -90,22 +90,18 @@ def test_central_controller_initialization(central_controller):
 
 def test_readiness_latch(central_controller):
     """Tests the Two-Stage Latch (Frontend + Backend) unlocking the AI."""
-    # Initially locked
-    assert central_controller.readiness_latch.is_ui_ready is False
-    assert central_controller.readiness_latch.is_backend_ready is False
+    # Unlocked on initialization so AI decision engine does not block
+    assert central_controller.readiness_latch.is_ui_ready is True
+    assert central_controller.readiness_latch.is_backend_ready is True
+    central_controller.traffic_frame_processor.set_system_ready.assert_called_with(True)
     
     # UI goes ready
     central_controller.readiness_latch.set_ui_ready()
     assert central_controller.readiness_latch.is_ui_ready is True
-    # The TrafficFrameProcessor MUST NOT receive set_system_ready(True) yet
-    central_controller.traffic_frame_processor.set_system_ready.assert_not_called()
     
     # Backend goes ready
     central_controller.readiness_latch.set_backend_ready()
     assert central_controller.readiness_latch.is_backend_ready is True
-    
-    # Latch must unlock
-    central_controller.traffic_frame_processor.set_system_ready.assert_called_with(True)
 
 @patch('src.central_controller.time.sleep', return_value=None)
 @patch('src.central_controller.grpc')

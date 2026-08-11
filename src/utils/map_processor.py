@@ -32,12 +32,17 @@ class MapProcessor:
     """
 
     @staticmethod
-    def extract_topology_to_json(net_file: str, output_json: str) -> Dict[str, str]:
+    def extract_topology_to_json(net_file: str, output_json: str, locale_manager=None) -> Dict[str, str]:
         """
         Reads .net.xml file and generates a JSON containing ALL junctions.
         Returns a dictionary mapping Traffic Light IDs to their initial maturity state (default 'CHILD').
         """
-        logging.info(f"[MAP_GEN] Extracting vector data to: {output_json}")
+        def get_str(key: str, default: str = None, **kwargs) -> str:
+            if locale_manager and hasattr(locale_manager, 'get_string'):
+                return locale_manager.get_string(key, default=default, **kwargs)
+            return default.format(**kwargs) if default and kwargs else (default or key)
+
+        logging.info(get_str("map_processor.extracting", default="[MAP_GEN] Extracting vector data to: {path}", path=output_json))
         
         maturity_cache = {}
         
@@ -57,6 +62,15 @@ class MapProcessor:
                     "shape": list(edge.getShape())
                 })
                 
+            from collections import defaultdict
+            junction_neighbors = defaultdict(set)
+            for edge in net.getEdges():
+                from_node = edge.getFromNode()
+                to_node = edge.getToNode()
+                if from_node and to_node:
+                    junction_neighbors[from_node.getID()].add(to_node.getID())
+                    junction_neighbors[to_node.getID()].add(from_node.getID())
+                
             nodes_list = []
             traffic_lights_count = 0
             junctions_count = 0
@@ -65,17 +79,19 @@ class MapProcessor:
 
             for node in net.getNodes():
                 n_type = node.getType()
-                if n_type in ignored_types: continue
+                node_id = node.getID()
                 
                 if n_type == "traffic_light":
                     traffic_lights_count += 1
                     # Initialize default maturity
-                    maturity_cache[node.getID()] = "CHILD" 
-                else:
+                    maturity_cache[node_id] = "CHILD" 
+                elif len(junction_neighbors[node_id]) >= 3 and n_type not in ignored_types:
                     junctions_count += 1
+                else:
+                    continue
 
                 nx, ny = node.getCoord()
-                node_data = { "id": node.getID(), "x": nx, "y": ny, "type": n_type }
+                node_data = { "id": node_id, "x": nx, "y": ny, "type": n_type }
                 nodes_list.append(node_data)
                     
             topology_data = {
@@ -92,10 +108,10 @@ class MapProcessor:
             with open(output_json, 'w', encoding='utf-8') as f:
                 json.dump(topology_data, f)
                 
-            logging.info(f"[MAP_GEN] JSON generated. TLS: {traffic_lights_count}, Junctions: {junctions_count}")
+            logging.info(get_str("map_processor.json_generated", default="[MAP_GEN] JSON generated. TLS: {tls}, Junctions: {junctions}", tls=traffic_lights_count, junctions=junctions_count))
             
             return maturity_cache
 
         except Exception as e:
-            logging.error(f"[MAP_GEN] Critical error parsing map: {e}", exc_info=True)
+            logging.error(get_str("map_processor.critical_error", default="[MAP_GEN] Critical error parsing map: {error}", error=e), exc_info=True)
             raise e

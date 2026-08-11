@@ -159,6 +159,15 @@ class WebSocketServer:
         async with server:
             await asyncio.Future()
 
+    def stop(self) -> None:
+        """Stops the WebSocket server and closes all active client connections."""
+        if self.loop and self.loop.is_running():
+            try:
+                self.loop.call_soon_threadsafe(self.loop.stop)
+            except Exception:
+                pass
+        logging.info("[WS_SERVER] WebSocket server stopped.")
+
     def start(self) -> None:
         """
         Starts the WebSocket server in a separate thread.
@@ -174,3 +183,13 @@ class WebSocketServer:
             self.loop.run_until_complete(self._main_loop())
         except Exception as e:
             logging.error(self.locale_manager.get_string("sds_websocket.main_loop.async_error", default="[WS_SERVER] Critical error in Asyncio loop: {error}", error=e))
+        finally:
+            try:
+                pending = [t for t in asyncio.all_tasks(self.loop) if not t.done()]
+                for task in pending:
+                    task.cancel()
+                if pending:
+                    self.loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                self.loop.close()
+            except Exception:
+                pass

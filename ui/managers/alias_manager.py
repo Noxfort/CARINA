@@ -21,7 +21,8 @@
 import json
 import os
 import logging
-from src.utils.paths import resource_path
+import shutil
+from src.utils.paths import resource_path, get_user_config_dir
 
 class AliasManager:
     _instance = None
@@ -35,7 +36,18 @@ class AliasManager:
     def __init__(self):
         if self._initialized:
             return
-        self.filepath = resource_path(os.path.join("config", "aliases.json"))
+        
+        self.filepath = os.path.join(get_user_config_dir(), "aliases.json")
+        
+        # Migration from old path (config/aliases.json relative to project root)
+        old_filepath = resource_path(os.path.join("config", "aliases.json"))
+        if not os.path.exists(self.filepath) and os.path.exists(old_filepath):
+            try:
+                shutil.copy2(old_filepath, self.filepath)
+                logging.info(f"[AliasManager] Migrated aliases.json from {old_filepath} to {self.filepath}")
+            except Exception as e:
+                logging.error(f"[AliasManager] Failed to migrate aliases.json: {e}")
+                
         self.aliases = {}
         self.load()
         self._initialized = True

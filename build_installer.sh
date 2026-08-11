@@ -75,6 +75,7 @@ echo -e "${YELLOW}[1/4] Construindo imagem Docker (isso pode levar 15-30 min na 
 echo ""
 
 docker build \
+    --network=host \
     -f "${SCRIPT_DIR}/Dockerfile.build" \
     -t "${IMAGE_NAME}" \
     "${SCRIPT_DIR}"
@@ -91,6 +92,8 @@ echo -e "${YELLOW}[2/4] Extraindo .deb do container...${NC}"
 mkdir -p "${OUTPUT_DIR}"
 
 docker run --rm \
+    --network=none \
+    --user "$(id -u):$(id -g)" \
     -v "${OUTPUT_DIR}:/output" \
     "${IMAGE_NAME}"
 
@@ -131,7 +134,7 @@ CRITICAL_PATHS=(
 
 ALL_OK=true
 for cpath in "${CRITICAL_PATHS[@]}"; do
-    if dpkg-deb --contents "${DEB_PATH}" 2>/dev/null | grep -q "${cpath}"; then
+    if dpkg-deb --contents "${DEB_PATH}" 2>/dev/null | grep "${cpath}" >/dev/null; then
         echo -e "    ${GREEN}✓${NC} ${cpath}"
     else
         echo -e "    ${RED}✗ MISSING: ${cpath}${NC}"
@@ -155,16 +158,16 @@ echo ""
 
 if [ "${ALL_OK}" = true ]; then
     echo -e "${GREEN}╔══════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  BUILD CONCLUÍDO COM SUCESSO!                       ║${NC}"
-    echo -e "${GREEN}║                                                     ║${NC}"
+    echo -e "${GREEN}║  BUILD CONCLUÍDO COM SUCESSO!                        ║${NC}"
+    echo -e "${GREEN}║                                                      ║${NC}"
     echo -e "${GREEN}║  Pacote: ${DEB_PATH}${NC}"
     echo -e "${GREEN}║  Tamanho: ${DEB_SIZE}${NC}"
-    echo -e "${GREEN}║                                                     ║${NC}"
-    echo -e "${GREEN}║  Instalar:                                          ║${NC}"
+    echo -e "${GREEN}║                                                      ║${NC}"
+    echo -e "${GREEN}║  Instalar:                                           ║${NC}"
     echo -e "${GREEN}║    sudo dpkg -i ${DEB_PATH}${NC}"
-    echo -e "${GREEN}║                                                     ║${NC}"
-    echo -e "${GREEN}║  Desinstalar:                                       ║${NC}"
-    echo -e "${GREEN}║    sudo dpkg -r carina                              ║${NC}"
+    echo -e "${GREEN}║                                                      ║${NC}"
+    echo -e "${GREEN}║  Desinstalar:                                        ║${NC}"
+    echo -e "${GREEN}║    sudo dpkg -r carina                               ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════╝${NC}"
 else
     echo -e "${RED}╔══════════════════════════════════════════════════════╗${NC}"

@@ -1,7 +1,18 @@
 {
   "guardian_agent": {
-    "init": {
-      "success": "   -> [GUARDIAN] AI Brain (Dueling DQN) created. AMP enabled: {enabled}"
+    "init": "[GUARDIAN] Initialized with Safety Rules -> Green: {green}s | Yellow: {yellow}s | All-Red: {all_red}s | Red: {red}s",
+    "neural_layer": "[GUARDIAN] Neural Layer: D3QN_TCN ({pae_status}) | AMP: {amp}",
+    "pae_with": "PAE latent={dim}",
+    "pae_without": "without PAE",
+    "reasons": {
+      "spillback": "High spillback risk detected (Neural)",
+      "neuro_passed": "Neuro-Symbolic audit passed",
+      "min_yellow": "Minimum Yellow limits",
+      "min_green": "Minimum Green limits",
+      "ghost_green": "Ghost Green constraint",
+      "min_all_red": "Minimum All Red limits",
+      "min_red": "Minimum Red limits",
+      "symbolic_passed": "Symbolic audit passed"
     }
   }
 }

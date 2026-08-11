@@ -71,77 +71,158 @@ class StaticMapRenderer:
         logging.info(self.locale_manager.get_string("static_map_renderer.init.created"))
         # --- END ---
 
-    def _draw_map_and_icons_with_matplotlib(self, nodes, edges, icon_requests, output_path: str):
+    def _draw_map_and_icons_with_matplotlib(self, nodes, edges, bounds, icon_requests, output_path: str):
         lm = self.locale_manager
         # --- REVERSED: Remove fallback ---
         logging.info(lm.get_string("static_map_renderer.run.rendering_map", path=output_path))
         # --- END ---
-        # --- REVERSED: Original size of the figure ---
-        fig, ax = plt.subplots(figsize=(6.4, 3.6))
-        # --- END ---
+        # Size set to (12, 8) to perfectly match the 1.5 ratio (1200x800) of Flet's InteractiveMap
+        fig, ax = plt.subplots(figsize=(12, 8), dpi=100)
+
+        # Replicate Flet's PlanningMapRenderer coordinate projection
+        base_width = 1200
+        base_height = 800
+        fit_scale = 1.0
+        fit_offset_x = 0
+        fit_offset_y = 0
+
+        # Calculate real geographical bounds from nodes and edges coordinates
+        all_x = [n['x'] for n in nodes.values() if 'x' in n] if nodes else []
+        all_y = [n['y'] for n in nodes.values() if 'y' in n] if nodes else []
+        if edges:
+            for edge in edges:
+                shape = edge.get('shape')
+                if shape:
+                    for pt in shape:
+                        all_x.append(pt[0])
+                        all_y.append(pt[1])
+
+        if all_x and all_y:
+            min_x, max_x = min(all_x), max(all_x)
+            min_y, max_y = min(all_y), max(all_y)
+            
+            map_w = max_x - min_x
+            map_h = max_y - min_y
+            if map_w == 0: map_w = 1
+            if map_h == 0: map_h = 1
+
+            scale_x = base_width / map_w
+            scale_y = base_height / map_h
+            fit_scale = min(scale_x, scale_y) * 0.95
+
+            pixel_map_w = map_w * fit_scale
+            pixel_map_h = map_h * fit_scale
+
+            fit_offset_x = (base_width - pixel_map_w) / 2
+            fit_offset_y = (base_height - pixel_map_h) / 2
+        else:
+            min_x, max_x = 0.0, 1200.0
+            min_y, max_y = 0.0, 800.0
+
+        def map_to_canvas(mx: float, my: float) -> tuple[float, float]:
+            rel_x = mx - min_x
+            rel_y = my - min_y
+            cx = fit_offset_x + (rel_x * fit_scale)
+            cy = fit_offset_y + (rel_y * fit_scale)
+            return cx, cy
 
         # Draw the streets
         for edge in edges:
             shape = edge.get('shape') # Use .get() for security
             if not shape: continue # Skip if shape does not exist
             try:
-                x_coords, y_coords = zip(*shape)
-                ax.plot(x_coords, y_coords, color='black', linewidth=2.0, zorder=1)
+                projected_shape = [map_to_canvas(pt[0], pt[1]) for pt in shape]
+                x_coords, y_coords = zip(*projected_shape)
+                # Replicating Flet's street width (4.5) and color (black)
+                ax.plot(x_coords, y_coords, color='black', linewidth=4.5, zorder=1)
             except ValueError: # Handle empty or invalid shape cases
                  logging.warning(f"Forma inválida encontrada para aresta: {edge.get('id', 'N/A')}")
 
+        # Draw the nodes (intersections and traffic lights) matching the UI exactly
+        from matplotlib.offsetbox import DrawingArea, AnnotationBbox
+        import matplotlib.patches as patches
 
-        # Draw the nodes (intersections)
         if nodes:
-            node_x = [n['x'] for n in nodes.values() if 'x' in n] # Ensure that x exists
-            node_y = [n['y'] for n in nodes.values() if 'y' in n] # Ensure that y exists
-            if node_x and node_y: # Only draw if there are coordinates
-                ax.scatter(node_x, node_y, s=20, color='#808080', zorder=2)
-
-        # Design recommendation icons
-        if icon_requests:
-            for junction_id, icon_type in icon_requests.items():
-                if junction_id not in nodes: continue
-
-                icon_path = self.icon_paths.get(icon_type)
-                # --- REMOVED: Extra check for os.path.exists and try...except ---
-                if not icon_path or not os.path.exists(icon_path): # Added existence check here for security
-                    logging.warning(f"Ícone '{icon_type}' não encontrado em '{icon_path}'")
-                    continue
-
-                node_coords = nodes[junction_id]
-                x, y = node_coords.get('x'), node_coords.get('y') # Use .get()
-                if x is None or y is None: continue # Skip if x or y does not exist
-
-                try: # Added try-except for reading the image
-                    icon_image = plt.imread(icon_path)
-                    imagebox = OffsetImage(icon_image, zoom=0.5)
-                    ab = AnnotationBbox(imagebox, (x, y), frameon=False, pad=0.0, zorder=3)
+            for node_id, node in nodes.items():
+                if 'x' not in node or 'y' not in node: continue
+                cx, cy = map_to_canvas(node['x'], node['y'])
+                
+                # Resolve recommendation type (rec_type) robustly
+                clean_node_id = str(node_id).strip()
+                rec_type = "existing"
+                if icon_requests:
+                    if clean_node_id in icon_requests:
+                        rec_type = icon_requests[clean_node_id]
+                    elif node_id in icon_requests:
+                        rec_type = icon_requests[node_id]
+                
+                node_type = node.get('type')
+                is_traffic_light = False
+                if node_type is None or "traffic_light" in str(node_type):
+                    is_traffic_light = True
+                
+                if (is_traffic_light and rec_type != "no_signal") or rec_type == "add":
+                    # Draw a vertical 3-light traffic light icon matching the UI (16x42 px)
+                    da = DrawingArea(width=16, height=42, xdescent=0, ydescent=0)
+                    
+                    # Box color matching the UI's box_color
+                    if rec_type == "add":
+                        box_color = '#388E3C'  # Green_700 (Adicionar)
+                    elif rec_type == "remove":
+                        box_color = '#D32F2F'  # Red_700 (Remover)
+                    else:
+                        box_color = '#1565C0'  # Blue_800 (Manter)
+                        
+                    # Housing box
+                    rect = patches.Rectangle((0, 0), 16, 42, facecolor=box_color, edgecolor='none')
+                    da.add_artist(rect)
+                    
+                    # Three light bulbs: Red (top), Amber (middle), Green (bottom)
+                    c_red = patches.Circle((8, 33), 4, color='#FF0000')
+                    c_amber = patches.Circle((8, 21), 4, color='#FFC107')
+                    c_green = patches.Circle((8, 9), 4, color='#4CAF50')
+                    
+                    da.add_artist(c_red)
+                    da.add_artist(c_amber)
+                    da.add_artist(c_green)
+                    
+                    # Force exact center alignment at (cx, cy) via box_alignment=(0.5, 0.5)
+                    ab = AnnotationBbox(da, (cx, cy), box_alignment=(0.5, 0.5), frameon=False, pad=0.0, zorder=3)
                     ax.add_artist(ab)
-                except Exception as img_err:
-                    logging.error(f"Erro ao carregar ou adicionar ícone '{icon_path}': {img_err}")
-                # --- END ---
+                else:
+                    # Draw simple junction matching the UI (Orange circle of radius 6)
+                    da = DrawingArea(width=12, height=12, xdescent=0, ydescent=0)
+                    circle = patches.Circle((6, 6), 6, color='#FB8C00')
+                    da.add_artist(circle)
+                    
+                    # Force exact center alignment at (cx, cy) via box_alignment=(0.5, 0.5)
+                    ab = AnnotationBbox(da, (cx, cy), box_alignment=(0.5, 0.5), frameon=False, pad=0.0, zorder=2)
+                    ax.add_artist(ab)
 
-        # Chart style settings
-        ax.set_aspect('equal', adjustable='box')
+        # Chart style settings and limits aligned to Flet's (1200x800) coordinate spaces
         ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False)
         ax.spines['bottom'].set_visible(False); ax.spines['left'].set_visible(False)
         ax.get_xaxis().set_ticks([]); ax.get_yaxis().set_ticks([])
         ax.set_facecolor('#F7F7F7')
 
-        # --- KEY CHANGE HERE: Reduced DPI ---
-        # Reduce from 600 to 150 (or 300 if the quality is very low)
+        # Standard Matplotlib coordinates space (0 to 1200 on X, 0 to 800 on Y)
+        ax.set_xlim(0, 1200)
+        ax.set_ylim(0, 800)
+
+        # Eliminate plot padding to occupy 100% of the canvas width/height
+        plt.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=1.0)
+
+        # Save with DPI=100 (12x8 inches -> exactly 1200x800 px)
         try:
-            plt.savefig(output_path, format='png', dpi=150, facecolor=ax.get_facecolor(), pad_inches=0.1)
-        except MemoryError as me: # Specifically catches MemoryError
-             logging.critical(f"MemoryError ao salvar a imagem '{output_path}'. Tente reduzir ainda mais o DPI ou verificar a RAM disponível.")
-             raise me # Re-throws error after logging in
-        except Exception as save_err: # Catch other errors
+            plt.savefig(output_path, format='png', dpi=100, facecolor=ax.get_facecolor(), bbox_inches=None, pad_inches=0.0)
+        except MemoryError as me:
+             logging.critical(f"MemoryError ao salvar a imagem '{output_path}'.")
+             raise me
+        except Exception as save_err:
              logging.error(f"Erro inesperado ao salvar a imagem '{output_path}': {save_err}")
-             raise save_err # Re-throw the error
+             raise save_err
         finally:
-            plt.close(fig) # Ensures the figure is closed
-        # --- END OF CHANGE ---
+            plt.close(fig)
 
         # --- REVERSED: Remove fallback ---
         logging.info(lm.get_string("static_map_renderer.run.render_complete", filename=os.path.basename(output_path)))
@@ -175,13 +256,13 @@ class StaticMapRenderer:
                 logging.error("Falha ao parsear os dados do mapa a partir dos arquivos XML.")
                 return None, None
 
-            nodes, edges, _ = map_data
+            nodes, edges, bounds = map_data
             if not nodes:
                 logging.error("Nenhum nó encontrado nos dados do mapa parseados.")
                 return None, None
 
             final_image_path = os.path.join(maps_output_dir, output_filename)
-            self._draw_map_and_icons_with_matplotlib(nodes, edges, icon_requests, final_image_path)
+            self._draw_map_and_icons_with_matplotlib(nodes, edges, bounds, icon_requests, final_image_path)
 
             return final_image_path, (nodes, edges)
         except MemoryError: # Catches MemoryError specifically coming from _draw_map...
@@ -201,104 +282,19 @@ class StaticMapRenderer:
                  except Exception as cleanup_err:
                      logging.warning(f"Erro ao limpar arquivos XML temporários: {cleanup_err}")
 
-
     def generate_coordinates_file(
         self, map_data: tuple, traffic_light_ids: list,
         scenario_results_dir: str, image_width: int = 3840, image_height: int = 2160
     ) -> str | None:
         """
-        Generates a JSON file with the pixel coordinates of each traffic light on the rendered map.
+        Delegates the coordinates data file generation to MapCoordinateGenerator.
         """
-        lm = self.locale_manager
-        try:
-            # --- REVERSED: Removal of logs ---
-            if not isinstance(map_data, tuple) or len(map_data) != 2:
-                 logging.error("Dados do mapa inválidos para gerar coordenadas.")
-                 return None
-            nodes, edges = map_data
-            if not nodes or not edges:
-                 logging.error("Nós ou arestas ausentes nos dados do mapa para gerar coordenadas.")
-                 return None
-            # --- END ---
-
-            # --- REVERSED: Original (approximate) coordinate calculation logic ---
-            # Collects all x and y coordinates to find the limits
-            all_x = [n['x'] for n in nodes.values() if 'x' in n]
-            all_y = [n['y'] for n in nodes.values() if 'y' in n]
-            for e in edges:
-                if 'shape' in e and e['shape']:
-                    try:
-                        x_coords, y_coords = zip(*e['shape'])
-                        all_x.extend(x_coords)
-                        all_y.extend(y_coords)
-                    except ValueError:
-                         pass # Ignore invalid shapes
-
-            if not all_x or not all_y:
-                 logging.error("Não foi possível extrair coordenadas dos nós/arestas.")
-                 return None
-
-            min_x, max_x = min(all_x), max(all_x)
-            min_y, max_y = min(all_y), max(all_y)
-
-            map_width = max_x - min_x
-            map_height = max_y - min_y
-            # --- REVERSED: Remove warning log ---
-            if map_width <= 0 or map_height <= 0:
-                 logging.warning(f"Dimensões do mapa inválidas calculadas: W={map_width}, H={map_height}. Não é possível gerar coordenadas.")
-                 return None
-            # --- END ---
-
-            # Use padding_ratio based on original figsize
-            padding_ratio = (0.1 * 2) / 6.4 # 0.1 pad_inches on each side, 6.4 figsize width
-            padding = image_width * padding_ratio / 2 # Padding in pixels for each side
-            view_width = image_width - (padding * 2)
-            view_height = image_height - (padding * 2)
-
-            # Calculates scale ensuring the map fits in the viewing area
-            scale_x = view_width / map_width if map_width > 0 else 1
-            scale_y = view_height / map_height if map_height > 0 else 1
-            scale = min(scale_x, scale_y)
-
-            # Calculates the width and height of the scaled map
-            centered_map_width = map_width * scale
-            centered_map_height = map_height * scale
-
-            # Calculates offsets to center the map in the image
-            # Offset X: (full width - map width)/2 - (minimum coordinate * scale)
-            offset_x = (image_width - centered_map_width) / 2 - (min_x * scale)
-
-            # Y Offset: (total height - map height)/2 + (MAX coordinate * scale)
-            # Sum max_y * scale because the Y origin of the image is at the TOP left,
-            # while the Y origin of SUMO/matplotlib is on the left BASE.
-            offset_y_canvas_top = (image_height - centered_map_height) / 2 # Empty space above the map
-            offset_y = offset_y_canvas_top + (max_y * scale) # Moves the origin to max_y (top of the SUMO map) and adjusts by scale
-
-            coordinates = {}
-            for tl_id in traffic_light_ids:
-                if tl_id in nodes:
-                    node = nodes[tl_id]
-                    # Ensures that x and y exist
-                    if 'x' in node and 'y' in node:
-                        # Apply scale and offset
-                        pixel_x = node['x'] * scale + offset_x
-                        # Inverts the Y coordinate when applying scale and offset
-                        pixel_y = offset_y - (node['y'] * scale)
-                        coordinates[tl_id] = {'x': round(pixel_x, 2), 'y': round(pixel_y, 2)}
-                    else:
-                         logging.warning(f"Nó '{tl_id}' não possui coordenadas 'x' ou 'y'.")
-            # --- END OF REVERSED LOGIC ---
-
-            maps_output_dir = os.path.join(scenario_results_dir, "maps")
-            os.makedirs(maps_output_dir, exist_ok=True)
-            output_path = os.path.join(maps_output_dir, "map_coords.json")
-
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(coordinates, f, indent=4)
-
-            return output_path
-        except Exception as e:
-            # --- REVERSED: Remove fallback ---
-            logging.error(lm.get_string("static_map_renderer.run.critical_error_coords", error=e), exc_info=True)
-            # --- END ---
-            return None
+        from rendering.map_coordinate_generator import MapCoordinateGenerator
+        generator = MapCoordinateGenerator(self.locale_manager)
+        return generator.generate_coordinates_file(
+            map_data=map_data,
+            traffic_light_ids=traffic_light_ids,
+            scenario_results_dir=scenario_results_dir,
+            image_width=image_width,
+            image_height=image_height
+        )

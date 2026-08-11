@@ -1,0 +1,33 @@
+{
+  "hft_server": {
+    "import_failed": "[HFTServer] Falha ao importar módulos gRPC gerados. Verifique se a pasta 'proto' existe e contém os arquivos gerados.",
+    "receiving_scenario": "[HFT] Recebendo cenário do Synapse (Hash: {hash})...",
+    "empty_map": "[HFT] LoadScenario recebido sem conteúdo de arquivo.",
+    "empty_map_msg": "Conteúdo do mapa vazio",
+    "control_started": "🚀 [SYSTEM] Controle HFT iniciado. Latch liberado nativamente. Estado agora é RUNNING.",
+    "control_stopped": "🛑 [SYSTEM] Controle HFT parado. Estado agora é IDLE.",
+    "heartbeat_error": "[HFT] Falha ao enviar Heartbeat: {error}",
+    "stream_error": "[HFT] Erro no fluxo de tráfego: {error}",
+    "connection_lost": "❌ [HFT] Conexão do fluxo perdida: {error}"
+  },
+  "hft_worker": {
+    "started": "[HFT Worker] Thread do trabalhador assíncrono iniciada.",
+    "processing_error": "[HFT Worker] Erro ao processar o quadro: {error}",
+    "stopped": "[HFT Worker] Thread do trabalhador parada."
+  },
+  "hft_diagnostics": {
+    "initialized": "[HFT Diagnostics] Diagnósticos HFT inicializados em: {path}",
+    "session_summary": "[HFT Diagnostics] Resumo da Sessão: {frames} quadros recebidos | Latência média no recv: {recv:.2f}ms | Tempo médio no controller: {ctrl:.2f}ms | Tempo total médio: {total:.2f}ms | Pico de profundidade da fila: {max_q}"
+  },
+  "hft_session": {
+    "map_saved": "[HFT Session] Mapa {map_file} salvo em {map_path}",
+    "peak_schedule_saved": "[HFT Session] Programação de pico salva em {schedule_path}",
+    "scenario_accepted": "Cenário aceito e salvo com sucesso em {map_path}"
+  },
+  "grpc_server": {
+    "starting": "[gRPC] Iniciando gRPC HFT Server na porta {port}...",
+    "running": "[gRPC] Servidor gRPC HFT em execução na porta {port}.",
+    "stopping": "[gRPC] Encerrando servidor gRPC HFT...",
+    "stopped": "[gRPC] Servidor gRPC HFT parado."
+  }
+}

@@ -41,15 +41,50 @@ class SafetyAuditor:
             return suggested_action, False
 
         extractor = environment.state_extractor
+        
+        sim_time = 0.0
+        current_stage_idx = 0
+        if environment.conn:
+            try:
+                sim_time = environment.conn.simulation.getTime()
+                current_stage_idx = environment.conn.trafficlight.getPhase(tl_id)
+            except Exception:
+                pass
+                
+        current_stage_duration = 0.0
+        if environment.action_supervisor:
+            current_stage_duration = sim_time - environment.action_supervisor._last_stage_change_time.get(tl_id, 0.0)
+            
+        stage_codes = extractor.tl_stage_codes.get(tl_id, {})
+        state_string = stage_codes.get(current_stage_idx, "G")
+        
+        # Improve context with more accurate information
+        total_stages = len(stage_codes)
+        prev_stage_idx = (current_stage_idx - 1) % total_stages if total_stages > 0 else 0
+        prev_state_string = stage_codes.get(prev_stage_idx, "").upper()
+        
+        stage_durations = getattr(extractor, 'tl_stage_durations', {}).get(tl_id, {})
+        default_duration = stage_durations.get(current_stage_idx, 0.0)
+        from utils.safety_rules import SafetyRules
+        all_red_time = SafetyRules.get_all_red()
+        if default_duration > 0:
+            is_clearance_red = ('Y' in prev_state_string) and (default_duration <= all_red_time)
+        else:
+            is_clearance_red = 'Y' in prev_state_string
+
         context = {
-            'current_phase_duration': extractor.get_phase_duration(tl_id),
-            'next_phase_has_flow': extractor.check_flow_on_next_phase(tl_id)
+            'tl_id': tl_id,
+            'current_stage_duration': current_stage_duration,
+            'current_stage_state': state_string.upper(),
+            'next_stage_has_flow': True,
+            'is_clearance_red': is_clearance_red
         }
         
         # 1. Immediate Symbolic Audit
-        symbolic_action, reason = self.guardian.symbolic_audit(context)
-        if symbolic_action == 0: # Vetoed by symbolic rules
-            return 1, True
+        if self.guardian:
+            symbolic_action, reason = self.guardian.symbolic_audit(context)
+            if symbolic_action == 0: # Vetoed by symbolic rules
+                return 1, True
 
         # 2. Zero-Latency Neural Spillback Audit (from Background Veto Map)
         if latest_veto_map and tl_id in latest_veto_map:

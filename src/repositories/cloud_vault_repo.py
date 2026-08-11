@@ -21,7 +21,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from src.database.db_engine import DatabaseEngine
@@ -113,3 +113,75 @@ class CloudVaultRepository:
                         
         if synced > 0 or errors > 0:
             logging.info(f"[CLOUD_VAULT] Sync completed. {synced} synced, {skipped} skipped (>50MB), {errors} errors.")
+
+    def fetch_file_from_vault(self, relative_path: str) -> Optional[bytes]:
+        """
+        Reads raw binary content of a file from cloud_file_vault by relative_path.
+        """
+        conn = self.engine.get_connection()
+        if not conn:
+            return None
+        try:
+            cursor = conn.cursor()
+            if self.engine.db_type == "postgres":
+                cursor.execute("SELECT file_content FROM cloud_file_vault WHERE relative_path = %s;", (relative_path,))
+            else:
+                cursor.execute("SELECT file_content FROM cloud_file_vault WHERE relative_path = ?;", (relative_path,))
+            
+            row = cursor.fetchone()
+            if row and row[0] is not None:
+                val = row[0]
+                return bytes(val) if not isinstance(val, bytes) else val
+            return None
+        except Exception as e:
+            logging.error(f"[CLOUD_VAULT] Failed to fetch file {relative_path} from vault: {e}")
+            return None
+        finally:
+            if conn:
+                conn.close()
+
+    def restore_file_from_vault(self, relative_path: str, target_filepath: str) -> bool:
+        """
+        Fetches content from cloud_file_vault in PostgreSQL/SQLite and writes it to target_filepath on local disk.
+        """
+        content = self.fetch_file_from_vault(relative_path)
+        if content is None:
+            return False
+        try:
+            os.makedirs(os.path.dirname(target_filepath), exist_ok=True)
+            with open(target_filepath, "wb") as f:
+                f.write(content)
+            logging.info(f"[CLOUD_VAULT] Restored {relative_path} from database vault to {target_filepath}")
+            return True
+        except Exception as e:
+            logging.error(f"[CLOUD_VAULT] Failed to write restored file {target_filepath}: {e}")
+            return False
+
+    def restore_all_files_from_vault(self, base_dir: str) -> int:
+        """
+        Fetches all files stored in cloud_file_vault from PostgreSQL/SQLite and restores them into base_dir.
+        """
+        conn = self.engine.get_connection()
+        if not conn:
+            return 0
+        restored = 0
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT relative_path, file_content FROM cloud_file_vault;")
+            rows = cursor.fetchall()
+            for rel_path, content in rows:
+                if not rel_path or content is None:
+                    continue
+                full_path = os.path.join(base_dir, rel_path)
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                with open(full_path, "wb") as f:
+                    f.write(bytes(content) if not isinstance(content, bytes) else content)
+                restored += 1
+            logging.info(f"[CLOUD_VAULT] Restored {restored} files from PostgreSQL database vault into {base_dir}")
+            return restored
+        except Exception as e:
+            logging.error(f"[CLOUD_VAULT] Error restoring all files from vault: {e}")
+            return restored
+        finally:
+            if conn:
+                conn.close()

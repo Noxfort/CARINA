@@ -16,7 +16,7 @@
 
 # File: src/engine/step_processor.py
 # Author: Gabriel Moraes
-# Date: April 15, 2026
+# Date: July 03, 2026
 
 import time
 import logging
@@ -29,6 +29,7 @@ from engine.step_timer import StepTimer
 from engine.agent_evaluator import AgentEvaluator
 from engine.episode_reporter import EpisodeReporter
 from engine.stage_transition_manager import StageTransitionManager
+from mfd.mfd_processor import MFDProcessor
 from utils.safety_rules import SafetyRules
 
 class StepProcessor:
@@ -74,13 +75,17 @@ class StepProcessor:
             locale_manager=self.lm,
             maturity_manager=self.maturity_manager
         )
+        self.mfd_processor = MFDProcessor(
+            mfd=self.mfd,
+            state_extractor=self.state_extractor
+        )
         
         # Session State Variables
         self.step_counter = 0
         self.start_time_offset: Optional[float] = None
         self.current_stages: Dict[str, Any] = {}
         self.last_commanded_stages: Dict[str, int] = {}
-        self.accumulated_metrics = defaultdict(lambda: {'rewards': [], 'entropies': []})
+        self.accumulated_metrics = defaultdict(lambda: {'reward_sum': 0.0, 'entropy_sum': 0.0, 'count': 0})
         self.log_step_progress = True
         self.guardians = {}
         
@@ -95,6 +100,9 @@ class StepProcessor:
 
     def reset_state(self) -> None:
         """Resets the counters for a new session (or new map)."""
+        if self.mfd:
+            self.mfd_processor.save_mfd_history_to_disk()
+            self.mfd.reset()
         self.step_counter = 0
         self.start_time_offset = None
         self.current_stages.clear()
@@ -105,8 +113,6 @@ class StepProcessor:
         self._episode_counter = 0
         self._episode_total_reward = 0.0
         self._episode_steps_in_current = 0
-        if self.mfd:
-            self.mfd.reset()
 
     def set_current_phases(self, phases: Dict[str, Any]) -> None:
         self.current_stages = phases
@@ -166,8 +172,9 @@ class StepProcessor:
             tls_lanes_state[tl_id] = lanes_state
             maturity_info[tl_id] = maturity_name
             step_reward_sum += reward
-            self.accumulated_metrics[tl_id]['rewards'].append(reward)
-            self.accumulated_metrics[tl_id]['entropies'].append(entropy)
+            self.accumulated_metrics[tl_id]['reward_sum'] += reward
+            self.accumulated_metrics[tl_id]['entropy_sum'] += entropy
+            self.accumulated_metrics[tl_id]['count'] += 1
             
             if vetoed:
                 guardian_vetoed_any = True
@@ -212,42 +219,13 @@ class StepProcessor:
             self._episode_steps_in_current = 0
 
         # --- MFD: Compute Network Performance ---
-        mfd_data = None
-        if self.mfd and edges_data:
-            mfd_snapshot = self.mfd.compute_step(edges_data, sim_time)
-            mfd_data = mfd_snapshot.to_dict()
-            
-            # --- Persist MFD history to disk for MFD Optimization Analysis worker ---
-            try:
-                import json
-                import os
-                from utils.paths import get_base_output_dir
-                hft_results_dir = os.path.join(get_base_output_dir(), "results", "hft_live_session")
-                os.makedirs(hft_results_dir, exist_ok=True)
-                mfd_history_path = os.path.join(hft_results_dir, "mfd_history.json")
-                
-                mfd_payload = {
-                    "peak_production": self.mfd._tracker.peak_production,
-                    "peak_accumulation": self.mfd._tracker.peak_accumulation,
-                    "history": [s.to_dict() for s in self.mfd._tracker._history]
-                }
-                with open(mfd_history_path, "w", encoding="utf-8") as f:
-                    json.dump(mfd_payload, f)
-            except Exception as e:
-                logging.error(f"[StepProcessor] Failed to save MFD history: {e}")
-            
-            # Log network state at episode boundaries
-            if self.step_counter % episode_steps == 0:
-                report = self.mfd.get_network_report()
-                if report.get('status') == 'OK':
-                    state = report['network_state']
-                    eff = report['current'].get('efficiency', 0)
-                    logging.info(
-                        f"[MFD] Network State: {state} | "
-                        f"Efficiency: {eff:.1%} | "
-                        f"Production: {mfd_snapshot.production:.2f} veh·m/s | "
-                        f"Accumulation: {mfd_snapshot.accumulation:.2f} veh"
-                    )
+        mfd_data = self.mfd_processor.process_step(
+            edges_data=edges_data,
+            sim_time=sim_time,
+            agents_keys=list(agents.keys()),
+            step_counter=self.step_counter,
+            episode_steps=episode_steps
+        )
 
         # --- Log commanded stage colors to carina_colors.log and command hardware on stage changes ---
         for tl_id, driver in self.action_supervisor.connection_manager.active_connections.items():
@@ -267,13 +245,13 @@ class StepProcessor:
                 driver.log_carina_colors(current_stage_idx, stage_codes)
 
         # --- SEND HFT FEEDBACK TO CENTRAL CONTROLLER CACHE ---
-        # Renamed from 'hft_rich_update' to 'ai_telemetry_sync' to avoid conflicting with the UI (SDS/SAS)
         rich_payload = {
             "edges": edges_data,
             "tls_phases": self.current_stages,
             "tls_lanes_state": tls_lanes_state,
             "maturity": maturity_info,
-            "mfd": mfd_data
+            "mfd": mfd_data,
+            "sim_time": sim_time
         }
         
         # Sends to the Central Controller via Pipe
@@ -282,4 +260,3 @@ class StepProcessor:
                 self.pipe_conn.send(("ai_telemetry_sync", rich_payload))
             except Exception as e:
                 logging.error(f"[TRAINER] Failed to send AI Telemetry update: {e}")
-

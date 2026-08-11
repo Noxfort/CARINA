@@ -59,5 +59,11 @@
       "fatal_error": "[SAS_WORKER] Erro fatal e não tratado no worker do SAS: {error}",
       "worker_finished": "[SAS_WORKER] Processo do SAS finalizado."
     }
+  },
+  "sas_recorder": {
+    "init": "[TrafficDataRecorder] Inicializado. Arestas da topologia: {count}, tamanho do lote: {batch_size}",
+    "async_flush_error": "[TrafficDataRecorder] Falha no flush assíncrono: {error}",
+    "topology_updated": "[TrafficDataRecorder] Topologia atualizada com {count} arestas.",
+    "queue_full": "[TrafficDataRecorder] Fila de flush do DB está CHEIA! Descartando amostras."
   }
 }

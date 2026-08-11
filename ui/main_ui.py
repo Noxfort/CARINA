@@ -14,13 +14,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# File: ui/main_ui.py (ORIGINAL RESTORED)
+# File: ui/main_ui.py (Refactored to Pure UI Orchestrator)
 # Author: Gabriel Moraes
-# Date: October 1, 2025
+# Date: July 19, 2026
 
 import sys
 import os
 import logging
+import traceback
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
@@ -34,258 +35,148 @@ import flet as ft
 from ui.views.dashboard_view import DashboardView
 from ui.views.diagnostics_view import DiagnosticsView
 from ui.views.planning_view import PlanningView
+from ui.views.error_view import ErrorView
 from ui.builders.settings_configurator import build_settings_view
+from ui.builders.settings_dialog_builder import SettingsDialogBuilder
 from ui.providers.live_data_provider import LiveDataProvider
 from ui.clients.control_client import ControlClient
-from src.utils.logging_setup import setup_logging
-from ui.handlers.locale_manager import LocaleManager
 from ui.clients.settings_client import SettingsClient
-from src.utils.paths import get_base_output_dir
+from ui.handlers.locale_manager import LocaleManager
+from ui.handlers.network_event_handler import NetworkEventHandler
+from ui.managers.window_manager import WindowManager
+from ui.managers.navigation_manager import NavigationManager
 from ui.overlays.security_overlay import SecurityUI
+from src.utils.logging_setup import setup_logging
+from src.utils.paths import get_base_output_dir
+
+sas_result_queue = None
+mfd_result_queue = None
+mfd_trigger_queue = None
+
 
 def main(page: ft.Page):
-    """Função principal que constrói e configura a página da aplicação Flet."""
-    log_base_dir = get_base_output_dir()
-    log_dir = os.path.join(log_base_dir, "logs", "ui_worker")
-    os.makedirs(log_dir, exist_ok=True)
-    setup_logging(log_dir=log_dir)
+    """Main function configuring and assembling the Flet application UI."""
+    global active_page
+    active_page = page
 
-    logging.info("--- O PROGRAMA DA UI INICIOU COM SUCESSO ---")
-    
-    locale_manager = LocaleManager()
-    
-    page.title = locale_manager.get_string("main_ui.app_title")
-    page.window_width = 1280
-    page.window_height = 800
-    page.theme_mode = ft.ThemeMode.DARK
-    page.padding = 10
-    
-    caminho_do_icone = os.path.join(project_root, "ui", "assets", "images", "logo.ico")
-    if not os.path.exists(caminho_do_icone):
-        caminho_do_icone = os.path.join(project_root, "ui", "assets", "images", "logo.png")
+    try:
+        # 1. Logging Initialization
+        log_base_dir = get_base_output_dir()
+        log_dir = os.path.join(log_base_dir, "logs", "ui_worker")
+        os.makedirs(log_dir, exist_ok=True)
+        setup_logging(log_dir=log_dir)
 
-    if os.path.exists(caminho_do_icone):
-        page.window_favicon_path = caminho_do_icone
+        logging.info("--- O PROGRAMA DA UI INICIOU COM SUCESSO ---")
 
-    def handle_sds_data(data):
-        msg_type = data.get("type")
-        if msg_type == "auth_response":
-            security_ui.handle_auth_response(data.get("payload", {}))
-        elif msg_type == "lockdown_event":
-            if data.get("payload", {}).get("active", False):
-                security_ui.trigger_lockdown()
-        elif msg_type == "users_list":
-            if hasattr(settings_view, 'account_card') and settings_view.account_card:
-                settings_view.account_card.update_user_list(data.get("payload", {}).get("users", []))
-        elif msg_type == "account_response":
-            payload = data.get("payload", {})
-            action_type = payload.get("action", "")
-            success = payload.get("success", False)
-            if success:
-                msg = locale_manager.get_string("accounts.success_action", "Ação ({action_type}) concluída com sucesso!").replace("{action_type}", action_type)
-            else:
-                msg = locale_manager.get_string("accounts.fail_action", "Falha na ação ({action_type}). Verifique os dados ou se o usuário já existe.").replace("{action_type}", action_type)
-            page.snack_bar = ft.SnackBar(content=ft.Text(msg), bgcolor=ft.Colors.GREEN_700 if success else ft.Colors.RED_700)
-            page.snack_bar.open = True
-            page.update()
-        else:
-            dashboard_view.update_live_data(data)
+        locale_manager = LocaleManager()
 
-    live_data_provider = LiveDataProvider(on_data_received=handle_sds_data)
-    control_client = ControlClient(live_data_provider=live_data_provider)
-    settings_client = SettingsClient(live_data_provider=live_data_provider)
-
-    security_ui = SecurityUI(page, control_client, locale_manager)
-    
-
-
-    dashboard_view = DashboardView(control_client=control_client, locale_manager=locale_manager, security_ui=security_ui)
-    planning_view = PlanningView(locale_manager=locale_manager)
-    diagnostics_view = DiagnosticsView(locale_manager=locale_manager)
-    
-    def apply_translations_to_ui():
-        page.title = locale_manager.get_string("main_ui.app_title")
-        page.appbar.title.value = locale_manager.get_string("main_ui.app_long_title")
-        page.appbar.actions[0].tooltip = locale_manager.get_string("main_ui.settings_tooltip")
-        
-        main_tabs.tabs[0].text = locale_manager.get_string("main_ui.tab_dashboard")
-        main_tabs.tabs[1].text = locale_manager.get_string("main_ui.tab_planning")
-        main_tabs.tabs[2].text = locale_manager.get_string("main_ui.tab_diagnostics")
-
-        dashboard_view.update_translations(locale_manager)
-        planning_view.update_translations(locale_manager)
-        diagnostics_view.update_translations(locale_manager)
-        settings_view.update_translations(locale_manager)
-
-        page.update()
-
-    settings_view = build_settings_view(locale_manager, settings_client)
-    
-    def close_settings_dialog(e=None):
-        settings_dialog.open = False
-        page.update()
-
-    def hard_kill_app(e):
-        import sys
-        current_module = sys.modules[__name__]
-        if hasattr(current_module, 'shutdown_event') and current_module.shutdown_event is not None:
-            current_module.shutdown_event.set()
-        else:
-            if hasattr(page, 'window') and page.window is not None:
-                page.window.destroy()
-            else:
-                page.window_destroy()
-
-    settings_dialog = ft.AlertDialog(
-        modal=True,
-        title=ft.Row([ft.Icon(ft.Icons.SETTINGS), ft.Text("Configurações")]),
-        content=settings_view,
-        actions=[
-            ft.TextButton("Fechar", on_click=close_settings_dialog)
-        ],
-        actions_alignment=ft.MainAxisAlignment.END,
-    )
-
-    page.overlay.append(settings_dialog)
-
-    def open_settings_dialog(e):
-        def _open():
-            settings_dialog.open = True
-            # Request the user list when settings open
-            settings_client.live_data_provider.send_command_to_backend({"type": "list_users"})
-            page.update()
-        security_ui.request_auth(on_success=_open)
-
-    # page.on_resized is hooked by LiveCanvasMapWidget for responsive map
-    def handle_keyboard(e: ft.KeyboardEvent):
-        if e.key == "F11":
-            if hasattr(page, 'window') and page.window is not None:
-                page.window.full_screen = not page.window.full_screen
-            else:
-                page.window_full_screen = not getattr(page, "window_full_screen", False)
-            page.update()
-            
-    page.on_keyboard_event = handle_keyboard
-
-    page.appbar = ft.AppBar(
-        leading=ft.Icon(ft.Icons.TRAFFIC_ROUNDED),
-        title=ft.Text(),
-        center_title=False,
-        bgcolor=ft.Colors.BLUE_GREY_800,
-        actions=[
-            ft.IconButton(ft.Icons.SETTINGS_ROUNDED, on_click=open_settings_dialog, tooltip="Configurações"),
-        ],
-    )
-    
-    def window_event(e):
-        if hasattr(e, 'data') and e.data == "close":
-            current_module = sys.modules[__name__]
-            # Se o usuário mandou encerrar pelo tray, nós deixamos a janela fechar de verdade!
-            if hasattr(current_module, 'shutdown_event') and current_module.shutdown_event is not None and current_module.shutdown_event.is_set():
-                return
-                
-            # Caso contrário, estilo Steam: apenas esconde a janela (minimiza para o tray)
-            if hasattr(page, 'window') and page.window is not None:
-                page.window.visible = False
-            else:
-                page.window_visible = False
-            page.update()
-            
-    if hasattr(page, 'window') and page.window is not None:
-        page.window.prevent_close = True
-        page.window.on_event = window_event
-    else:
+        # 2. Background Hardware & Monitor Client Initialization
+        hw_manager = None
         try:
-            page.window_prevent_close = True
-            page.on_window_event = window_event
-        except AttributeError:
-            pass # Flet version weirdness
-    
-    def monitor_tray():
-        import time
+            from src.controller.connection_manager import HardwareConnectionManager
+            hw_manager = HardwareConnectionManager.get_instance(locale_manager=locale_manager)
+        except Exception as err:
+            logging.warning(f"[main_ui] Non-critical warning initializing HardwareConnectionManager: {err}")
+
+        try:
+            from src.utils.settings_manager import SettingsManager
+            from src.communication.monitor_client import MonitorClient
+            MonitorClient.get_instance(SettingsManager())
+        except Exception as err:
+            logging.warning(f"[main_ui] Non-critical warning initializing MonitorClient: {err}")
+
+        # 3. Window Manager Configuration
         current_module = sys.modules[__name__]
-        while True:
-            if hasattr(current_module, 'restore_event') and current_module.restore_event.is_set():
-                current_module.restore_event.clear()
-                if hasattr(page, 'window') and page.window is not None:
-                    is_visible = getattr(page.window, 'visible', False)
-                    is_minimized = getattr(page.window, 'minimized', False)
-                    
-                    if is_visible and not is_minimized:
-                        page.window.minimized = True
-                    else:
-                        page.window.visible = True
-                        page.window.minimized = False
-                        page.window.focused = True
-                        try:
-                            page.window.to_front()
-                        except Exception:
-                            pass
-                else:
-                    is_visible = getattr(page, 'window_visible', False)
-                    is_minimized = getattr(page, 'window_minimized', False)
-                    
-                    if is_visible and not is_minimized:
-                        page.window_minimized = True
-                    else:
-                        page.window_visible = True
-                        try:
-                            page.window_minimized = False
-                            page.window_focused = True
-                            page.window_to_front()
-                        except Exception:
-                            pass
-                page.update()
-                
-            if hasattr(current_module, 'shutdown_event') and current_module.shutdown_event.is_set():
-                if hasattr(page, 'window') and page.window is not None:
-                    page.window.prevent_close = False
-                    page.window.destroy()
-                else:
-                    try:
-                        page.window_prevent_close = False
-                    except:
-                        pass
-                    page.window_destroy()
-                break
-            time.sleep(0.1)
-            
-    page.run_thread(monitor_tray)
-    
-    def on_disconnect(e):
-        logging.info("--- O PROGRAMA DA UI FOI ENCERRADO ---")
-        if live_data_provider:
-            live_data_provider.stop()
+        restore_ev = getattr(current_module, 'restore_event', None)
+        shutdown_ev = getattr(current_module, 'shutdown_event', None)
 
-    page.on_disconnect = on_disconnect
-    live_data_provider.start()
-    
-    def on_tab_change(e):
-        if e.control.selected_index == 2:
-            diagnostics_view.start_log_watcher()
-        else:
-            diagnostics_view.stop_log_watcher()
-        
-        # --- NEW: If you enter the Planning tab, it loads the interactive map ---
-        if e.control.selected_index == 1:
-            try: planning_view.load_map()
-            except: pass
+        window_manager = WindowManager(page, restore_event=restore_ev, shutdown_event=shutdown_ev)
 
-    main_tabs = ft.Tabs(
-        selected_index=0,
-        animation_duration=300,
-        on_change=on_tab_change,
-        tabs=[
-            ft.Tab(icon=ft.Icons.SPACE_DASHBOARD_ROUNDED, content=dashboard_view),
-            ft.Tab(icon=ft.Icons.EDIT_ROAD_ROUNDED, content=planning_view),
-            ft.Tab(icon=ft.Icons.BUILD_ROUNDED, content=diagnostics_view),
-        ],
-        expand=True,
-    )
-    
-    apply_translations_to_ui()
-    page.add(main_tabs)
-    page.update()
+        caminho_do_icone = os.path.join(project_root, "ui", "assets", "images", "logo.ico")
+        if not os.path.exists(caminho_do_icone):
+            caminho_do_icone = os.path.join(project_root, "ui", "assets", "images", "logo.png")
+
+        window_manager.configure_window(
+            app_title=locale_manager.get_string("main_ui.app_title", default="CARINA"),
+            favicon_path=caminho_do_icone
+        )
+
+        # 4. Clients, Providers and Security Setup
+        live_data_provider = LiveDataProvider(
+            on_data_received=lambda data: net_event_handler.handle_sds_data(data),
+            shutdown_event=shutdown_ev
+        )
+        control_client = ControlClient(live_data_provider=live_data_provider)
+        settings_client = SettingsClient(live_data_provider=live_data_provider)
+        security_ui = SecurityUI(page, control_client, locale_manager)
+
+        # 5. Views Assembly
+        dashboard_view = DashboardView(control_client=control_client, locale_manager=locale_manager, security_ui=security_ui)
+        planning_view = PlanningView(locale_manager=locale_manager, control_client=control_client, sas_result_queue=sas_result_queue)
+        diagnostics_view = DiagnosticsView(locale_manager=locale_manager, control_client=control_client)
+        settings_view = build_settings_view(locale_manager, settings_client)
+
+        # 6. Network Event Handler Setup
+        net_event_handler = NetworkEventHandler(
+            page=page,
+            dashboard_view=dashboard_view,
+            security_ui=security_ui,
+            settings_view=settings_view,
+            locale_manager=locale_manager
+        )
+
+        if hw_manager and hasattr(hw_manager, "event_listener") and hw_manager.event_listener:
+            hw_manager.event_listener.on_event_callback = lambda evt: net_event_handler.handle_hardware_trap(evt)
+
+        # 7. Modal Settings Dialog Setup
+        settings_dialog, open_settings_dialog = SettingsDialogBuilder.build_settings_dialog(
+            page=page,
+            locale_manager=locale_manager,
+            security_ui=security_ui,
+            settings_view=settings_view,
+            settings_client=settings_client
+        )
+
+        # 8. Navigation & Tab Manager Setup
+        nav_manager = NavigationManager(
+            page=page,
+            locale_manager=locale_manager,
+            dashboard_view=dashboard_view,
+            planning_view=planning_view,
+            diagnostics_view=diagnostics_view,
+            settings_view=settings_view,
+            settings_dialog=settings_dialog,
+            open_settings_callback=open_settings_dialog
+        )
+
+        page.appbar = nav_manager.appbar
+
+        def on_disconnect(e):
+            logging.info("--- O PROGRAMA DA UI FOI ENCERRADO ---")
+            if shutdown_ev:
+                shutdown_ev.set()
+            if live_data_provider:
+                live_data_provider.stop()
+            try:
+                from src.communication.monitor_client import MonitorClient
+                mon = MonitorClient.get_instance()
+                if mon and mon.enabled and mon.client:
+                    mon.stop(shutdown_message="Operador encerrou a interface da CARINA_CORE")
+            except Exception as err:
+                logging.error(f"[main_ui] Exception sending Monitor shutdown message: {err}")
+
+        page.on_disconnect = on_disconnect
+        live_data_provider.start()
+
+        page.add(nav_manager.tabs)
+        nav_manager.apply_translations()
+        page.update()
+
+    except Exception as err:
+        error_msg = traceback.format_exc()
+        logging.error(f"[main_ui] Erro crítico na inicialização da UI: {err}\n{error_msg}")
+        ErrorView.render_error_card(page, error_msg, on_restart_callback=lambda e: main(page))
+
 
 if __name__ == "__main__":
     ft.app(target=main)

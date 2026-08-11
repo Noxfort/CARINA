@@ -1,102 +1,247 @@
-import os
+# CARINA (Controlled Artificial Road-traffic Intelligence Network Architecture) is an open-source AI ecosystem for real-time, adaptive control of urban traffic light networks.
+# Copyright (C) 2026 Gabriel Moraes - Noxfort Systems
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# File: src/sas/report_generator.py
+# Author: Gabriel Moraes
+# Date: July 27, 2026
+
 import logging
-from datetime import datetime
+from typing import Any, Tuple
 
-try:
-    from docx import Document
-    from docx.shared import Pt, Inches
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-except ImportError:
-    logging.warning("[REPORT_GEN] python-docx não instalado. Relatórios não poderão ser gerados em .docx")
+from sas.report_transducer_factory import ReportTransducerFactory
+from sas.report_template_provider import ReportTemplateProvider
+from sas.report_prompt_builder import ReportPromptBuilder
+from sas.report_section_builder import ReportSectionBuilder
+from sas.report_data_normalizer import ReportDataNormalizer
+from sas.report_table_builder import ReportTableBuilder
+from blocks.report_post_processor import ReportPostProcessor
 
-from xai.semantic_transducer import SemanticTransducer
-from utils.settings_manager import SettingsManager
 
 class ReportGenerator:
     """
-    Gera laudos técnicos profissionais em .docx usando o SemanticTransducer (Qwen LLM).
-    O processo rodará com Temperature=0.0 de forma nativa para garantir a integridade.
+    Main orchestrator for generating structured ABNT Technical Reports.
+    Coordinates data normalization, neural inference, section building,
+    and post-processing via dedicated modular components.
     """
-    def __init__(self, locale_manager=None):
-        self.locale_manager = locale_manager
-        
-        # O Transducer precisa saber o caminho exato do GGUF.
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.model_path = os.path.join(base_dir, "Model_Vault", "Qwen3.5-2B-UD-Q6_K_XL.gguf")
-        
-    def generate_docx_report(self, analysis_results: dict, scenario_dir: str, net_file_path: str):
-        if not analysis_results:
-            logging.warning("[REPORT_GEN] Sem dados para gerar relatório.")
-            return None
-            
-        logging.info("[REPORT_GEN] Iniciando geração do Laudo Técnico Profissional via LLM...")
-        
-        try:
-            # 1. Instancia o LLM garantindo isolamento
-            transducer = SemanticTransducer(self.model_path, use_gpu=False, offload_to_cpu=True)
-            transducer.load_resources()
-            
-            try:
-                settings_manager = SettingsManager()
-                ui_language = settings_manager.get_setting('General', 'language', 'pt_br')
-            except Exception:
-                ui_language = 'pt_br'
 
-            # 2. Prepara os dados brutos para injetar no Qwen
-            input_data = {
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "mode": "LAUDO_ESTATISTICO",
-                "language": ui_language,
-                "attributions": analysis_results
-            }
-            
-            # 3. Executa a inferência. O Transducer nativamente já força temperature=0.0!
-            logging.info("[REPORT_GEN] Transducer extraindo contexto semântico (Temperature=0.0)...")
-            report_text = transducer.generate_report(input_data)
-            
-            # 4. Formata o Documento Word (.docx)
-            doc = Document()
-            
-            # Título principal
-            title = doc.add_heading('LAUDO DESCRITIVO DE TRÁFEGO E INFRAESTRUTURA', 0)
-            title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            
-            # Subtítulo com data
-            p_date = doc.add_paragraph()
-            p_date.add_run(f"Data de Emissão: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}").bold = True
-            p_date.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            
-            # Adiciona o mapa se existir
-            map_path = os.path.join(scenario_dir, "map_planning.png")
-            if os.path.exists(map_path):
-                doc.add_heading('1. Mapa de Planejamento Tático', level=1)
-                doc.add_picture(map_path, width=Inches(6.0))
-                
-            # Adiciona a resposta do LLM formatada
-            doc.add_heading('2. Descritivo Operacional (Organização de Dados)', level=1)
-            
-            # Parser básico de markdown do LLM para o Word
-            for line in report_text.split('\n'):
-                if line.strip().startswith('##') or line.strip().startswith('**'):
-                    p = doc.add_paragraph()
-                    p.add_run(line.strip('#* ')).bold = True
-                elif line.strip():
-                    doc.add_paragraph(line.strip())
-            
-            # Rodapé de conformidade
-            doc.add_page_break()
-            footer = doc.add_paragraph()
-            r = footer.add_run("Este documento foi consolidado de forma determinística e imparcial (Temperature=0.0) pelo motor Neuro-Simbólico CARINA XAI. Ele atesta as condições puras da leitura de topologia.")
-            r.font.size = Pt(8)
-            footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            
-            # Salva o arquivo final
-            docx_path = os.path.join(scenario_dir, "Laudo_Tecnico_Oficial.docx")
-            doc.save(docx_path)
-            
-            logging.info(f"[REPORT_GEN] Laudo em DOCX gerado com sucesso em: {docx_path}")
-            return docx_path
-            
+    def __init__(self, locale_manager: Any = None):
+        self.locale_manager = locale_manager
+
+    def generate_docx_report(
+        self,
+        analysis_results: Any,
+        scenario_dir: str = None,
+        net_file_path: str = None,
+        has_significant_change: bool = False,
+        has_last_report: bool = False,
+        ui_language: str = "pt_br",
+        time_window_str: str = ""
+    ) -> Tuple[None, str]:
+        """Instance wrapper method for backward compatibility with AnalyzerEngine."""
+        junctions_norm = ReportDataNormalizer.normalize_junctions(analysis_results)
+        return self.generate_report(
+            junctions_data=junctions_norm,
+            scenario_dir=scenario_dir,
+            has_significant_change=has_significant_change,
+            has_last_report=has_last_report,
+            ui_language=ui_language,
+            time_window_str=time_window_str
+        )
+
+    @classmethod
+    def generate_report(
+        cls,
+        junctions_data: Any,
+        agency_name: str = "Prefeitura Municipal",
+        department_name: str = "Secretaria Municipal de Mobilidade e Trânsito",
+        scenario_dir: str = None,
+        ui_language: str = "pt_br",
+        has_significant_change: bool = False,
+        has_last_report: bool = False,
+        time_window_str: str = ""
+    ) -> Tuple[None, str]:
+        """
+        High-Level Orchestrator method for generating a comprehensive ABNT Technical Report.
+
+        Returns:
+            Tuple[None, str]: (None, report_markdown_text)
+        """
+        transducer = None
+        try:
+            # 1. Data Normalization & Statistical Calculation
+            analysis_results = ReportDataNormalizer.normalize_junctions(junctions_data)
+            stats = ReportDataNormalizer.calculate_statistics(analysis_results)
+
+            # 2. Neural Transducer Acquisition
+            transducer = ReportTransducerFactory.create_transducer()
+
+            # 3. Extract Light Evaluation Results
+            light_results = {}
+            for j_id, j_data in analysis_results.items():
+                light_results[j_id] = transducer.generate_report({"mode": "LIGHT_EVALUATION", "data": j_data})
+
+            # 4. Generate Section 3 (Executive Summary & Introduction)
+            exec_summary_input = ReportPromptBuilder.build_executive_summary_input(
+                analysis_results,
+                light_results,
+                intervention_rate=stats["intervention_rate"],
+                add_count=stats["add_count"],
+                optimize_count=stats["optimize_count"],
+                keep_count=stats["keep_count"],
+                signalized_count=stats["signalized_count"],
+                unsignalized_count=stats["unsignalized_count"],
+                time_window_str=time_window_str
+            )
+            raw_exec_summary = transducer.generate_report(exec_summary_input)
+            resumo_executivo = ReportPostProcessor.format_executive_summary(raw_exec_summary, stats["intervention_rate"])
+            if hasattr(transducer, "review_text"):
+                try:
+                    resumo_executivo = transducer.review_text(resumo_executivo, language=ui_language)
+                except Exception as e:
+                    logging.warning(f"[REPORT_GEN] 2nd Pass Neural Revision failed for executive summary: {e}")
+
+            secao_introducao = ReportSectionBuilder.build_introduction_section(
+                resumo_executivo, sec_num=3, time_window_str=time_window_str
+            )
+
+            # 5. Generate Section 4 (Equations & Methodology)
+            equacoes_section = ReportSectionBuilder.build_equations_section(ui_language)
+
+            # 6. Process Section 5 (Audit Table 1) & Annex I (Individual Fichas)
+            table_rows, cruzamentos_detalhe = ReportTableBuilder.build_audit_table_and_fichas(
+                analysis_results=analysis_results,
+                stats=stats,
+                transducer=transducer,
+                ui_language=ui_language
+            )
+
+            # 7. Generate Section 6 & 7 (Consolidated Summary and Conclusions)
+            resumo_consolidado = ReportTemplateProvider.get_consolidated_summary_text(
+                total_intersections=stats["total_junctions"],
+                keep_count=stats["keep_count"],
+                remove_count=stats["remove_count"],
+                add_count=stats["add_count"],
+                no_signal_count=stats["no_signal_count"],
+                optimize_count=stats["optimize_count"],
+                language=ui_language
+            )
+
+            include_comparison = has_last_report and has_significant_change
+
+            if include_comparison:
+                conclusion_input = ReportPromptBuilder.build_conclusion_input(analysis_results, light_results)
+                conclusion_text_raw = transducer.generate_report(conclusion_input)
+                conclusion_text = ReportPostProcessor.clean_ai_preamble(conclusion_text_raw)
+                conclusion_text = ReportPostProcessor.enforce_semantic_consistency(conclusion_text, is_signalized=True)
+            else:
+                conclusion_text = ""
+
+            secao_conclusao = ReportTemplateProvider.get_conclusions_section(
+                add_count=stats["add_count"],
+                remove_count=stats["remove_count"],
+                keep_count=stats["keep_count"],
+                no_signal_count=stats["no_signal_count"],
+                conclusion_text=conclusion_text,
+                has_last_report=include_comparison,
+                language=ui_language
+            )
+
+            # 8. Generate Section 8 (Final Technical Opinion)
+            final_opinion_input = ReportPromptBuilder.build_final_opinion_input(
+                analysis_results,
+                light_results,
+                stats["add_count"],
+                stats["optimize_count"],
+                stats["keep_count"],
+                stats["no_signal_count"],
+                signalized_count=stats["signalized_count"],
+                unsignalized_count=stats["unsignalized_count"],
+                stats=stats
+            )
+            slm_synthesis_raw = transducer.generate_report(final_opinion_input)
+            slm_synthesis = ReportPostProcessor.clean_ai_preamble(slm_synthesis_raw)
+            slm_synthesis = ReportPostProcessor.sanitize_zero_maintenance_protocol(slm_synthesis, stats["keep_count"])
+            slm_synthesis = ReportPostProcessor.enforce_semantic_consistency(slm_synthesis, is_signalized=True)
+            if hasattr(transducer, "review_text"):
+                try:
+                    slm_synthesis = transducer.review_text(slm_synthesis, language=ui_language)
+                except Exception as e:
+                    logging.warning(f"[REPORT_GEN] 2nd Pass Neural Revision failed for SLM synthesis: {e}")
+
+            # 9. Assemble Sections with Dynamic Sequential Numbering
+            curr_sec = 3
+            secao_introducao = ReportSectionBuilder.build_introduction_section(resumo_executivo, sec_num=curr_sec)
+            curr_sec += 1
+
+            equacoes_section_num = equacoes_section.replace("## 4.", f"## {curr_sec}.")
+            curr_sec += 1
+
+            secao_tabela = ReportSectionBuilder.build_synthetic_table_section(table_rows, sec_num=curr_sec)
+            curr_sec += 1
+
+            secao_resumo_conclusao = ReportSectionBuilder.build_summary_conclusions_section(
+                resumo_consolidado, secao_conclusao, sec_num=curr_sec
+            )
+            curr_sec += 1
+
+            has_comparative = include_comparison and conclusion_text and len(conclusion_text) > 10
+            if has_comparative:
+                secao_comparativo = ReportSectionBuilder.build_comparative_section(conclusion_text, sec_num=curr_sec)
+                curr_sec += 1
+            else:
+                secao_comparativo = ""
+
+            add_ids_str = ", ".join(stats.get("add_junction_ids", []))
+            opt_ids_str = ", ".join(stats.get("optimize_junction_ids", []))
+
+            secao_parecer = ReportSectionBuilder.build_final_opinion_section(
+                stats["total_junctions"],
+                stats["signalized_count"],
+                stats["unsignalized_count"],
+                stats["add_count"],
+                stats["optimize_count"],
+                stats["keep_count"],
+                stats["no_signal_count"],
+                slm_synthesis=slm_synthesis,
+                agency_name=agency_name,
+                department_name=department_name,
+                sec_num=curr_sec,
+                add_junction_ids=add_ids_str,
+                optimize_junction_ids=opt_ids_str
+            )
+            secao_anexo = ReportSectionBuilder.build_annex_section(cruzamentos_detalhe)
+
+            report_text = (
+                f"{secao_introducao}"
+                f"{equacoes_section_num}\n\n"
+                f"{secao_tabela}"
+                f"{secao_resumo_conclusao}"
+                f"{secao_comparativo}"
+                f"{secao_parecer}"
+                f"{secao_anexo}"
+            )
+
+            # 10. Document-level post-processing
+            report_text = ReportPostProcessor.enforce_semantic_consistency(report_text, is_signalized=True)
+
+            logging.info("[REPORT_GEN] Technical report text successfully compiled.")
+            return None, report_text
+
         except Exception as e:
-            logging.error(f"[REPORT_GEN] Erro ao gerar o arquivo .docx: {e}", exc_info=True)
-            return None
+            logging.error(f"[REPORT_GEN] Error generating report: {e}", exc_info=True)
+            return None, None
+        finally:
+            ReportTransducerFactory.release_transducer(transducer)

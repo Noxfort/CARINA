@@ -21,6 +21,7 @@
 import logging
 import io
 import base64
+import threading
 from typing import TYPE_CHECKING
 
 # --- CHANGE 1: Add imports ---

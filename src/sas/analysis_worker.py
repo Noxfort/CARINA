@@ -38,7 +38,7 @@ from utils.logging_setup import setup_logging
 from utils.metrics_manager import MetricsManager
 from utils.locale_manager_backend import LocaleManagerBackend
 
-def run_analysis_worker(sas_data_queue: Queue, settings: configparser.ConfigParser, db_data_queue: Queue):
+def run_analysis_worker(sas_data_queue: Queue, settings: configparser.ConfigParser, db_data_queue: Queue, sas_result_queue: Queue = None):
     """
     Entry point for the Simulation Analysis Service (SAS) process.
     """
@@ -83,7 +83,8 @@ def run_analysis_worker(sas_data_queue: Queue, settings: configparser.ConfigPars
             sas_data_queue=sas_data_queue,
             settings=settings,
             db_data_queue=db_data_queue,
-            locale_manager=locale_manager
+            locale_manager=locale_manager,
+            sas_result_queue=sas_result_queue
         )
         
         orchestrator.run()
@@ -94,3 +95,4 @@ def run_analysis_worker(sas_data_queue: Queue, settings: configparser.ConfigPars
         logging.critical(lm.get_string("sas_worker.run.fatal_error", error=e), exc_info=True)
     finally:
         logging.info(lm.get_string("sas_worker.run.worker_finished"))
+        os._exit(0)

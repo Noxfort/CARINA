@@ -1,0 +1,21 @@
+{
+  "security_manager": {
+    "migrated_security": "[SecurityManager] Migrated security.json from {old} to {new}",
+    "migrate_security_fail": "[SecurityManager] Failed to migrate security.json: {error}",
+    "migrated_lockdown": "[SecurityManager] Migrated lockdown.flag from {old} to {new}",
+    "migrate_lockdown_fail": "[SecurityManager] Failed to migrate lockdown.flag: {error}",
+    "default_user_created": "[SecurityManager] Security file created with default user 'admin' (password: 'admin').",
+    "read_db_error": "[SecurityManager] Error reading security database: {error}",
+    "save_db_error": "[SecurityManager] Error saving security database: {error}",
+    "lockdown_triggered": "[SecurityManager] 🚨 SYSTEM ENTERED LOCKDOWN (Too many failed attempts).",
+    "lockdown_flag_error": "[SecurityManager] Failed to create lockdown flag: {error}",
+    "lockdown_remove_error": "[SecurityManager] Failed to remove lockdown flag: {error}",
+    "lockdown_cleared": "[SecurityManager] Lockdown removed and failed attempts counter reset.",
+    "invalid_credentials": "Invalid credentials",
+    "system_locked": "SYSTEM LOCKED. Only SuperUsers can unlock.",
+    "failed_attempt_registered": "[SecurityManager] Failed login attempt recorded. Total: {current}/{max}",
+    "user_added": "[SecurityManager] New user registered: {username} ({role})",
+    "admin_remove_blocked": "[SecurityManager] Blocked attempt to remove 'admin' user.",
+    "user_removed": "[SecurityManager] User removed: {username}"
+  }
+}

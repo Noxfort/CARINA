@@ -61,3 +61,26 @@ def compute_saturation_ratio(volume_q: float, num_lanes: int, f_ideal: float) ->
     if capacity > 0:
         return volume_q / capacity
     return 0.0
+
+def apply_saturation_coupling(base_delay: float, base_queue: float, saturation_x: float) -> tuple:
+    """
+    Applies traffic engineering physical coupling: Delay (D) and Queue (P95) as functions of Saturation (X).
+    D = f(X) and P95 = f(X) with exponential factor increment as X approaches or exceeds 1.0.
+    """
+    import math
+    if saturation_x <= 0.0:
+        return max(0.0, float(base_delay)), max(0, int(round(base_queue)))
+
+    if saturation_x <= 0.85:
+        delay_factor = 1.0 + 0.4 * saturation_x
+        queue_factor = 1.0 + 0.5 * saturation_x
+    else:
+        excess = saturation_x - 0.85
+        exp_factor = math.exp(2.5 * excess)
+        delay_factor = 1.34 + 1.5 * exp_factor
+        queue_factor = 1.425 + 2.0 * exp_factor
+
+    coupled_delay = max(base_delay * delay_factor, 15.0 * saturation_x * (1.0 + (saturation_x if saturation_x > 0.85 else 0.0)))
+    coupled_queue = max(base_queue * queue_factor, 5.0 * saturation_x * (1.0 + (2.0 * (saturation_x - 0.85) if saturation_x > 0.85 else 0.0)))
+
+    return round(coupled_delay, 2), max(1, int(round(coupled_queue)))

@@ -16,128 +16,98 @@
 
 # File: ui/clients/mfd_analysis_client.py
 # Author: Gabriel Moraes
-# Date: June 19, 2026
+# Date: 2026
 
 import os
-import json
+import logging
 import threading
 import time
-import logging
 from typing import Callable, Optional
 
 class MfdAnalysisClient:
     """
-    Manages communication to trigger MFD optimization analysis report generation.
-    Handles file-based IPC between the UI and the XaiWorker backend.
+    Listens to the MFD analysis IPC result queue in a separate thread,
+    guaranteeing 100% in-memory IPC communication without creating cache or request files on disk,
+    mirroring the exact architecture of InfrastructureClient (SAS Engine).
     """
-    def __init__(self, on_analysis_complete_callback: Callable[[dict], None], results_dir: Optional[str] = None):
-        """
-        Initializes the client.
-
-        Args:
-            on_analysis_complete_callback: Function to be called when the MFD report is ready.
-            results_dir: Optional directory path of the active scenario results.
-        """
+    def __init__(self, on_analysis_complete_callback: Callable[[dict], None], results_dir: Optional[str] = None, mfd_result_queue=None, mfd_trigger_queue=None):
         self.on_analysis_complete = on_analysis_complete_callback
         self.results_dir = results_dir
-        self.project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-
-    def _get_active_scenario_path(self) -> Optional[str]:
-        """Returns self.results_dir if set, otherwise finds the latest scenario path."""
-        if self.results_dir and os.path.exists(self.results_dir):
-            return self.results_dir
-        return self._find_latest_scenario_path()
-
-    def _find_latest_scenario_path(self) -> Optional[str]:
-        """Finds the absolute path to the most recent scenario folder in 'results'."""
-        try:
-            from src.utils.paths import get_base_output_dir
-            results_dir = os.path.join(get_base_output_dir(), "results")
-            if os.path.exists(results_dir):
-                ignored_dirs = {"database"}
-                all_scenarios = [
-                    d for d in os.listdir(results_dir) 
-                    if os.path.isdir(os.path.join(results_dir, d)) and d not in ignored_dirs
-                ]
-                if all_scenarios:
-                    latest_scenario_name = max(all_scenarios, key=lambda d: os.path.getmtime(os.path.join(results_dir, d)))
-                    return os.path.join(results_dir, latest_scenario_name)
-        except Exception as e:
-            logging.error(f"[MfdAnalysisClient] Error finding latest scenario: {e}")
-            return None
-        return None
+        self.mfd_result_queue = mfd_result_queue
+        self.mfd_trigger_queue = mfd_trigger_queue
 
     def start_analysis(self):
         """
-        Starts the MFD optimization analysis in a new thread. Returns immediately.
-        The result will be delivered via the callback.
+        Puts an MFD trigger packet into mfd_trigger_queue and starts listening for MFD optimization results in memory.
+        Returns immediately. The result will be delivered via the callback.
         """
+        # Resolve mfd_trigger_queue if not explicitly provided
+        trig_queue = self.mfd_trigger_queue
+        if trig_queue is None:
+            try:
+                import ui.main_ui as ui_module
+                trig_queue = getattr(ui_module, 'mfd_trigger_queue', None)
+            except Exception:
+                pass
+
+        if trig_queue is not None:
+            try:
+                trig_queue.put(("trigger_mfd", {}))
+                logging.info("[MfdAnalysisClient] Pacote de disparo MFD enviado com sucesso para mfd_trigger_queue em memória.")
+            except Exception as ex:
+                logging.error(f"[MfdAnalysisClient] Erro ao enviar disparo para mfd_trigger_queue: {ex}")
+
+        trigger_time = time.time()
         thread = threading.Thread(
-            target=self._analysis_worker_thread_target,
-            args=("mfd",),
+            target=self._fetch_thread_target,
+            args=(trigger_time,),
             daemon=True
         )
         thread.start()
 
-    def _analysis_worker_thread_target(self, req_id: str = "mfd", timeout_seconds: int = 300):
-        """
-        Main worker loop for the MFD analysis request.
-        Writes a .request file and polls for a .response file.
-        """
-        scenario_path = self._get_active_scenario_path()
-        if not scenario_path:
+    def _fetch_thread_target(self, trigger_time: float = None):
+        result = {}
+        time_margin = 2.0
+        min_valid_timestamp = (trigger_time - time_margin) if trigger_time is not None else 0.0
+
+        # Dynamically resolve mfd_result_queue if not provided at instantiation
+        queue = self.mfd_result_queue
+        if queue is None:
+            try:
+                import ui.main_ui as ui_module
+                queue = getattr(ui_module, 'mfd_result_queue', None)
+            except Exception as ex:
+                logging.error(f"[MfdAnalysisClient] Error resolving mfd_result_queue dynamically: {ex}")
+
+        if queue is None:
+            logging.error("[MfdAnalysisClient] mfd_result_queue is NULL. Cannot receive in-memory IPC results.")
+            result = {
+                "status": "error",
+                "message": "Fila IPC de resultados MFD (mfd_result_queue) não foi conectada pela interface."
+            }
             if self.on_analysis_complete:
-                self.on_analysis_complete({"status": "error", "message": "Scenario directory 'results' not found."})
+                self.on_analysis_complete(result)
             return
+
+        logging.info("[MfdAnalysisClient] Starting asynchronous in-memory IPC queue poll for MFD report (no timeout)...")
+
+        # Drain all stale messages from queue before polling for new job result
+        try:
+            while not queue.empty():
+                queue.get_nowait()
+        except Exception:
+            pass
 
         try:
-            mfd_base_dir = os.path.join(scenario_path, "mfd_analysis")
-            requests_dir = os.path.join(mfd_base_dir, "requests")
-            responses_dir = os.path.join(mfd_base_dir, "responses")
-            os.makedirs(requests_dir, exist_ok=True)
-            os.makedirs(responses_dir, exist_ok=True)
+            ipc_result = queue.get(block=True)
+            if isinstance(ipc_result, dict):
+                logging.info(f"[MfdAnalysisClient] Success: New MFD report received via in-memory IPC queue (status={ipc_result.get('status')}).")
+                result = ipc_result
+            else:
+                result = {"status": "error", "message": "Formato inválido retornado da fila IPC de resultados MFD."}
+        except Exception as poll_err:
+            logging.error(f"[MfdAnalysisClient] Error reading MFD result from IPC queue: {poll_err}")
+            result = {"status": "error", "message": f"Erro na recepção do resultado MFD: {poll_err}"}
 
-            request_path = os.path.join(requests_dir, f"{req_id}.request")
-            response_path = os.path.join(responses_dir, f"{req_id}.response")
-
-            # Clean up old files
-            if os.path.exists(response_path): 
-                os.remove(response_path)
-            if os.path.exists(request_path): 
-                os.remove(request_path)
-
-            # Write request
-            with open(request_path, "w", encoding="utf-8") as f:
-                json.dump({"request_id": req_id, "timestamp": time.time()}, f)
-            
-            logging.info(f"[MfdAnalysisClient] Request sent for MFD analysis.")
-        
-        except Exception as e:
-            logging.error(f"[MfdAnalysisClient] Failed to create request file: {e}")
-            if self.on_analysis_complete:
-                self.on_analysis_complete({"status": "error", "message": f"Failed to create request file: {e}"})
-            return
-
-        # Poll for response
-        start_time = time.time()
-        response_data = None
-        
-        while time.time() - start_time < timeout_seconds:
-            if os.path.exists(response_path):
-                try:
-                    time.sleep(0.2) 
-                    with open(response_path, "r", encoding="utf-8") as f:
-                        response_data = json.load(f)
-                    os.remove(response_path)
-                    break 
-                except Exception as e:
-                    logging.error(f"[MfdAnalysisClient] Error reading response: {e}")
-                    response_data = {"status": "error", "message": f"Failed to read response file: {e}"}
-                    break
-            time.sleep(2)
-
-        if response_data is None: 
-            response_data = {"status": "error", "message": "Timeout. The analysis backend did not respond in time."}
-        
         if self.on_analysis_complete:
-            self.on_analysis_complete(response_data)
+            self.on_analysis_complete(result)

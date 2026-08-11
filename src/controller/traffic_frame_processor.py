@@ -39,7 +39,7 @@ class TrafficFrameProcessor:
     """
     def __init__(self, ai_pipe_conn: Connection, watchdog_queue: Queue, sds_data_queue: Queue, 
                  failsafe_manager: FailsafeManager, topology_manager: TopologyManager, telemetry_aggregator: Any,
-                 override_manager: Any, traffic_data_recorder: Any = None):
+                 override_manager: Any, traffic_data_recorder: Any = None, locale_manager: Any = None):
         self.ai_pipe_conn = ai_pipe_conn
         self.watchdog_queue = watchdog_queue
         self.sds_data_queue = sds_data_queue
@@ -49,6 +49,7 @@ class TrafficFrameProcessor:
         self.telemetry_aggregator = telemetry_aggregator
         self.override_manager = override_manager
         self.traffic_data_recorder = traffic_data_recorder
+        self.locale_manager = locale_manager
         
         # --- Two-Stage Readiness Latch ---
         self.is_system_ready = False
@@ -56,6 +57,11 @@ class TrafficFrameProcessor:
         # --- Processing time tracking ---
         self._proc_warning_threshold_ms = 100.0
         
+    def _get_string(self, key: str, default: str = None, **kwargs) -> str:
+        if self.locale_manager and hasattr(self.locale_manager, 'get_string'):
+            return self.locale_manager.get_string(key, default=default, **kwargs)
+        return default.format(**kwargs) if default and kwargs else (default or key)
+
     def set_system_ready(self, state: bool):
         self.is_system_ready = state
 
@@ -87,7 +93,7 @@ class TrafficFrameProcessor:
             try:
                 self.traffic_data_recorder.record_frame(frame)
             except Exception as rec_err:
-                logger.debug(f"[TrafficFrameProcessor] Data recording error: {rec_err}")
+                logger.debug(self._get_string("controller.traffic_frame.recording_error", default="[TrafficFrameProcessor] Data recording error: {error}", error=rec_err))
 
         # 2. NORMAL PROCESSING (AI Step)
         current_time = frame.timestamp
@@ -134,10 +140,10 @@ class TrafficFrameProcessor:
             try: 
                 self.ai_pipe_conn.send(('custom', 'hft_step', (traffic_data,), {}))
             except Exception as e: 
-                logger.error(f"Error sending frame to AI: {e}")
+                logger.error(self._get_string("controller.traffic_frame.ai_send_error", default="Error sending frame to AI: {error}", error=e))
         else:
             if self.failsafe_manager.failsafe_active:
-                logger.debug("[TrafficFrameProcessor] AI dispatch blocked — FixedTimeController is active.")
+                logger.debug(self._get_string("controller.traffic_frame.ai_blocked_failsafe", default="[TrafficFrameProcessor] AI dispatch blocked — FixedTimeController is active."))
             # Drop AI frame dispatch, but allow visualization to continue.
 
         # 3. VISUALIZATION AGGREGATION & SYNC
@@ -175,7 +181,7 @@ class TrafficFrameProcessor:
             try:
                 self.sds_data_queue.put(('hft_rich_update', rich_payload), block=False)
             except Exception as e:
-                logger.error(f"Error putting rich update on SDS queue: {e}")
+                logger.error(self._get_string("controller.traffic_frame.rich_update_error", default="Error putting rich update on SDS queue: {error}", error=e))
         
         # 4. MEASURE AND DIAGNOSE PROCESSING TIME
         t_end = time.perf_counter()
@@ -183,8 +189,13 @@ class TrafficFrameProcessor:
         
         if proc_delta_ms > self._proc_warning_threshold_ms:
             logger.warning(
-                f"[TrafficFrameProcessor] ⏱️ Slow processing: {proc_delta_ms:.1f}ms "
-                f"(>{self._proc_warning_threshold_ms:.0f}ms). Seq: {frame.sequence_id}"
+                self._get_string(
+                    "controller.traffic_frame.slow_processing",
+                    default="[TrafficFrameProcessor] ⏱️ Slow processing: {delta:.1f}ms (>{thresh:.0f}ms). Seq: {seq}",
+                    delta=proc_delta_ms,
+                    thresh=self._proc_warning_threshold_ms,
+                    seq=frame.sequence_id
+                )
             )
         
         return proc_delta_ms

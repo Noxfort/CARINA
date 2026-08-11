@@ -37,7 +37,7 @@ _VALID_SIGNAL_CHARS = frozenset({'G', 'g', 'r', 'y', 'o', 's', 'u'})
 _GREEN_CHARS = frozenset({'G', 'g'})
 
 
-def validate_stages(tls_id: str, phases: List[StageDefinition]) -> bool:
+def validate_stages(tls_id: str, phases: List[StageDefinition], locale_manager=None) -> bool:
     """
     Defense-in-depth validation of stage definitions.
     
@@ -52,6 +52,11 @@ def validate_stages(tls_id: str, phases: List[StageDefinition]) -> bool:
     Returns:
         True if all phases pass validation.
     """
+    def _get_string(key: str, default: str = None, **kwargs) -> str:
+        if locale_manager and hasattr(locale_manager, 'get_string'):
+            return locale_manager.get_string(key, default=default, **kwargs)
+        return default.format(**kwargs) if default and kwargs else (default or key)
+
     if not phases:
         return True
 
@@ -61,8 +66,14 @@ def validate_stages(tls_id: str, phases: List[StageDefinition]) -> bool:
         # Check length consistency
         if len(stage.state_string) != expected_len:
             logger.error(
-                f"[StageValidator] TLS '{tls_id}' stage {i}: "
-                f"state length {len(stage.state_string)} != expected {expected_len}"
+                _get_string(
+                    "controller.stage_validator.invalid_len",
+                    default="[StageValidator] TLS '{tls_id}' stage {index}: state length {len} != expected {expected}",
+                    tls_id=tls_id,
+                    index=i,
+                    len=len(stage.state_string),
+                    expected=expected_len
+                )
             )
             return False
 
@@ -70,8 +81,14 @@ def validate_stages(tls_id: str, phases: List[StageDefinition]) -> bool:
         for j, char in enumerate(stage.state_string):
             if char not in _VALID_SIGNAL_CHARS:
                 logger.error(
-                    f"[StageValidator] TLS '{tls_id}' stage {i}: "
-                    f"invalid signal character '{char}' at position {j}"
+                    _get_string(
+                        "controller.stage_validator.invalid_char",
+                        default="[StageValidator] TLS '{tls_id}' stage {index}: invalid signal character '{char}' at position {pos}",
+                        tls_id=tls_id,
+                        index=i,
+                        char=char,
+                        pos=j
+                    )
                 )
                 return False
 
@@ -91,8 +108,14 @@ def validate_stages(tls_id: str, phases: List[StageDefinition]) -> bool:
                 # What matters is that we never run two phases SIMULTANEOUSLY,
                 # which our state machine guarantees. Log as info, not error.
                 logger.debug(
-                    f"[StageValidator] TLS '{tls_id}': signal links {overlap} are green "
-                    f"in both stage {i} and stage {j} (shared movements — safe in sequential operation)."
+                    _get_string(
+                        "controller.stage_validator.shared_greens",
+                        default="[StageValidator] TLS '{tls_id}': signal links {overlap} are green in both stage {i} and stage {j} (shared movements — safe in sequential operation).",
+                        tls_id=tls_id,
+                        overlap=overlap,
+                        i=i,
+                        j=j
+                    )
                 )
 
     return True

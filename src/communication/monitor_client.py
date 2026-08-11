@@ -14,203 +14,236 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# File: src/clients/monitor_client.py
+# File: src/communication/monitor_client.py
 # Author: Gabriel Moraes
-# Date: 2026-03-03
+# Date: 2026-03-03 (Refactored 2026-07-31 for SRP)
 
 """
-MonitorClient is responsible for integrating CARINA with the external 'Monitor' 
-system via MQTT, publishing Heartbeats and Incident Notifications.
+MonitorClient acts as the Facade/Orchestrator integrating CARINA with the external
+'Monitor' system via MQTT, delegating payload building to MonitorPayloadBuilder
+and network transport to MonitorMqttTransport.
 """
 
-import json
 import time
 import threading
 import logging
-from datetime import datetime, timezone
-import paho.mqtt.client as mqtt
-from typing import Dict, Any
+from typing import Optional
 
 from utils.settings_manager import SettingsManager
 from utils.locale_manager_backend import LocaleManagerBackend
+from communication.monitor_payload import MonitorPayloadBuilder
+from communication.monitor_transport import MonitorMqttTransport, _log_monitor_healthcheck
+
 
 class MonitorClient:
+    """Facade for Monitor integration: orchestrates heartbeat scheduling and incident reporting."""
+
+    _instance: Optional['MonitorClient'] = None
+
+    @classmethod
+    def get_instance(cls, settings_manager: SettingsManager = None, locale_manager: LocaleManagerBackend = None) -> 'MonitorClient':
+        if cls._instance is None:
+            if settings_manager is None:
+                try:
+                    from src.utils.settings_manager import SettingsManager
+                    settings_manager = SettingsManager()
+                except Exception:
+                    from utils.settings_manager import SettingsManager
+                    settings_manager = SettingsManager()
+            cls(settings_manager=settings_manager, locale_manager=locale_manager)
+        return cls._instance
+
     def __init__(self, settings_manager: SettingsManager, locale_manager: LocaleManagerBackend = None):
+        MonitorClient._instance = self
         self.settings = settings_manager.load_settings()
         self.locale_manager = locale_manager if locale_manager else LocaleManagerBackend()
         self.enabled = str(self.settings.get("monitor_enabled", "False")).lower() == "true"
-        
+
         host_str = self.settings.get("monitor_mqtt_host", "localhost")
-        self.port = 1883
-        if ":" in host_str:
-            parts = host_str.split(":", 1)
-            self.host = parts[0]
-            try:
-                self.port = int(parts[1])
-            except ValueError:
-                pass
-        else:
-            self.host = host_str
-            
+        self.transport = MonitorMqttTransport(
+            on_connect_cb=self.send_instant_heartbeat
+        )
+        self.transport.configure_endpoint(host_str)
+        self.transport.enabled = self.enabled
+
         self.topic_telemetry = "noxfort/telemetry/"
-        
-        self.client = None
         self._running = False
         self._heartbeat_thread = None
-        self._heartbeat_interval = 30 # seconds
+        self._heartbeat_interval = 30  # seconds
 
         if self.enabled:
-            self._setup_mqtt()
+            self.transport.setup_mqtt()
             self.start()
 
-    def _setup_mqtt(self):
-        """Initializes the MQTT client and connects to the broker."""
-        try:
-            self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="carina_monitor_client")
-            self.client.on_connect = self._on_connect
-            self.client.on_disconnect = self._on_disconnect
-            
-            logging.info(f"[{self.__class__.__name__}] Connecting to MQTT Broker at {self.host}:{self.port}")
-            self.client.connect(self.host, self.port, keepalive=60)
-            self.client.loop_start() # Run the network loop in the background
-        except Exception as e:
-            logging.error(f"[{self.__class__.__name__}] Failed to connect to MQTT Broker: {e}")
-            self.enabled = False # Disable if connection fails internally
+    @property
+    def host(self) -> str:
+        return self.transport.host
 
-    def _on_connect(self, client, userdata, flags, reason_code, properties=None):
-        if reason_code == 0:
-            logging.info(f"[{self.__class__.__name__}] Connected successfully to MQTT Broker.")
-        else:
-            logging.error(f"[{self.__class__.__name__}] Connection to MQTT failed with result code {reason_code}")
+    @host.setter
+    def host(self, value: str):
+        self.transport.host = value
 
-    def _on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties=None):
-        if reason_code != 0:
-            logging.warning(f"[{self.__class__.__name__}] Unexpected disconnection from MQTT Broker.")
+    @property
+    def port(self) -> int:
+        return self.transport.port
 
-    def _create_payload(self, category: str, level: str, message: str) -> str:
-        """Constructs the strict JSON payload expected by the Monitor."""
-        # Usa a hora do computador mas formata estritamente com 'Z' no final
-        current_time = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
-        payload = {
-            "category": category, # HARDWARE or SOFTWARE
-            "origin": "Carina",
-            "level": level, # INFO, WARNING, or CRITICAL
-            "message": str(message),
-            "occurred_at": current_time
-        }
-        return json.dumps(payload)
+    @port.setter
+    def port(self, value: int):
+        self.transport.port = value
+
+    @property
+    def client(self):
+        return self.transport.client
+
+    @client.setter
+    def client(self, value):
+        self.transport.client = value
+
+    @property
+    def is_connected(self) -> bool:
+        return self.transport.is_connected
+
+    def _ensure_connected(self) -> bool:
+        return self.transport.ensure_connected()
 
     def start(self):
         """Starts the periodic heartbeat loop."""
-        if not self.enabled or not self.client:
+        if not self.enabled:
             return
 
         self._running = True
-        self._heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
-        self._heartbeat_thread.start()
-        logging.info(f"[{self.__class__.__name__}] Heartbeat loop started (Interval: {self._heartbeat_interval}s)")
+        if self._heartbeat_thread is None or not self._heartbeat_thread.is_alive():
+            self._heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
+            self._heartbeat_thread.start()
+            logging.info(f"[{self.__class__.__name__}] Heartbeat loop started (Interval: {self._heartbeat_interval}s)")
+            _log_monitor_healthcheck("HEARTBEAT LOOP STARTED", self.is_connected, self.enabled, self.host, self.port)
 
     def stop(self, shutdown_message: str = None):
         """
         Stops the heartbeat loop and disconnects from MQTT.
-        
+
         Args:
             shutdown_message: Optional message to send as a final incident report before disconnecting.
         """
         self._running = False
         if self._heartbeat_thread:
-            self._heartbeat_thread.join(timeout=2.0)
-            
-        if shutdown_message and self.enabled and self.client:
+            self._heartbeat_thread.join(timeout=0.3)
+
+        if shutdown_message and self.enabled and self.is_connected:
             try:
                 self.report_incident(
                     category="SOFTWARE",
                     level="CRITICAL",
                     message=shutdown_message
                 )
-                # Give MQTT a brief moment to flush the QoS 1 packet
-                time.sleep(0.5)
             except Exception as e:
                 logging.error(f"[{self.__class__.__name__}] Failed to send shutdown message: {e}")
-        
-        if self.client:
-            try:
-                self.client.loop_stop()
-                self.client.disconnect()
-            except:
-                pass
+
+        self.transport.disconnect()
+        MonitorClient._instance = None
+        _log_monitor_healthcheck("MONITOR CLIENT STOPPED", False, False, self.host, self.port)
 
     def connect_manual(self, host_str: str):
-        """Called by the UI to force a new live connection."""
+        """Called by the UI to force a new live connection and persist state."""
         self.stop()
-        
+
         self.enabled = True
-        self.port = 1883
-        if ":" in host_str:
-            parts = host_str.split(":", 1)
-            self.host = parts[0]
-            try:
-                self.port = int(parts[1])
-            except ValueError:
-                pass
-        else:
-            self.host = host_str
-            
-        self._setup_mqtt()
+        self.transport.enabled = True
+        self.transport.configure_endpoint(host_str)
+
+        # Persist monitor_enabled = True so CARINA stays constantly connected across restarts
+        try:
+            from src.utils.settings_manager import SettingsManager
+            sm = SettingsManager()
+            curr = sm.load_settings()
+            curr["monitor_enabled"] = "True"
+            curr["monitor_mqtt_host"] = self.host
+            curr["monitor_mqtt_port"] = str(self.port)
+            sm.save_settings(curr)
+        except Exception as err:
+            logging.error(f"[{self.__class__.__name__}] Failed to persist monitor_enabled setting: {err}")
+
+        _log_monitor_healthcheck("MANUAL CONNECT REQUEST", self.is_connected, True, self.host, self.port)
+        self.transport.setup_mqtt()
         self.start()
 
     def disconnect_manual(self):
-        """Called by the UI to explicitly disconnect immediately."""
+        """Called by the UI to explicitly disconnect immediately and persist state."""
         self.enabled = False
+        self.transport.enabled = False
+
+        # Persist monitor_enabled = False on explicit manual disconnect
+        try:
+            from src.utils.settings_manager import SettingsManager
+            sm = SettingsManager()
+            curr = sm.load_settings()
+            curr["monitor_enabled"] = "False"
+            sm.save_settings(curr)
+        except Exception as err:
+            logging.error(f"[{self.__class__.__name__}] Failed to persist monitor_enabled setting: {err}")
+
+        _log_monitor_healthcheck("MANUAL DISCONNECT REQUEST", False, False, self.host, self.port)
         msg = self.locale_manager.get_string("monitor.manual_disconnect", default="Operator explicitly disconnected CARINA from Monitor.")
         self.stop(shutdown_message=msg)
 
     def _heartbeat_loop(self):
-        """Periodically publishes the heartbeat message."""
+        """Periodically checks connection health and publishes heartbeat."""
+        counter = 0
         while self._running:
-            self.send_instant_heartbeat()
-            # Wait for the interval, checking running state periodically to allow quick shutdown
-            for _ in range(self._heartbeat_interval):
-                if not self._running:
-                    break
-                time.sleep(1)
+            if self.enabled:
+                if counter % 10 == 0:
+                    _log_monitor_healthcheck(f"PERIODIC HEALTHCHECK (Tick: {counter}s)", self.is_connected, self.enabled, self.host, self.port)
+
+                if not self.is_connected:
+                    logging.info(f"[{self.__class__.__name__}] Healthcheck: MQTT connection inactive. Re-establishing connection...")
+                    _log_monitor_healthcheck("HEALTHCHECK TRIGGERED AUTO-RECONNECT", False, self.enabled, self.host, self.port)
+                    try:
+                        self.transport.ensure_connected()
+                    except Exception as err:
+                        logging.error(f"[{self.__class__.__name__}] Healthcheck reconnect attempt error: {err}")
+
+                if counter % self._heartbeat_interval == 0:
+                    self.send_instant_heartbeat()
+
+            counter += 1
+            time.sleep(1)
 
     def send_instant_heartbeat(self):
         """Sends the strict heartbeat JSON payload."""
-        if not self.enabled or not self.client:
+        if not self.enabled or not self.is_connected:
             return
         try:
-            payload = self._create_payload(
-                category="SOFTWARE",
+            payload = MonitorPayloadBuilder.create_payload(
+                category="",
                 level="INFO",
-                message=self.locale_manager.get_string("monitor.heartbeat", default="Heartbeat: Sistema online e operando normalmente.")
+                message="heartbeat"
             )
-            self.client.publish(self.topic_telemetry, payload, qos=0)
+            if self.transport.publish(self.topic_telemetry, payload, qos=1, timeout=2.0):
+                logging.debug(f"[{self.__class__.__name__}] Instant heartbeat published to Monitor.")
         except Exception as e:
             logging.error(f"[{self.__class__.__name__}] Failed to send heartbeat: {e}")
 
-    def report_incident(self, category: str, level: str, message: str):
+    def report_incident(self, category: str, level: str, message: str) -> bool:
         """
         Immediately publishes an incident notification.
-        
+
         Args:
             category (str): "HARDWARE" or "SOFTWARE"
             level (str): "WARNING" or "CRITICAL" (or "INFO")
             message (str): Descriptive text of the error.
+
+        Returns:
+            bool: True if successfully sent to MQTT, False otherwise.
         """
-        if not self.enabled or not self.client:
-            return
+        if not self.enabled or not self._ensure_connected():
+            return False
 
         try:
-            # Enforce constraints
-            category = category.upper() if category.upper() in ["HARDWARE", "SOFTWARE"] else "SOFTWARE"
-            level = level.upper() if level.upper() in ["INFO", "WARNING", "CRITICAL"] else "CRITICAL"
-            
-            payload = self._create_payload(category, level, message)
-            
-            # Send incident with QoS 1 to guarantee delivery at least once
-            info = self.client.publish(self.topic_telemetry, payload, qos=1)
-            info.wait_for_publish()
-            logging.info(f"[{self.__class__.__name__}] Sent Incident ({level}): {message}")
+            payload = MonitorPayloadBuilder.create_payload(category, level, message)
+            success = self.transport.publish(self.topic_telemetry, payload, qos=1, timeout=2.0)
+            if success:
+                logging.info(f"[{self.__class__.__name__}] Sent Incident ({level}): {message}")
+            return success
         except Exception as e:
             logging.error(f"[{self.__class__.__name__}] Failed to send incident report: {e}")
+            return False

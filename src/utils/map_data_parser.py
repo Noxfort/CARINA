@@ -29,23 +29,29 @@ import xml.etree.ElementTree as ET
 import logging
 from typing import Dict, List, Tuple
 
-def parse_map_data(plain_xml_prefix: str) -> Tuple[Dict, List, Dict] | None:
+def parse_map_data(plain_xml_prefix: str, locale_manager=None) -> Tuple[Dict, List, Dict] | None:
     """
     Reads the .nod.xml and .edg.xml files and extracts the data to draw the map.
 
     Args:
         plain_xml_prefix (str): Path and prefix of plain XML files.
+        locale_manager: Optional LocaleManagerBackend instance.
 
     Returns:
         A tuple containing (dictionary_of_nodes, list_of_edges, lane_to_street_map)
         on success, or None on failure.
     """
+    def get_str(key: str, default: str = None, **kwargs) -> str:
+        if locale_manager and hasattr(locale_manager, 'get_string'):
+            return locale_manager.get_string(key, default=default, **kwargs)
+        return default.format(**kwargs) if default and kwargs else (default or key)
+
     nodes_path = plain_xml_prefix + ".nod.xml"
     edges_path = plain_xml_prefix + ".edg.xml"
 
     try:
         # --- Read the Nodes (Crossings) ---
-        logging.info(f"[MapParser] A ler ficheiro de nós: {nodes_path}")
+        logging.info(get_str("map_data_parser.reading_nodes", default="[MapParser] Reading nodes file: {path}", path=nodes_path))
         nodes_tree = ET.parse(nodes_path)
         nodes_root = nodes_tree.getroot()
         nodes = {}
@@ -61,11 +67,11 @@ def parse_map_data(plain_xml_prefix: str) -> Tuple[Dict, List, Dict] | None:
             nodes[node_id] = {'x': x, 'y': y, 'type': node_type}
         
         if not nodes:
-            logging.warning("[MapParser] Nenhum nó encontrado no ficheiro .nod.xml.")
+            logging.warning(get_str("map_data_parser.no_nodes", default="[MapParser] No nodes found in .nod.xml file."))
             return None
 
         # --- Read the Edges (Streets) and Map the Roads ---
-        logging.info(f"[MapParser] A ler ficheiro de arestas: {edges_path}")
+        logging.info(get_str("map_data_parser.reading_edges", default="[MapParser] Reading edges file: {path}", path=edges_path))
         edges_tree = ET.parse(edges_path)
         edges_root = edges_tree.getroot()
         edges = []
@@ -106,16 +112,16 @@ def parse_map_data(plain_xml_prefix: str) -> Tuple[Dict, List, Dict] | None:
                 })
 
         if not edges:
-            logging.warning("[MapParser] Nenhuma aresta processável encontrada no ficheiro .edg.xml.")
+            logging.warning(get_str("map_data_parser.no_edges", default="[MapParser] No processable edges found in .edg.xml file."))
             return None
 
-        logging.info(f"[MapParser] Leitura concluída: {len(nodes)} nós, {len(edges)} arestas e {len(lane_to_edge_map)} vias mapeadas.")
+        logging.info(get_str("map_data_parser.read_success", default="[MapParser] Reading completed: {nodes} nodes, {edges} edges, and {lanes} lanes mapped.", nodes=len(nodes), edges=len(edges), lanes=len(lane_to_edge_map)))
         
         return nodes, edges, lane_to_edge_map
 
     except FileNotFoundError as e:
-        logging.error(f"[MapParser] ERRO: Ficheiro de mapa não encontrado: {e.filename}")
+        logging.error(get_str("map_data_parser.file_not_found", default="[MapParser] ERROR: Map file not found: {filename}", filename=getattr(e, 'filename', 'N/A')))
         return None
     except Exception as e:
-        logging.error(f"[MapParser] ERRO ao ler os ficheiros XML do mapa: {e}", exc_info=True)
+        logging.error(get_str("map_data_parser.read_error", default="[MapParser] ERROR reading map XML files: {error}", error=e), exc_info=True)
         return None

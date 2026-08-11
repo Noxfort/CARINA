@@ -68,9 +68,15 @@ class NetworkTopologyParser:
 
             # Maps the streets (edges) that reach each junction
             # Also extracts length and speed_limit from lane attributes
+            edge_connections = {}
             for edge in root.findall('edge'):
                 j_id = edge.get('to')
                 edge_id = edge.get('id')
+                from_node = edge.get('from')
+                
+                if edge_id and from_node and j_id and not edge_id.startswith(':'):
+                    edge_connections[edge_id] = (from_node, j_id)
+
                 if j_id and edge_id:
                     lanes = []
                     max_length = 0.0
@@ -97,6 +103,30 @@ class NetworkTopologyParser:
                         'length': max_length,
                         'speed_limit': max_speed,
                     }
+
+            # Calculate unique neighbors for each junction to filter out dead-ends and non-intersections
+            junction_neighbors = defaultdict(set)
+            for edge_id, (from_n, to_n) in edge_connections.items():
+                junction_neighbors[from_n].add(to_n)
+                junction_neighbors[to_n].add(from_n)
+
+            # Filter junction_types to keep only traffic lights or junctions with >= 3 distinct neighbors
+            ignored_types = {'dead_end', 'internal', 'rail_crossing', 'rail_signal'}
+            filtered_junction_types = {}
+            for j_id, j_type in junction_types.items():
+                if j_type == 'traffic_light':
+                    filtered_junction_types[j_id] = j_type
+                elif len(junction_neighbors[j_id]) >= 3 and j_type not in ignored_types:
+                    filtered_junction_types[j_id] = j_type
+            
+            junction_types = filtered_junction_types
+
+            # Filter junction_incoming_edges based on the filtered junctions
+            filtered_incoming = defaultdict(dict)
+            for j_id, edges in junction_incoming_edges.items():
+                if j_id in junction_types:
+                    filtered_incoming[j_id] = edges
+            junction_incoming_edges = filtered_incoming
         
         except FileNotFoundError:
              logging.error(f"[TopologyParser] Network file not found at: {net_file_path}")

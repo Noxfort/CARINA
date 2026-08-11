@@ -32,7 +32,7 @@ class MetricsManager:
     A toolbox to create, manage and expose Prometheus metrics
     for a specific process.
     """
-    def __init__(self, process_name: str, port: int):
+    def __init__(self, process_name: str, port: int, locale_manager=None):
         """
         Inicializa o gerenciador de métricas para um processo.
 
@@ -40,46 +40,55 @@ class MetricsManager:
             process_name (str): O nome do processo (ex: 'AI_Process', 'SDS_Worker').
                                 Será usado como uma label nas métricas.
             port (int): A porta TCP onde o servidor de métricas irá escutar.
+            locale_manager: Instância opcional de LocaleManagerBackend.
         """
         self.process_name = process_name
         self.port = port
+        self.locale_manager = locale_manager
         self.metrics = {}
         
         # Start the HTTP server in a daemon thread so as not to block the process
         self.start_server()
 
+    def _get_string(self, key: str, default: str = None, **kwargs) -> str:
+        if self.locale_manager and hasattr(self.locale_manager, 'get_string'):
+            return self.locale_manager.get_string(key, default=default, **kwargs)
+        return default.format(**kwargs) if default and kwargs else (default or key)
+
     def start_server(self):
         """Starts the Prometheus HTTP server in a separate thread with error handling."""
         def run_server():
-            # Try the original port
-            try:
-                start_http_server(self.port)
-                logging.info(f"[{self.process_name}-METRICS] Servidor Prometheus iniciado na porta {self.port}")
-                return
-            except OSError as e:
-                if e.errno == 98: # Address already in use
-                    logging.warning(f"[{self.process_name}-METRICS] Porta {self.port} ocupada (processo zumbi?).")
-                else:
-                    logging.error(f"[{self.process_name}-METRICS] Erro ao iniciar na porta {self.port}: {e}")
-            except Exception as e:
-                logging.error(f"[{self.process_name}-METRICS] Erro genérico na porta {self.port}: {e}")
-            
-            # Try an alternative port (Fallback)
-            # Add 100 to the original port (ex: 8004 -> 8104) to avoid collision
-            fallback_port = self.port + 100
-            try:
-                logging.info(f"[{self.process_name}-METRICS] Tentando porta alternativa {fallback_port}...")
-                start_http_server(fallback_port)
-                logging.info(f"[{self.process_name}-METRICS] Servidor Prometheus iniciado na porta {fallback_port} (Fallback)")
-                self.port = fallback_port # Updates to reflect reality
-            except Exception as e:
-                 logging.error(f"[{self.process_name}-METRICS] Não foi possível iniciar o servidor de métricas (Metrics desativado): {e}")
+            max_attempts = 5
+            last_error = None
+            for attempt in range(max_attempts):
+                port_to_try = self.port if attempt == 0 else self.port + (attempt * 100)
+                try:
+                    if attempt > 0:
+                        logging.info(self._get_string("metrics_manager.trying_fallback", default="[{process}-METRICS] Trying alternative port {port}...", process=self.process_name, port=port_to_try))
+                    start_http_server(port_to_try)
+                    if attempt == 0:
+                        logging.info(self._get_string("metrics_manager.server_started", default="[{process}-METRICS] Prometheus server started on port {port}", process=self.process_name, port=port_to_try))
+                    else:
+                        logging.info(self._get_string("metrics_manager.fallback_started", default="[{process}-METRICS] Prometheus server started on port {port} (Fallback)", process=self.process_name, port=port_to_try))
+                    self.port = port_to_try  # Updates to reflect reality
+                    return
+                except OSError as e:
+                    last_error = e
+                    if e.errno == 98:  # Address already in use
+                        logging.warning(self._get_string("metrics_manager.port_in_use", default="[{process}-METRICS] Port {port} in use (zombie process?).", process=self.process_name, port=port_to_try))
+                    else:
+                        logging.error(self._get_string("metrics_manager.port_error", default="[{process}-METRICS] Error starting on port {port}: {error}", process=self.process_name, port=port_to_try, error=e))
+                except Exception as e:
+                    last_error = e
+                    logging.error(self._get_string("metrics_manager.generic_error", default="[{process}-METRICS] Generic error on port {port}: {error}", process=self.process_name, port=port_to_try, error=e))
+
+            logging.error(self._get_string("metrics_manager.server_disabled", default="[{process}-METRICS] Unable to start metrics server (Metrics disabled): {error}", process=self.process_name, error=last_error))
 
         try:
             server_thread = threading.Thread(target=run_server, daemon=True)
             server_thread.start()
         except Exception as e:
-            logging.error(f"[{self.process_name}-METRICS] Falha crítica ao criar thread do servidor: {e}")
+            logging.error(self._get_string("metrics_manager.thread_critical_error", default="[{process}-METRICS] Critical failure creating server thread: {error}", process=self.process_name, error=e))
 
     def register_metric(self, name: str, description: str, metric_type: str = 'gauge'):
         """
@@ -101,14 +110,14 @@ class MetricsManager:
             elif metric_type == 'counter':
                 metric = Counter(name, description, labelnames=label_names)
             else:
-                logging.warning(f"[{self.process_name}-METRICS] Tipo de métrica desconhecido: {metric_type}")
+                logging.warning(self._get_string("metrics_manager.unknown_type", default="[{process}-METRICS] Unknown metric type: {type}", process=self.process_name, type=metric_type))
                 return
             
             self.metrics[name] = metric
-            logging.debug(f"[{self.process_name}-METRICS] Métrica '{name}' registrada.")
+            logging.debug(self._get_string("metrics_manager.registered", default="[{process}-METRICS] Metric '{name}' registered.", process=self.process_name, name=name))
         except Exception as e:
             # Common error if the metric already exists in the Prometheus Client global registry
-            logging.warning(f"[{self.process_name}-METRICS] Métrica '{name}' já registrada ou erro: {e}")
+            logging.warning(self._get_string("metrics_manager.already_registered", default="[{process}-METRICS] Metric '{name}' already registered or error: {error}", process=self.process_name, name=name, error=e))
 
     def update_metric(self, name: str, value: float):
         """

@@ -24,6 +24,7 @@
 # --- Core Frameworks ---
 flet==0.25.2
 matplotlib>=3.9.0
+seaborn>=0.13.2
 numpy>=1.26.0
 pandas>=2.1.0
 websockets>=12.0
@@ -49,8 +50,8 @@ scipy>=1.13.0
 configparser>=7.0.0
 requests>=2.31.0
 python-docx>=1.1.0
-grpcio>=1.60.0
-grpcio-tools>=1.60.0
+grpcio>=1.80.0
+grpcio-tools>=1.80.0
 
 # --- Database & Messaging ---
 paho-mqtt>=2.1.0
@@ -65,3 +66,4 @@ pystray>=0.19.5
 # --- Simulation (SUMO) ---
 sumolib>=1.18.0
 traci>=1.18.0
+types-setuptools

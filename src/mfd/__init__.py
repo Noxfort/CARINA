@@ -14,16 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# File: src/engine/mfd/__init__.py
+# File: src/mfd/__init__.py
+# Author: Gabriel Moraes
+# Date: 2026
 
-"""
-MFD (Macroscopic Fundamental Diagram) Package.
-
-Network-level traffic performance evaluation based on
-Geroliminis & Daganzo (2008) theory.
-"""
-
-from mfd.mfd import MacroscopicFundamentalDiagram
-from mfd.snapshot import MFDSnapshot
-
-__all__ = ['MacroscopicFundamentalDiagram', 'MFDSnapshot']

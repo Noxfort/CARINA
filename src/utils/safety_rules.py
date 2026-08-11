@@ -26,20 +26,25 @@ class SafetyRules:
     _rules = None
 
     @classmethod
-    def get_rules(cls) -> dict:
+    def get_rules(cls, locale_manager=None) -> dict:
+        def get_str(key: str, default: str = None, **kwargs) -> str:
+            if locale_manager and hasattr(locale_manager, 'get_string'):
+                return locale_manager.get_string(key, default=default, **kwargs)
+            return default.format(**kwargs) if default and kwargs else (default or key)
+
         if cls._rules is None:
             rules_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "config", "safety_rules.json"))
             try:
                 with open(rules_path, "r", encoding="utf-8") as f:
                     cls._rules = json.load(f)
-                logging.info(f"[SafetyRules] Regras de segurança carregadas de {rules_path}")
+                logging.info(get_str("safety_rules.loaded", default="[SafetyRules] Safety rules loaded from {path}", path=rules_path))
             except Exception as e:
-                logging.warning(f"[SafetyRules] Falha ao carregar safety_rules.json ({e}). Usando fallback padrão de engenharia.")
+                logging.warning(get_str("safety_rules.load_failed", default="[SafetyRules] Failed to load safety_rules.json ({error}). Using engineering default fallback.", error=e))
                 cls._rules = {
                     "green_time_seconds": 10.0,
                     "yellow_time_seconds": 4.0,
                     "all_red_time_seconds": 3.0,
-                    "red_time_seconds": 15.0
+                    "red_time_seconds": 10.0
                 }
         return cls._rules
 
@@ -57,4 +62,4 @@ class SafetyRules:
 
     @classmethod
     def get_red(cls) -> float:
-        return float(cls.get_rules().get("red_time_seconds", 15.0))
+        return float(cls.get_rules().get("red_time_seconds", 10.0))

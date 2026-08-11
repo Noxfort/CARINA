@@ -1,5 +1,20 @@
 {
   "main_ai": {
+    "bootstrapping": "--- AI Process Bootstrapping (HFT Mode) ---",
+    "locale_init": "LocaleManager initialized. Language: {lang}",
+    "locale_fail": "Failed to initialize LocaleManagerBackend: {error}",
+    "loading_components": "Loading AI Engine components...",
+    "hardware_accel": "⚡ Hardware Acceleration (TensorCores/TF32) enabled strictly (CPU Threads bounded to 1).",
+    "components_loaded": "AI Engine components loaded successfully.",
+    "critical_import_error": "CRITICAL IMPORT ERROR: {error}",
+    "critical_load_error": "CRITICAL ERROR during loading phase: {error}\n{traceback}",
+    "gpu_detected": "✅ GPU Detected: {gpu_name}",
+    "no_gpu": "⚠️ No GPU detected. Running on CPU.",
+    "initializing_trainer": "[MAIN_AI] Initializing Trainer...",
+    "trainer_ready": "Trainer ready. Entering event loop...",
+    "trainer_finished": "Trainer service finished.",
+    "fatal_error": "FATAL ERROR in AI Process: {error}",
+    "process_exiting": "--- AI Process Exiting ---",
     "hardware_check": {
       "starting": "STARTING HARDWARE DIAGNOSTIC (PYTORCH)...",
       "gpu_not_found": "Not detected or no CUDA support",

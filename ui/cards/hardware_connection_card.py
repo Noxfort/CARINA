@@ -171,10 +171,11 @@ class HardwareConnectionCard(ft.Card):
             ])
 
             # ActionButton
+            target_action = "disconnect" if status != "disconnected" else "connect"
             action_text = btn_disconnect_str if status != "disconnected" else btn_connect_str
             action_btn = ft.OutlinedButton(
                 text=action_text,
-                on_click=lambda e, a=agent_id: self._handle_toggle(a)
+                on_click=lambda e, a=agent_id, act=target_action: self._handle_toggle(a, act)
             )
 
             # Create the row
@@ -203,12 +204,12 @@ class HardwareConnectionCard(ft.Card):
         if self.on_export_click:
             self.on_export_click(e)
 
-    def _handle_toggle(self, agent_id: str):
-        """Passes the Intersection ID and whatever IP is currently in the text field."""
+    def _handle_toggle(self, agent_id: str, action: str = "toggle"):
+        """Passes the Intersection ID, IP, and target action ('connect' or 'disconnect')."""
         current_ip = self.ip_fields[agent_id].value
-        logger.debug(f"Toggle connection clicked for {agent_id} with IP: {current_ip}")
+        logger.debug(f"Toggle connection ({action}) clicked for {agent_id} with IP: {current_ip}")
         if self.on_toggle_connection:
-            self.on_toggle_connection(agent_id, current_ip)
+            self.on_toggle_connection(agent_id, current_ip, action)
 
     def update_translations(self, lm):
         self.lm = lm

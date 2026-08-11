@@ -14,6 +14,7 @@
     "rec_remove": "REMOVER Semáforo",
     "rec_keep": "MANTER Semáforo",
     "rec_add": "ADICIONAR Semáforo",
+    "rec_no_signal": "MANTER NÃO SINALIZADO",
     "just_remove": "Nenhum warrant foi satisfeito e o volume está abaixo do limiar de remoção.",
     "just_keep": "Pelo menos um warrant foi satisfeito ou o volume é suficiente para justificar a manutenção.",
     "just_add": "Pelo menos um warrant (volume, atraso ou segurança) foi satisfeito.",

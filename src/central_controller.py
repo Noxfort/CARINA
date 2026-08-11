@@ -41,7 +41,6 @@ proto_path = os.path.join(project_root, 'proto')
 if proto_path not in sys.path:
     sys.path.insert(0, proto_path)
 
-# Import generated gRPC modules (dynamically added to path)
 try:
     import synapse_hft_pb2 as pb2 # type: ignore
     import synapse_hft_pb2_grpc as pb2_grpc # type: ignore
@@ -86,7 +85,7 @@ class CentralController:
 
     def __init__(self, settings: configparser.ConfigParser, ai_pipe_conn: Connection,
                  watchdog_queue: Queue, sds_data_queue: Queue, sas_data_queue: Queue,
-                 ui_command_queue: Queue, locale_manager: 'LocaleManagerBackend'):
+                 ui_command_queue: Queue, locale_manager: 'LocaleManagerBackend', mfd_trigger_queue: Queue = None):
         self.settings = settings
         self.ai_pipe_conn = ai_pipe_conn
         self.watchdog_queue = watchdog_queue
@@ -99,8 +98,8 @@ class CentralController:
         # Telemetry Aggregator (Handles Visualization Logic). Decreased to 5.0s for realistic Heatmap rendering.
         self.telemetry_aggregator = TelemetryAggregator(update_interval=5.0)
         
-        # Fallback 0.30 (300ms) as per CARINA real-time safety requirement
-        heartbeat_timeout = settings.getfloat('WATCHDOG', 'heartbeat_timeout_seconds', fallback=0.30)
+        # Fallback 5.0s for realistic Synapse streaming heartbeat timeout
+        heartbeat_timeout = settings.getfloat('WATCHDOG', 'heartbeat_timeout_seconds', fallback=5.0)
         self.health_monitor = AIHealthMonitor(
             heartbeat_timeout=heartbeat_timeout,
             locale_manager=self.locale_manager
@@ -130,10 +129,11 @@ class CentralController:
             self.db_manager = DatabaseManager(self.locale_manager)
             self.traffic_data_recorder = TrafficDataRecorder(
                 db_manager=self.db_manager,
-                batch_size=10
+                batch_size=10,
+                topology_manager=self.topology_manager
             )
         except Exception as e:
-            logging.warning(f"[CentralController] Failed to initialize TrafficDataRecorder: {e}")
+            logging.warning(self.locale_manager.get_string("central_controller.traffic_recorder_fail", default="[CentralController] Failed to initialize TrafficDataRecorder: {error}", error=e))
             self.db_manager = None
             self.traffic_data_recorder = None
 
@@ -148,6 +148,7 @@ class CentralController:
             traffic_data_recorder=self.traffic_data_recorder
         )
         
+        self.mfd_trigger_queue = mfd_trigger_queue
         self.request_processor = RequestProcessor(
             settings=settings,
             ai_pipe_conn=ai_pipe_conn,
@@ -159,7 +160,8 @@ class CentralController:
             locale_manager=self.locale_manager,
             override_manager=self.override_manager,
             failsafe_manager=self.failsafe_manager,
-            topology_manager=self.topology_manager
+            topology_manager=self.topology_manager,
+            mfd_trigger_queue=self.mfd_trigger_queue
         )
         
         # --- Two-Stage Readiness Latch ---
@@ -215,7 +217,7 @@ class CentralController:
 
     def run(self):
         lm = self.locale_manager
-        logging.info(f"[DIAGNOSTICS] Starting HFT CentralController.")
+        logging.info(lm.get_string("central_controller.starting", default="[DIAGNOSTICS] Starting HFT CentralController."))
         server_port = self.settings.get('SYNAPSE', 'port', fallback='50051')
         max_workers = self.settings.getint('SYNAPSE', 'max_workers', fallback=10)
 
@@ -225,14 +227,14 @@ class CentralController:
             self.hft_event_loop.run_loop()
                 
         except KeyboardInterrupt:
-            logging.info("Manual interruption received.")
+            logging.info(lm.get_string("central_controller.manual_interrupt", default="Manual interruption received."))
         except Exception as e:
-            logging.critical(f"Fatal error in gRPC server: {e}", exc_info=True)
+            logging.critical(lm.get_string("central_controller.grpc_fatal_error", default="Fatal error in gRPC server: {error}", error=e), exc_info=True)
         finally:
             self.stop()
 
     def stop(self):
-        logging.info("Stopping CentralController...")
+        logging.info(self.locale_manager.get_string("central_controller.stopping", default="Stopping CentralController..."))
         self.is_running = False
         if hasattr(self, 'hft_event_loop'):
             self.hft_event_loop.stop()

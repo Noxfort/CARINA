@@ -54,7 +54,7 @@ from engine.input_preprocessor import InputPreprocessor
 from manager.agent_manager import AgentManager
 from engine.step_processor import StepProcessor
 from engine.event_router import EventRouter
-from mfd import MacroscopicFundamentalDiagram
+from mfd.mfd import MacroscopicFundamentalDiagram
 
 class Trainer:
     """

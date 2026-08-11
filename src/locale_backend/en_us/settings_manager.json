@@ -1,0 +1,9 @@
+{
+  "settings_manager": {
+    "init": "[SettingsManager] Settings manager pointing to: {path}",
+    "not_found": "Configuration file not found at {path}",
+    "save_not_found": "Configuration file not found. Unable to save.",
+    "save_success": "Settings saved successfully at {path}",
+    "save_error": "Failed to write configuration file: {error}"
+  }
+}

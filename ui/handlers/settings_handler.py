@@ -53,7 +53,28 @@ class SettingsHandler:
         'monitor_enabled': 'EXTERNAL_MONITOR', 'monitor_mqtt_host': 'EXTERNAL_MONITOR',
         'db_type': 'DATABASE', 'db_host': 'DATABASE', 'db_port': 'DATABASE',
         'db_user': 'DATABASE', 'db_password': 'DATABASE', 'db_name': 'DATABASE', 'db_connected': 'DATABASE',
-        'tensorboard_enabled': 'TENSORBOARD', 'tensorboard_log_dir': 'TENSORBOARD'
+        'tensorboard_enabled': 'TENSORBOARD', 'tensorboard_log_dir': 'TENSORBOARD',
+        'report_logo_path': 'REPORT_FORMATTING', 'report_city': 'REPORT_FORMATTING',
+        'report_state_uf': 'REPORT_FORMATTING', 'report_secretary_name': 'REPORT_FORMATTING',
+        'report_secretary_title': 'REPORT_FORMATTING', 'report_agency_name': 'REPORT_FORMATTING',
+        'report_department_name': 'REPORT_FORMATTING', 'report_title': 'REPORT_FORMATTING',
+        'report_block_order': 'REPORT_FORMATTING', 'report_font_name': 'REPORT_FORMATTING',
+        'report_font_size': 'REPORT_FORMATTING', 'report_margin_top': 'REPORT_FORMATTING',
+        'report_margin_bottom': 'REPORT_FORMATTING', 'report_margin_left': 'REPORT_FORMATTING',
+        'report_margin_right': 'REPORT_FORMATTING', 'report_line_spacing': 'REPORT_FORMATTING',
+        'report_alignment': 'REPORT_FORMATTING', 'report_speed_unit': 'REPORT_FORMATTING',
+        'report_ordinance_enabled': 'REPORT_FORMATTING', 'report_ordinance_number': 'REPORT_FORMATTING',
+        'report_slm_device': 'REPORT_FORMATTING', 'report_slm_gpu_layers': 'REPORT_FORMATTING',
+        
+        # Legacy XAI key aliases mapped to REPORT_FORMATTING section
+        'xai_logo_path': 'REPORT_FORMATTING', 'xai_secretary_name': 'REPORT_FORMATTING',
+        'xai_secretary_title': 'REPORT_FORMATTING', 'xai_agency_name': 'REPORT_FORMATTING',
+        'xai_department_name': 'REPORT_FORMATTING', 'xai_report_title': 'REPORT_FORMATTING',
+        'xai_block_order': 'REPORT_FORMATTING', 'xai_font_name': 'REPORT_FORMATTING',
+        'xai_font_size': 'REPORT_FORMATTING', 'report_margin_top': 'REPORT_FORMATTING',
+        'xai_margin_bottom': 'REPORT_FORMATTING', 'xai_margin_left': 'REPORT_FORMATTING',
+        'xai_margin_right': 'REPORT_FORMATTING', 'xai_line_spacing': 'REPORT_FORMATTING',
+        'xai_alignment': 'REPORT_FORMATTING', 'xai_speed_unit': 'REPORT_FORMATTING'
     }
 
     def __init__(self):
@@ -132,5 +153,16 @@ class SettingsHandler:
             'monitor_enabled': 'False', 'monitor_mqtt_host': 'localhost',
             'db_type': 'sqlite', 'db_host': 'localhost', 'db_port': '5432',
             'db_user': 'admin', 'db_password': 'admin', 'db_name': 'carina_data', 'db_connected': 'False',
-            'tensorboard_enabled': 'False', 'tensorboard_log_dir': 'results/tensorboard'
+            'tensorboard_enabled': 'False', 'tensorboard_log_dir': 'results/tensorboard',
+            'xai_logo_path': '', 'xai_secretary_name': 'Dr. Gabriel Moraes',
+            'xai_secretary_title': 'Secretário de Mobilidade e Trânsito',
+            'xai_agency_name': 'Prefeitura Municipal / Secretaria de Trânsito',
+            'xai_department_name': 'Departamento de Mobilidade Inteligente',
+            'xai_report_title': 'LAUDO TÉCNICO DE EXPLICABILIDADE DE IA (XAI)',
+            'xai_block_order': 'header,title,metadata,chart,content,signature',
+            'xai_font_name': 'Arial', 'xai_font_size': '11',
+            'xai_margin_top': '3.0', 'xai_margin_bottom': '2.0',
+            'xai_margin_left': '3.0', 'xai_margin_right': '2.0',
+            'xai_line_spacing': '1.15', 'xai_alignment': 'justify',
+            'xai_speed_unit': 'm/s'
         }

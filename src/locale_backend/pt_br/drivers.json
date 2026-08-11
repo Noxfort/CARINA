@@ -1,0 +1,37 @@
+{
+  "drivers": {
+    "traffic_light": {
+      "init": "[Cruzamento {id}] Inicializando TrafficLightDriver...",
+      "connected": "[Cruzamento {id}] Conectado via {protocol}",
+      "connect_failed": "[Cruzamento {id}] Falha ao conectar ao hardware em {ip}:{port}",
+      "map_not_found": "[Cruzamento {id}] Arquivo de mapa não encontrado: {path}",
+      "map_load_failed": "[Cruzamento {id}] Falha ao carregar estados das fases do mapa: {error}",
+      "action_disconnected": "[Cruzamento {id}] Não é possível aplicar ação lógica. Driver desconectado.",
+      "colors_log_error": "[Cruzamento {id}] Erro ao escrever em carina_colors.log: {error}",
+      "override_log_error": "[Cruzamento {id}] Erro ao escrever override em carina_colors.log: {error}",
+      "applying_action": "[Cruzamento {id}] Aplicando ação: {action}",
+      "cmd_sending": "CARINA enviando comando para {id} ({ip}): {action}",
+      "shutdown": "[Cruzamento {id}] Encerrando driver. Parando heartbeat..."
+    },
+    "factory": {
+      "detecting": "[DriverFactory] Detectando protocolo no IP {ip}:{port}...",
+      "ntcip_success": "[DriverFactory] Resposta NTCIP recebida no IP {ip}.",
+      "utmc_success": "[DriverFactory] Resposta UTMC2 recebida no IP {ip}.",
+      "snmp_no_response": "[DriverFactory] Sem resposta SNMP no IP {ip}:{port}.",
+      "snmp_error": "[DriverFactory] Erro na consulta SNMP no IP {ip}:{port}: {error}",
+      "unknown_protocol": "[DriverFactory] Nenhum protocolo suportado respondeu no IP {ip}:{port}."
+    },
+    "ntcip": {
+      "init": "[NTCIP Driver] Inicializado para IP {ip}:{port}.",
+      "heartbeat_start": "[NTCIP Driver] Heartbeat ativado (Intervalo: {interval}s).",
+      "heartbeat_stop": "[NTCIP Driver] Heartbeat parado.",
+      "heartbeat_failed": "[NTCIP Driver] Falha no heartbeat para {ip}: {error}"
+    },
+    "utmc": {
+      "init": "[UTMC2 Driver] Inicializado para IP {ip}:{port}.",
+      "heartbeat_start": "[UTMC2 Driver] Heartbeat ativado (Intervalo: {interval}s).",
+      "heartbeat_stop": "[UTMC2 Driver] Heartbeat parado.",
+      "heartbeat_failed": "[UTMC2 Driver] Falha no heartbeat para {ip}: {error}"
+    }
+  }
+}

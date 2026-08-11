@@ -14,6 +14,7 @@
     "rec_remove": "REMOVE Traffic Light",
     "rec_keep": "KEEP Traffic Light",
     "rec_add": "ADD Traffic Light",
+    "rec_no_signal": "KEEP UNSIGNALIZED",
     "just_remove": "No warrants satisfied and volume is below the removal threshold.",
     "just_keep": "At least one warrant satisfied or volume justifies keeping.",
     "just_add": "At least one warrant (volume, delay, or safety) satisfied.",

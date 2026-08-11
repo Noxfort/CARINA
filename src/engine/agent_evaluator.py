@@ -106,7 +106,15 @@ class AgentEvaluator:
             # Improve context with more accurate information
             prev_stage_idx = (current_stage_idx - 1) % len(self.state_extractor.tl_stage_codes.get(tl_id, {0: "G"}))
             prev_state_string = self.state_extractor.tl_stage_codes.get(tl_id, {}).get(prev_stage_idx, "").upper()
-            is_clearance_red = 'Y' in prev_state_string
+            
+            stage_durations = getattr(self.state_extractor, 'tl_stage_durations', {}).get(tl_id, {})
+            default_duration = stage_durations.get(current_stage_idx, 0.0)
+            from utils.safety_rules import SafetyRules
+            all_red_time = SafetyRules.get_all_red()
+            if default_duration > 0:
+                is_clearance_red = ('Y' in prev_state_string) and (default_duration <= all_red_time)
+            else:
+                is_clearance_red = 'Y' in prev_state_string
 
             context = {
                 'tl_id': tl_id,

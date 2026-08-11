@@ -1,0 +1,11 @@
+{
+  "guardian_worker": {
+    "process_started": "[GUARDIAN_WORKER] Processo Assíncrono do Guardião iniciado.",
+    "pae_reconstructed": "[GUARDIAN_WORKER] PAE Universal reconstruído (apenas inferência)",
+    "pae_failed": "[GUARDIAN_WORKER] Falha ao reconstruir o PAE: {error}",
+    "guardians_ready": "[GUARDIAN_WORKER] {count} guardiões criados e prontos.",
+    "shutdown": "[GUARDIAN_WORKER] Sinal de encerramento recebido.",
+    "fatal_error": "[GUARDIAN_WORKER] Erro fatal no loop: {error}",
+    "process_finished": "[GUARDIAN_WORKER] Processo finalizado."
+  }
+}

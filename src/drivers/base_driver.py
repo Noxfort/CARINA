@@ -63,6 +63,11 @@ class BaseTrafficDriver(ABC):
         self.ip_address = ip_address
         self.port = port
         
+        # Hardware device metadata (Manufacturer & Model)
+        self.brand: str = "Não informado"
+        self.model: str = "Não informado"
+        self.sys_descr: str = ""
+
         # 1. Delegate SNMP communication to SnmpClient
         self.snmp_client = SnmpClient(ip_address, port, community_string, timeout, retries)
 

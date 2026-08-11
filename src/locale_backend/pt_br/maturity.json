@@ -25,6 +25,7 @@
     "criterion_time": "Critério: Tempo de Serviço",
     "criterion_performance": "Critério: Desempenho",
     "criterion_confidence": "Critério: Confiança",
+    "criterion_mfd": "Critério: Eficiência MFD",
     "time_details": "{episodes_in_phase} de {required_episodes} episódios concluídos",
     "performance_details": "Média {mean_performance:.2f} > Meta {baseline_target:.2f}",
     "confidence_details": "Entropia {agent_entropy:.2f} < Limite {entropy_threshold:.2f}",

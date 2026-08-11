@@ -56,6 +56,11 @@ class GeneralSettingsCard(ft.Card):
             value=initial_values.get('language', 'pt_br')
         )
         
+        # --- System Info ---
+        self.lbl_system_info = ft.Text(weight=ft.FontWeight.BOLD, size=14)
+        self.txt_version = ft.Text(size=12)
+        self.txt_codename = ft.Text(size=12)
+        
         # --- Card Structure ---
         self.content = ft.Container(
             padding=15,
@@ -63,7 +68,16 @@ class GeneralSettingsCard(ft.Card):
                 self.title_text, # The text will be filled in via update_translations
                 ft.Divider(),
                 self.check_theme, # The label will be populated via update_translations
-                self.dd_language  # The label will be populated via update_translations
+                self.dd_language,  # The label will be populated via update_translations
+                ft.Divider(),
+                self.lbl_system_info,
+                ft.Row([
+                    ft.Icon(ft.Icons.INFO_ROUNDED, color=ft.Colors.BLUE_400, size=20),
+                    ft.Column([
+                        self.txt_version,
+                        self.txt_codename
+                    ], spacing=2)
+                ], alignment=ft.MainAxisAlignment.START, spacing=10)
             ])
         )
 
@@ -95,7 +109,15 @@ class GeneralSettingsCard(ft.Card):
     # --- CHANGE 2: New method to translate the widget ---
     def update_translations(self, lm: LocaleManager):
         """Atualiza os textos deste card com base no LocaleManager."""
-        self.title_text.value = lm.get_string("settings_view.general_card_title")
-        self.check_theme.label = lm.get_string("settings_view.dark_mode_label")
-        self.dd_language.label = lm.get_string("settings_view.language_label")
+        self.title_text.value = lm.get_string("settings_view.general_card_title", default="Configurações Gerais")
+        self.check_theme.label = lm.get_string("settings_view.dark_mode_label", default="Modo Escuro")
+        self.dd_language.label = lm.get_string("settings_view.language_label", default="Idioma")
+        
+        self.lbl_system_info.value = lm.get_string("settings_view.system_info_title", default="Informações do Sistema")
+        version_label = lm.get_string("settings_view.version_label", default="Versão")
+        codename_label = lm.get_string("settings_view.codename_label", default="Codinome")
+        
+        self.txt_version.value = f"{version_label}: 1.0.1"
+        self.txt_codename.value = f"{codename_label}: Itaquera"
+        
         if self.page: self.update()

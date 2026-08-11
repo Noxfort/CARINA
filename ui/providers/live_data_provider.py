@@ -39,9 +39,11 @@ class LiveDataProvider:
     A service that connects to the back-end via WebSocket to provide
     real-time simulation data packets and send commands.
     """
+    GLOBAL_SHUTDOWN_EVENT = None
     
-    def __init__(self, on_data_received: Callable[[Dict[str, Any]], None]):
+    def __init__(self, on_data_received: Callable[[Dict[str, Any]], None], shutdown_event: threading.Event = None):
         self.on_data_received = on_data_received
+        self.shutdown_event = shutdown_event
         self._thread = None
         self._is_running = False
         self.loop = None
@@ -50,6 +52,17 @@ class LiveDataProvider:
         self.target_ports = [8765, 8766, 8767]
         self.current_uri = "" 
         self.websocket_connection = None
+
+    @property
+    def is_stopped(self) -> bool:
+        """Returns True if the provider has been stopped or system shutdown is requested."""
+        if not self._is_running:
+            return True
+        if self.shutdown_event and self.shutdown_event.is_set():
+            return True
+        if LiveDataProvider.GLOBAL_SHUTDOWN_EVENT and LiveDataProvider.GLOBAL_SHUTDOWN_EVENT.is_set():
+            return True
+        return False
 
     def start(self):
         """Starts the WebSocket client in a separate thread."""
@@ -67,13 +80,32 @@ class LiveDataProvider:
                 asyncio.run_coroutine_threadsafe(self.websocket_connection.close(), self.loop)
             except Exception:
                 pass
+        if self.loop and self.loop.is_running():
+            try:
+                self.loop.call_soon_threadsafe(self.loop.stop)
+            except Exception:
+                pass
         logging.info("[LiveDataProvider] Stop signal sent to the WebSocket client.")
 
     def _run_async_loop(self):
         """Defines the event loop for the new thread and executes it."""
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-        self.loop.run_until_complete(self._websocket_thread_loop())
+        try:
+            self.loop.run_until_complete(self._websocket_thread_loop())
+        except Exception as e:
+            if not self.is_stopped:
+                logging.debug(f"[LiveDataProvider] Error in event loop: {e}")
+        finally:
+            try:
+                pending = [t for t in asyncio.all_tasks(self.loop) if not t.done()]
+                for task in pending:
+                    task.cancel()
+                if pending:
+                    self.loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                self.loop.close()
+            except Exception:
+                pass
 
     async def _websocket_thread_loop(self):
         """
@@ -81,13 +113,15 @@ class LiveDataProvider:
         """
         port_index = 0
         
-        while self._is_running:
+        while not self.is_stopped:
             # Select current port based on index
             port = self.target_ports[port_index]
             self.current_uri = f"ws://127.0.0.1:{port}"
             
             try:
-                logging.info(f"[LiveDataProvider] Attempting to connect to {self.current_uri}...")
+                if self.is_stopped:
+                    break
+                logging.debug(f"[LiveDataProvider] Attempting to connect to {self.current_uri}...")
                 
                 async with websockets.connect(self.current_uri) as websocket:
                     self.websocket_connection = websocket
@@ -98,7 +132,7 @@ class LiveDataProvider:
                     
                     # If you connected successfully, we process the messages
                     async for message in websocket:
-                        if not self._is_running:
+                        if self.is_stopped:
                             break
                         try:
                             data_packet = json.loads(message)
@@ -108,20 +142,33 @@ class LiveDataProvider:
                             logging.warning("[LiveDataProvider] Invalid (non-JSON) message received from the back-end.")
             
             except (ConnectionRefusedError, OSError, websockets.ConnectionClosedError, websockets.ConnectionClosedOK) as e:
-                # Connection failed: Log warning and prepare to try the next port
-                logging.warning(f"[LiveDataProvider] Failed to connect to {self.current_uri}: {e}")
                 self.websocket_connection = None
+                if self.is_stopped:
+                    break
                 
                 # Advances to the next port in the list (Round-Robin)
                 port_index = (port_index + 1) % len(self.target_ports)
                 
-                # Wait a while before the next attempt (quick to find the right door soon)
-                await asyncio.sleep(1.0)
+                # Wait a while before the next attempt (interruptible if stopping)
+                for _ in range(10):
+                    if self.is_stopped:
+                        break
+                    await asyncio.sleep(0.1)
+                
+                if self.is_stopped:
+                    break
+                logging.debug(f"[LiveDataProvider] Connection attempt to {self.current_uri} unsuccessful: {e}")
                 
             except Exception as e:
-                logging.error(f"[LiveDataProvider] Unexpected WebSocket error: {e}", exc_info=True)
                 self.websocket_connection = None
-                await asyncio.sleep(5)
+                if self.is_stopped:
+                    break
+                for _ in range(50):
+                    if self.is_stopped:
+                        break
+                    await asyncio.sleep(0.1)
+                if not self.is_stopped:
+                    logging.debug(f"[LiveDataProvider] Unexpected WebSocket error: {e}")
 
     def send_command_to_backend(self, command: dict):
         """

@@ -1,0 +1,11 @@
+{
+  "guardian_worker": {
+    "process_started": "[GUARDIAN_WORKER] Asynchronous Guardian Process started.",
+    "pae_reconstructed": "[GUARDIAN_WORKER] Universal PAE reconstructed (inference-only)",
+    "pae_failed": "[GUARDIAN_WORKER] Failed to reconstruct PAE: {error}",
+    "guardians_ready": "[GUARDIAN_WORKER] {count} guardians created and ready.",
+    "shutdown": "[GUARDIAN_WORKER] Shutdown signal received.",
+    "fatal_error": "[GUARDIAN_WORKER] Fatal error in loop: {error}",
+    "process_finished": "[GUARDIAN_WORKER] Process finished."
+  }
+}

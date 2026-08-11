@@ -171,22 +171,23 @@ class PlanningMapRenderer:
 
                 cx, cy = self.map_to_canvas(topology, node['x'], node['y'])
                 node_type = node.get('type', '')
+                node_id = node.get('id', 'unknown')
                 
+                # Check recommendation first to see if we should upgrade this junction to show an icon
+                rec_string = recommendations.get(node_id, {}).get("recommendation", "")
+                rec_type = "existing"
+                if "adicionar" in rec_string.lower() or "add" in rec_string.lower():
+                    rec_type = "add"
+                elif "remover" in rec_string.lower() or "remove" in rec_string.lower():
+                    rec_type = "remove"
+
                 is_traffic_light = False
                 if node_type is None: is_traffic_light = True 
                 elif "traffic_light" in str(node_type): is_traffic_light = True
                 
-                if is_traffic_light:
-                    node_id = node.get('id', 'unknown')
+                # Draw as traffic light if it is one OR if we recommend adding one!
+                if is_traffic_light or rec_type == "add":
                     drawn_nodes_cache.append({"id": node_id, "cx": cx, "cy": cy})
-                    
-                    rec_type = "existing"
-                    rec_string = recommendations.get(node_id, {}).get("recommendation", "")
-                    if "adicionar" in rec_string.lower() or "add" in rec_string.lower():
-                        rec_type = "add"
-                    elif "remover" in rec_string.lower() or "remove" in rec_string.lower():
-                        rec_type = "remove"
-                        
                     icon_shapes = self.create_traffic_light_icon(cx, cy, rec_type)
                     canvas_dynamic.shapes.extend(icon_shapes)
                 else:

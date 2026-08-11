@@ -32,7 +32,7 @@ if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
 from analysis.warrant_evaluator import WarrantEvaluator
-from analysis.report_generator import ReportGenerator
+from analysis.text_report_generator import TextReportGenerator
 
 if TYPE_CHECKING:
     from utils.locale_manager_backend import LocaleManagerBackend
@@ -99,15 +99,32 @@ class InfrastructureAnalyzer:
                 analysis_results[j_id] = result
         
         last_metrics = last_analysis_cache.get("junction_metrics", {})
-        significant_change, summary = self._compare_with_cache(collected_data, last_metrics)
+        significant_change, summary = self._compare_with_cache(analysis_results, last_metrics)
         
-        report_generator = ReportGenerator(analysis_results, self.analysis_params, self.scenario_name, lm)
+        report_generator = TextReportGenerator(analysis_results, self.analysis_params, self.scenario_name, lm)
         report_content = report_generator.generate_txt_report()
         
+        # Create a lightweight copy of current junction metrics for caching
+        cached_junction_metrics = {}
+        for j_id, j_res in analysis_results.items():
+            j_data = collected_data.get(j_id, {})
+            cached_junction_metrics[j_id] = {
+                "recommendation": j_res.get("recommendation"),
+                "vol_primary": float(j_res.get("vol_primary_val") or j_res.get("vol_primary") or 0.0),
+                "vol_secondary": float(j_res.get("vol_secondary_val") or j_res.get("vol_secondary") or 0.0),
+                "avg_delay": float(j_res.get("avg_delay") or 0.0),
+                "queue_p95": int(j_res.get("queue_p95") or j_res.get("max_queue") or 0),
+                "saturation_ratio": float(j_res.get("saturation_ratio") or 0.0),
+                "primary_edges": {edge_id: len(samples) if isinstance(samples, list) else samples for edge_id, samples in j_data.get('primary_edges', {}).items()},
+                "secondary_edges": {edge_id: len(samples) if isinstance(samples, list) else samples for edge_id, samples in j_data.get('secondary_edges', {}).items()},
+                "conflict_events": j_data.get('conflict_events', 0),
+                "type": j_data.get('type', 'unknown')
+            }
+
         new_cache_data = {
             "last_analysis_timestamp": datetime.now().isoformat(),
             "analysis_parameters": self.analysis_params,
-            "junction_metrics": collected_data
+            "junction_metrics": cached_junction_metrics
         }
 
         return {
@@ -118,22 +135,37 @@ class InfrastructureAnalyzer:
             "analysis_results": analysis_results
         }
 
-    def _compare_with_cache(self, current_metrics: dict, last_metrics: dict) -> tuple[bool, str]:
-        """Compares current metrics with previous ones to detect changes."""
+    def _compare_with_cache(self, current_results: dict, last_metrics: dict) -> tuple[bool, str]:
+        """Compares current analysis results with previous ones to detect changes."""
         lm = self.locale_manager
         if not last_metrics:
-            return True, lm.get_string("infra_analyzer.summary_first_run")
+            return False, lm.get_string("infra_analyzer.summary_first_run", default="Primeira execução de análise da malha. Sem dados anteriores para comparação.")
 
         change_threshold = self.analysis_params.get('change_threshold_percent', 5.0)
         changed_junctions = []
 
-        for j_id, new_data in current_metrics.items():
+        for j_id, new_res in current_results.items():
             if j_id not in last_metrics:
-                changed_junctions.append(lm.get_string("infra_analyzer.change_new_junction", id=j_id))
+                changed_junctions.append(lm.get_string("infra_analyzer.change_new_junction", default="Novo cruzamento {id}", id=j_id))
                 continue
+            
+            old_res = last_metrics[j_id]
+            old_rec = old_res.get("recommendation")
+            new_rec = new_res.get("recommendation")
+            if old_rec and new_rec and str(old_rec).strip().lower() != str(new_rec).strip().lower():
+                changed_junctions.append(f"Cruzamento {j_id} (Recomendação alterada: {old_rec} -> {new_rec})")
+                continue
+
+            old_vol = float(old_res.get("vol_primary", 0.0))
+            new_vol = float(new_res.get("vol_primary_val") or new_res.get("vol_primary") or 0.0)
+            if old_vol > 0:
+                pct_vol = abs(new_vol - old_vol) / old_vol * 100.0
+                if pct_vol >= change_threshold:
+                    changed_junctions.append(lm.get_string("infra_analyzer.change_metric", default="Cruzamento {id} (Variação de volume: {percent:.1f}%)", id=j_id, percent=f"{pct_vol:.1f}", metric="volume"))
+                    continue
 
         if changed_junctions:
             changes_str = ', '.join(changed_junctions)
-            return True, lm.get_string("infra_analyzer.summary_changes_detected", changes=changes_str)
+            return True, lm.get_string("infra_analyzer.summary_changes_detected", default="Alterações detectadas em relação ao último relatório: {changes}", changes=changes_str)
         
-        return False, lm.get_string("infra_analyzer.summary_no_changes")
+        return False, lm.get_string("infra_analyzer.summary_no_changes", default="Nenhuma alteração significativa detectada em relação ao último relatório.")

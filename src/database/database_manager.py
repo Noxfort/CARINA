@@ -68,6 +68,18 @@ class DatabaseManager:
     def log_analysis_report(self, run_id: int, summary: str, report_content: str):
         self.simulation_repo.log_analysis_report(run_id, summary, report_content)
 
+    def get_sas_analysis_cache(self, scenario_name: str) -> dict:
+        return self.simulation_repo.get_sas_analysis_cache(scenario_name)
+
+    def save_sas_analysis_cache(self, scenario_name: str, cache_data: dict):
+        self.simulation_repo.save_sas_analysis_cache(scenario_name, cache_data)
+
+    def get_mfd_analysis_baselines(self, scenario_name: str) -> tuple:
+        return self.simulation_repo.get_mfd_analysis_baselines(scenario_name)
+
+    def save_mfd_analysis_baselines(self, scenario_name: str, snapshot: dict):
+        self.simulation_repo.save_mfd_analysis_baselines(scenario_name, snapshot)
+
     # =========================================================================
     # SYNAPSE FLUID DYNAMICS
     # =========================================================================
@@ -75,14 +87,33 @@ class DatabaseManager:
     def insert_synapse_fluid_dynamics(self, samples: List[Dict]):
         self.fluid_dynamics_repo.insert_synapse_fluid_dynamics(samples)
 
-    def query_fluid_dynamics_history(self) -> List[Dict]:
-        return self.fluid_dynamics_repo.query_fluid_dynamics_history()
+    def query_fluid_dynamics_history(self, limit_seconds: Optional[int] = None) -> List[Dict]:
+        return self.fluid_dynamics_repo.query_fluid_dynamics_history(limit_seconds=limit_seconds)
+
+    def query_traffic_history(self, limit_seconds: Optional[int] = None) -> List[Dict]:
+        """Alias for query_fluid_dynamics_history to avoid backward-compatibility errors."""
+        return self.query_fluid_dynamics_history(limit_seconds=limit_seconds)
+
+    def query_fluid_dynamics_history_batches(self, limit_seconds: Optional[int] = None, batch_size: int = 50000):
+        return self.fluid_dynamics_repo.query_fluid_dynamics_history_batches(limit_seconds=limit_seconds, batch_size=batch_size)
+
+    def query_aggregated_fluid_dynamics(self, limit_seconds: Optional[int] = None) -> List[Dict]:
+        return self.fluid_dynamics_repo.query_aggregated_fluid_dynamics(limit_seconds=limit_seconds)
 
     def purge_old_fluid_dynamics(self, keep_minutes: int = 1440):
         self.fluid_dynamics_repo.purge_old_fluid_dynamics(keep_minutes)
 
+    def consolidate_and_purge_old_data(self, keep_hours: int = 48):
+        self.fluid_dynamics_repo.consolidate_and_purge_old_data(keep_hours)
+
     def get_fluid_dynamics_count(self) -> int:
         return self.fluid_dynamics_repo.get_fluid_dynamics_count()
+
+    def get_fluid_dynamics_time_range(self) -> float:
+        return self.fluid_dynamics_repo.get_fluid_dynamics_time_range()
+
+    def get_fluid_dynamics_min_max_timestamps(self, limit_seconds: Optional[int] = None):
+        return self.fluid_dynamics_repo.get_fluid_dynamics_min_max_timestamps(limit_seconds=limit_seconds)
 
     # =========================================================================
     # CLOUD FILE VAULT
@@ -93,3 +124,12 @@ class DatabaseManager:
 
     def sync_all_files_to_vault(self, base_dir: str):
         self.cloud_vault_repo.sync_all_files_to_vault(base_dir)
+
+    def fetch_file_from_vault(self, relative_path: str) -> Optional[bytes]:
+        return self.cloud_vault_repo.fetch_file_from_vault(relative_path)
+
+    def restore_file_from_vault(self, relative_path: str, target_filepath: str) -> bool:
+        return self.cloud_vault_repo.restore_file_from_vault(relative_path, target_filepath)
+
+    def restore_all_files_from_vault(self, base_dir: str) -> int:
+        return self.cloud_vault_repo.restore_all_files_from_vault(base_dir)

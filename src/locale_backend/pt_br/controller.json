@@ -1,0 +1,21 @@
+{
+  "controller": {
+    "traffic_frame": {
+      "recording_error": "[TrafficFrameProcessor] Erro ao gravar dados: {error}",
+      "ai_send_error": "Erro ao enviar quadro para a IA: {error}",
+      "ai_blocked_failsafe": "[TrafficFrameProcessor] Despacho para IA bloqueado — FixedTimeController está ativo.",
+      "rich_update_error": "Erro ao colocar atualização detalhada na fila do SDS: {error}",
+      "slow_processing": "[TrafficFrameProcessor] ⏱️ Processamento lento: {delta:.1f}ms (>{thresh:.0f}ms). Seq: {seq}"
+    },
+    "latch": {
+      "unlocked": "✅ [LATCH] Front-end e API totalmente carregados. Desbloqueando o Motor de IA para tomada de decisão.",
+      "waiting_ui": "⚠️ [LATCH] Motor de IA pausado: aguardando prontidão do Front-End (UI) ('carina_ready'). Quadros serão descartados.",
+      "waiting_backend": "⚠️ [LATCH] Motor de IA pausado: aguardando conclusão do carregamento dos componentes do Backend."
+    },
+    "stage_validator": {
+      "invalid_len": "[StageValidator] TLS '{tls_id}' estágio {index}: tamanho do estado {len} != esperado {expected}",
+      "invalid_char": "[StageValidator] TLS '{tls_id}' estágio {index}: caractere de sinal inválido '{char}' na posição {pos}",
+      "shared_greens": "[StageValidator] TLS '{tls_id}': links de sinal {overlap} estão verdes nos estágios {i} e {j} (movimentos compartilhados - seguro em operação sequencial)."
+    }
+  }
+}

@@ -25,7 +25,7 @@ whether a specific intersection port speaks NTCIP 1202 or UTMC2.
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Any
 
 from src.drivers.base_driver import BaseTrafficDriver
 from src.drivers.ntcip_driver import NtcipDriver
@@ -40,13 +40,22 @@ class DriverFactory:
     """
 
     @staticmethod
-    def create_and_connect_driver(ip_address: str, port: int, community_string: str = 'public', intersection_id: str = "Desconhecido", green_stages: list = None) -> Optional[BaseTrafficDriver]:
+    def create_and_connect_driver(ip_address: str, port: int, community_string: str = 'public', intersection_id: str = "Desconhecido", green_stages: list = None, locale_manager: Optional[Any] = None) -> Optional[BaseTrafficDriver]:
         """
         Attempts a handshake with the target IP and Port to discover its protocol.
         First sends an SNMP GET for sysDescr (1.3.6.1.2.1.1.1.0) to ask which protocol the controller speaks.
         If unrecognized, falls back to probing protocol-specific telemetry OIDs.
         """
+        def _get_string(key: str, default: str = None, **kwargs) -> str:
+            if locale_manager and hasattr(locale_manager, 'get_string'):
+                return locale_manager.get_string(key, default=default, **kwargs)
+            return default.format(**kwargs) if default and kwargs else (default or key)
+
         logger.info(f"[{ip_address}:{port}] Starting protocol discovery (Handshake)...")
+
+        detected_brand = "Não informado"
+        detected_model = "Não informado"
+        raw_sys_descr = ""
 
         # ---------------------------------------------------------
         # 1. Ask the controller directly what protocol it speaks via sysDescr
@@ -56,17 +65,25 @@ class DriverFactory:
         success_descr, descr_val = temp_driver.snmp_get("1.3.6.1.2.1.1.1.0")
 
         if success_descr:
-            descr_upper = str(descr_val).upper()
-            logger.info(f"[{ip_address}:{port}] Controller returned sysDescr: '{descr_val}'")
+            raw_sys_descr = str(descr_val)
+            detected_brand, detected_model = DriverFactory.extract_brand_and_model(descr_val)
+            descr_upper = raw_sys_descr.upper()
+            logger.info(f"[{ip_address}:{port}] Controller returned sysDescr: '{descr_val}' (Brand: '{detected_brand}', Model: '{detected_model}')")
             
             if "NTCIP" in descr_upper:
                 logger.info(f"[{ip_address}:{port}] Protocol identified as NTCIP 1202 via sysDescr.")
                 ntcip_driver = NtcipDriver(ip_address, port, intersection_id, community_string, green_stages=green_stages)
+                ntcip_driver.brand = detected_brand
+                ntcip_driver.model = detected_model
+                ntcip_driver.sys_descr = raw_sys_descr
                 ntcip_driver.start_heartbeat()
                 return ntcip_driver
             elif "UTMC" in descr_upper:
                 logger.info(f"[{ip_address}:{port}] Protocol identified as UTMC2 via sysDescr.")
                 utmc_driver = UtmcDriver(ip_address, port, intersection_id, community_string, green_stages=green_stages)
+                utmc_driver.brand = detected_brand
+                utmc_driver.model = detected_model
+                utmc_driver.sys_descr = raw_sys_descr
                 utmc_driver.start_heartbeat()
                 return utmc_driver
             else:
@@ -83,6 +100,9 @@ class DriverFactory:
         
         if success_ntcip:
             logger.info(f"[{ip_address}:{port}] Probe successful! Protocol identified as NTCIP 1202.")
+            ntcip_driver.brand = detected_brand
+            ntcip_driver.model = detected_model
+            ntcip_driver.sys_descr = raw_sys_descr
             ntcip_driver.start_heartbeat()
             return ntcip_driver
 
@@ -95,11 +115,50 @@ class DriverFactory:
 
         if success_utmc:
             logger.info(f"[{ip_address}:{port}] Probe successful! Protocol identified as UTMC2.")
+            utmc_driver.brand = detected_brand
+            utmc_driver.model = detected_model
+            utmc_driver.sys_descr = raw_sys_descr
             utmc_driver.start_heartbeat()
             return utmc_driver
+
+    @staticmethod
+    def extract_brand_and_model(descr_val: Any) -> tuple[str, str]:
+        """
+        Parses sysDescr string to identify brand (manufacturer) and model of the controller.
+        Returns ('Não informado', 'Não informado') if unknown.
+        """
+        if not descr_val:
+            return "Não informado", "Não informado"
+        
+        descr = str(descr_val).strip()
+        if not descr:
+            return "Não informado", "Não informado"
+
+        descr_upper = descr.upper()
+        
+        known_brands = [
+            "SIEMENS", "PEEK", "SWARCO", "ECONOLITE", "DATAPROM", "TRAFFICWARE",
+            "MCCAIN", "YUNEX", "COMPASS", "TELVENT", "KAPSCH"
+        ]
+        
+        brand = "Não informado"
+        for b in known_brands:
+            if b in descr_upper:
+                brand = b.title()
+                break
+
+        import re
+        model_match = re.search(r'\b(ST\d{3,4}|M\d{2,3}|ATC[-_ ]?\d{4}|ASC[/-]?\d+|[A-Z]{1,4}[-_]?\d{3,4})\b', descr, re.IGNORECASE)
+        if model_match:
+            model = model_match.group(1).upper()
+        else:
+            model = descr if len(descr) <= 30 else descr[:30] + "..."
+
+        return brand, model
+
 
         # ---------------------------------------------------------
         # 4. Fallback: Both attempts failed
         # ---------------------------------------------------------
-        logger.error(f"[{ip_address}:{port}] Discovery failed. The controller did not respond to protocol queries or probes.")
+        logger.error(_get_string("drivers.factory.unknown_protocol", default="[DriverFactory] No supported protocol responded at IP {ip}:{port}.", ip=ip_address, port=port))
         return None

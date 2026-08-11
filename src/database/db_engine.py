@@ -137,20 +137,86 @@ class DatabaseEngine:
                 CREATE TABLE IF NOT EXISTS synapse_fluid_dynamics (
                     id SERIAL PRIMARY KEY,
                     collected_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    scenario_name TEXT NOT NULL DEFAULT 'default',
+                    intersection_id TEXT,
                     edge_id TEXT NOT NULL,
                     density REAL NOT NULL,
                     mean_speed REAL NOT NULL,
+                    min_speed REAL,
                     queue_length INTEGER NOT NULL,
+                    max_queue INTEGER,
                     occupancy REAL NOT NULL,
                     edge_length REAL,
                     num_lanes INTEGER,
-                    speed_limit REAL
+                    speed_limit REAL,
+                    maturity_stage TEXT NOT NULL DEFAULT 'CHILD'
                 );
                 """)
                 conn.commit()
 
+                # Migration for existing PostgreSQL DBs - check column existence to avoid lock queue blocking
+                cursor.execute("""
+                    SELECT column_name FROM information_schema.columns 
+                    WHERE table_name = 'synapse_fluid_dynamics';
+                """)
+                existing_cols = {row[0] for row in cursor.fetchall()}
+
+                migrations = [
+                    ('scenario_name', "ALTER TABLE synapse_fluid_dynamics ADD COLUMN scenario_name TEXT DEFAULT 'default';"),
+                    ('intersection_id', "ALTER TABLE synapse_fluid_dynamics ADD COLUMN intersection_id TEXT;"),
+                    ('min_speed', "ALTER TABLE synapse_fluid_dynamics ADD COLUMN min_speed REAL;"),
+                    ('max_queue', "ALTER TABLE synapse_fluid_dynamics ADD COLUMN max_queue INTEGER;"),
+                    ('maturity_stage', "ALTER TABLE synapse_fluid_dynamics ADD COLUMN maturity_stage TEXT DEFAULT 'CHILD';")
+                ]
+                for col_name, migration_sql in migrations:
+                    if col_name not in existing_cols:
+                        try:
+                            cursor.execute(migration_sql)
+                            conn.commit()
+                        except Exception:
+                            pass
+
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_collected_at ON synapse_fluid_dynamics(collected_at);")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_edge_id ON synapse_fluid_dynamics(edge_id);")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_maturity_stage ON synapse_fluid_dynamics(maturity_stage);")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_scen_stage_time ON synapse_fluid_dynamics(scenario_name, maturity_stage, collected_at DESC);")
+                conn.commit()
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS synapse_edge_phase_hourly_summary (
+                    edge_id TEXT NOT NULL,
+                    maturity_stage TEXT NOT NULL,
+                    summary_hour TIMESTAMP NOT NULL,
+                    scenario_name TEXT NOT NULL DEFAULT 'default',
+                    sample_count INTEGER NOT NULL,
+                    avg_speed REAL NOT NULL,
+                    min_speed REAL NOT NULL,
+                    avg_density REAL NOT NULL,
+                    avg_queue REAL NOT NULL,
+                    max_queue REAL NOT NULL,
+                    total_production REAL NOT NULL,
+                    avg_occupancy REAL NOT NULL,
+                    PRIMARY KEY (edge_id, maturity_stage, summary_hour)
+                );
+                """)
+                conn.commit()
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS synapse_intersection_phase_hourly_summary (
+                    intersection_id TEXT NOT NULL,
+                    maturity_stage TEXT NOT NULL,
+                    summary_hour TIMESTAMP NOT NULL,
+                    scenario_name TEXT NOT NULL DEFAULT 'default',
+                    sample_count INTEGER NOT NULL,
+                    avg_speed REAL NOT NULL,
+                    min_speed REAL NOT NULL,
+                    avg_queue REAL NOT NULL,
+                    max_queue REAL NOT NULL,
+                    total_production REAL NOT NULL,
+                    total_delay REAL NOT NULL,
+                    PRIMARY KEY (intersection_id, maturity_stage, summary_hour)
+                );
+                """)
                 conn.commit()
 
                 cursor.execute("""
@@ -160,6 +226,36 @@ class DatabaseEngine:
                     relative_path TEXT NOT NULL UNIQUE,
                     file_content BYTEA,
                     last_updated TIMESTAMP NOT NULL DEFAULT NOW()
+                );
+                """)
+                conn.commit()
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS hardware_controller_connections (
+                    intersection_id TEXT PRIMARY KEY,
+                    ip_address TEXT NOT NULL,
+                    auto_connect BOOLEAN NOT NULL DEFAULT TRUE,
+                    last_connected TIMESTAMP DEFAULT NOW()
+                );
+                """)
+                conn.commit()
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sas_analysis_cache (
+                    scenario_name VARCHAR(255) PRIMARY KEY,
+                    metrics_cache JSONB NOT NULL,
+                    updated_at TIMESTAMP DEFAULT NOW()
+                );
+                """)
+                conn.commit()
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS mfd_analysis_cache (
+                    scenario_name VARCHAR(255) NOT NULL,
+                    cache_type VARCHAR(50) NOT NULL,
+                    metrics_cache JSONB NOT NULL,
+                    updated_at TIMESTAMP DEFAULT NOW(),
+                    PRIMARY KEY (scenario_name, cache_type)
                 );
                 """)
                 conn.commit()
@@ -202,20 +298,78 @@ class DatabaseEngine:
                 CREATE TABLE IF NOT EXISTS synapse_fluid_dynamics (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     collected_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    scenario_name TEXT NOT NULL DEFAULT 'default',
+                    intersection_id TEXT,
                     edge_id TEXT NOT NULL,
                     density REAL NOT NULL,
                     mean_speed REAL NOT NULL,
+                    min_speed REAL,
                     queue_length INTEGER NOT NULL,
+                    max_queue INTEGER,
                     occupancy REAL NOT NULL,
                     edge_length REAL,
                     num_lanes INTEGER,
-                    speed_limit REAL
+                    speed_limit REAL,
+                    maturity_stage TEXT NOT NULL DEFAULT 'CHILD'
                 );
                 """)
                 conn.commit()
 
+                # Migration for existing SQLite DBs
+                for migration_sql in [
+                    "ALTER TABLE synapse_fluid_dynamics ADD COLUMN scenario_name TEXT DEFAULT 'default';",
+                    "ALTER TABLE synapse_fluid_dynamics ADD COLUMN intersection_id TEXT;",
+                    "ALTER TABLE synapse_fluid_dynamics ADD COLUMN min_speed REAL;",
+                    "ALTER TABLE synapse_fluid_dynamics ADD COLUMN max_queue INTEGER;",
+                    "ALTER TABLE synapse_fluid_dynamics ADD COLUMN maturity_stage TEXT DEFAULT 'CHILD';"
+                ]:
+                    try:
+                        cursor.execute(migration_sql)
+                        conn.commit()
+                    except Exception:
+                        pass
+
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_collected_at ON synapse_fluid_dynamics(collected_at);")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_edge_id ON synapse_fluid_dynamics(edge_id);")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_maturity_stage ON synapse_fluid_dynamics(maturity_stage);")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_scen_stage_time ON synapse_fluid_dynamics(scenario_name, maturity_stage, collected_at DESC);")
+                conn.commit()
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS synapse_edge_phase_hourly_summary (
+                    edge_id TEXT NOT NULL,
+                    maturity_stage TEXT NOT NULL,
+                    summary_hour TIMESTAMP NOT NULL,
+                    scenario_name TEXT NOT NULL DEFAULT 'default',
+                    sample_count INTEGER NOT NULL,
+                    avg_speed REAL NOT NULL,
+                    min_speed REAL NOT NULL,
+                    avg_density REAL NOT NULL,
+                    avg_queue REAL NOT NULL,
+                    max_queue REAL NOT NULL,
+                    total_production REAL NOT NULL,
+                    avg_occupancy REAL NOT NULL,
+                    PRIMARY KEY (edge_id, maturity_stage, summary_hour)
+                );
+                """)
+                conn.commit()
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS synapse_intersection_phase_hourly_summary (
+                    intersection_id TEXT NOT NULL,
+                    maturity_stage TEXT NOT NULL,
+                    summary_hour TIMESTAMP NOT NULL,
+                    scenario_name TEXT NOT NULL DEFAULT 'default',
+                    sample_count INTEGER NOT NULL,
+                    avg_speed REAL NOT NULL,
+                    min_speed REAL NOT NULL,
+                    avg_queue REAL NOT NULL,
+                    max_queue REAL NOT NULL,
+                    total_production REAL NOT NULL,
+                    total_delay REAL NOT NULL,
+                    PRIMARY KEY (intersection_id, maturity_stage, summary_hour)
+                );
+                """)
                 conn.commit()
 
                 cursor.execute("""
@@ -225,6 +379,36 @@ class DatabaseEngine:
                     relative_path TEXT NOT NULL UNIQUE,
                     file_content BLOB,
                     last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """)
+                conn.commit()
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS hardware_controller_connections (
+                    intersection_id TEXT PRIMARY KEY,
+                    ip_address TEXT NOT NULL,
+                    auto_connect BOOLEAN NOT NULL DEFAULT TRUE,
+                    last_connected TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """)
+                conn.commit()
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sas_analysis_cache (
+                    scenario_name TEXT PRIMARY KEY,
+                    metrics_cache TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """)
+                conn.commit()
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS mfd_analysis_cache (
+                    scenario_name TEXT NOT NULL,
+                    cache_type TEXT NOT NULL,
+                    metrics_cache TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (scenario_name, cache_type)
                 );
                 """)
                 conn.commit()

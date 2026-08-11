@@ -14,52 +14,55 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# File: src/main.py (HFT Refactor - Removed TraCI Proxy)
+# File: src/main.py (HFT Refactor - Modular Pure Orchestrator)
 # Author: Gabriel Moraes
 # Date: December 14, 2025
 
 import sys
 import os
-import configparser
 from datetime import datetime
 import logging
 import traceback
 from multiprocessing import Queue
 from multiprocessing.connection import Connection
-import threading
-import time
 
-# Add 'src' directory to path
+# Add 'src' directory to python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 src_path = os.path.join(project_root, 'src')
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-# --- Essential Light Imports ---
-from utils.paths import resource_path, get_base_output_dir
+from utils.paths import get_base_output_dir
 from utils.logging_setup import setup_logging
 from utils.locale_manager_backend import LocaleManagerBackend
-from utils.metrics_manager import MetricsManager
-# --- End ---
+from utils.settings_manager import SettingsManager
+from utils.hardware_initializer import HardwareInitializer
+from utils.process_monitor import ProcessMonitor
 
-def run_ai_process(pipe_conn: Connection, guardian_state_queue: Queue,
-                   guardian_signal_queue: Queue, db_data_queue: Queue):
+
+def run_ai_process(
+    pipe_conn: Connection,
+    guardian_state_queue: Queue,
+    guardian_signal_queue: Queue,
+    db_data_queue: Queue
+):
     """
-    The main entry point for the AI process (HFT Edition).
-    Now operates independently of the TraCI/SUMO protocol.
+    Main orchestrator for the AI Process (HFT Mode).
+    Coordinates environment logging, hardware setup, resource monitoring,
+    and starts the continuous service loop of the Trainer engine.
     """
-    # --- Initial Configuration (Logging, Locale) ---
+    # 1. Logging Initialization
     log_base_dir = get_base_output_dir()
     log_dir_ai = os.path.join(log_base_dir, "logs", "main_ai", datetime.now().strftime("%Y%m%d-%H%M%S"))
+    log_configured = False
     try:
         os.makedirs(log_dir_ai, exist_ok=True)
         setup_logging(log_dir=log_dir_ai)
         log_configured = True
     except Exception as e:
         print(f"[AI Process ERROR] Failed to setup logging: {e}")
-        log_configured = False
 
-    def print_and_log(message, level="info"):
+    def print_and_log(message: str, level: str = "info"):
         print(f"[AI Process] {message}")
         if log_configured:
             if level == "info": logging.info(message)
@@ -67,101 +70,52 @@ def run_ai_process(pipe_conn: Connection, guardian_state_queue: Queue,
             elif level == "error": logging.error(message)
             elif level == "debug": logging.debug(message)
 
-    print_and_log("--- AI Process Bootstrapping (HFT Mode) ---")
-
-    # --- Initialize Locale ---
+    # 2. Locale Backend Initialization
     try:
         lm = LocaleManagerBackend()
-        print_and_log(f"LocaleManager initialized. Language: {lm.current_lang_data.get('lang_code', 'N/A')}")
+        lang_code = lm.current_lang_data.get('lang_code', lm.get_language())
+        print_and_log(lm.get_string("main_ai.locale_init", default="LocaleManager initialized. Language: {lang}", lang=lang_code))
     except Exception as e:
         print_and_log(f"Failed to initialize LocaleManagerBackend: {e}", level="error")
-        # Simple fallback
+
         class DummyLM:
-             def get_string(self, key, fallback=None, **kwargs): return fallback if fallback else key
+            def get_string(self, key, default=None, **kwargs):
+                val = default if default is not None else key
+                return val.format(**kwargs) if kwargs else val
+            def get_language(self): return "pt_br"
+
         lm = DummyLM()
 
-    # --- LATE IMPORTS (Lazy Imports) ---
-    print_and_log("Loading AI Engine components...")
+    print_and_log(lm.get_string("main_ai.bootstrapping", default="--- AI Process Bootstrapping (HFT Mode) ---"))
+    print_and_log(lm.get_string("main_ai.loading_components", default="Loading AI Engine components..."))
+
+    # 3. Hardware Acceleration & PyTorch Setup
     try:
-        import psutil
-        import torch
-        
-        # --- Patch for PyInstaller + TorchScript ---
-        # We maintain the patch to ensure compatibility on frozen builds
-        def _jit_script_shim(obj, *args, **kwargs):
-            return obj
-        torch.jit.script = _jit_script_shim
-        # --------------------------------------------
-        
-        # --- TensorCore (TF32) Hardware Acceleration Optimization ---
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32 = True
-        torch.set_float32_matmul_precision('high')
-        print_and_log("⚡ Hardware Acceleration (TensorCores/TF32) enabled strictly.", level="info")
-        # ------------------------------------------------------------
-
-        # CHANGE: We no longer import 'traci_proxy'.
-        # The AI ​​is now simulator agnostic.
-        
+        HardwareInitializer.setup_environment(logging_func=print_and_log)
         from engine.trainer import Trainer
-        print_and_log("AI Engine components loaded successfully.")
-
+        print_and_log(lm.get_string("main_ai.components_loaded", default="AI Engine components loaded successfully."))
     except ImportError as e_import:
-        print_and_log(f"CRITICAL IMPORT ERROR: {e_import}", level="error")
+        print_and_log(lm.get_string("main_ai.critical_import_error", default="CRITICAL IMPORT ERROR: {error}", error=e_import), level="error")
         return
     except Exception as e_gen:
-         print_and_log(f"CRITICAL ERROR during loading phase: {e_gen}\n{traceback.format_exc()}", level="error")
-         return
+        print_and_log(lm.get_string("main_ai.critical_load_error", default="CRITICAL ERROR during loading phase: {error}\n{traceback}", error=e_gen, traceback=traceback.format_exc()), level="error")
+        return
 
-    # --- Monitor Thread ---
-    metrics_manager = MetricsManager(process_name="AI_Process", port=8002)
-    metrics_manager.register_metric('process_cpu_usage_percent', 'CPU %')
-    metrics_manager.register_metric('process_memory_usage_percent', 'Mem %')
+    # 4. Background Resource Monitoring Daemon
+    ProcessMonitor.start_background_monitor(process_name="AI_Process", port=8002)
 
-    current_process = psutil.Process()
+    # 5. Load GPU Metadata & System Settings
+    gpu_info = HardwareInitializer.detect_gpu(locale_manager=lm, logging_func=print_and_log)
 
-    def monitor_loop(metrics: MetricsManager, process: psutil.Process, queues: dict, interval: int = 5):
-        while True:
-            try:
-                cpu = process.cpu_percent(interval=None)
-                mem = process.memory_percent()
-                metrics.update_metric('process_cpu_usage_percent', cpu if cpu is not None else 0.0)
-                metrics.update_metric('process_memory_usage_percent', mem)
-                # Queue metrics can be added here
-            except Exception:
-                break
-            time.sleep(interval)
-
-    monitor_thread = threading.Thread(
-        target=monitor_loop,
-        args=(metrics_manager, current_process, {}),
-        daemon=True
-    )
-    monitor_thread.start()
-
-    # --- Main Logic ---
     try:
-        # Check GPU
-        gpu_info = "N/A"
-        if torch.cuda.is_available():
-            gpu_name = torch.cuda.get_device_name(0)
-            gpu_info = gpu_name
-            print_and_log(f"✅ GPU Detected: {gpu_name}")
-        else:
-            print_and_log("⚠️ No GPU detected. Running on CPU.", level="warning")
+        settings = SettingsManager().load_config()
+    except Exception as e_cfg:
+        print_and_log(f"Failed to load settings: {e_cfg}", level="error")
+        return
 
-        # Load Settings
-        def load_settings():
-             config_path = resource_path(os.path.join("config", "settings.ini"))
-             config = configparser.ConfigParser()
-             if not config.read(config_path, encoding='utf-8'):
-                  raise FileNotFoundError(f"Settings not found at {config_path}")
-             return config
-        
-        settings = load_settings()
-
-        # Instantiates the Trainer (The brain of the operation)
-        print_and_log("[MAIN_AI] Initializing Trainer...")
+    # 6. Instantiate Trainer and Start Continuous Service Loop
+    try:
+        print_and_log(lm.get_string("main_ai.initializing_trainer", default="[MAIN_AI] Initializing Trainer..."))
         trainer = Trainer(
             settings=settings,
             log_dir=log_dir_ai,
@@ -171,17 +125,16 @@ def run_ai_process(pipe_conn: Connection, guardian_state_queue: Queue,
             guardian_signal_queue=guardian_signal_queue,
             db_data_queue=db_data_queue
         )
-        
-        print_and_log("Trainer ready. Entering event loop...")
-        
-        # Starts continuous service (Pipe Message Loop)
+
+        print_and_log(lm.get_string("main_ai.trainer_ready", default="Trainer ready. Entering event loop..."))
         trainer.start_continuous_service()
+        print_and_log(lm.get_string("main_ai.trainer_finished", default="Trainer service finished."), level="info")
 
-        print_and_log("Trainer service finished.", level="info")
-
+    except (KeyboardInterrupt, SystemExit):
+        print_and_log(lm.get_string("main_ai.trainer_finished", default="Trainer service interrupted."), level="info")
     except Exception as e_main:
-         print_and_log(f"FATAL ERROR in AI Process: {e_main}", level="error")
-         sys.exit(1)
-
+        print_and_log(lm.get_string("main_ai.fatal_error", default="FATAL ERROR in AI Process: {error}", error=e_main), level="error")
+        sys.exit(1)
     finally:
-        print_and_log("--- AI Process Exiting ---")
+        print_and_log(lm.get_string("main_ai.process_exiting", default="--- AI Process Exiting ---"))
+        os._exit(0)

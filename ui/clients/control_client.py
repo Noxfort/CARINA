@@ -87,4 +87,28 @@ class ControlClient:
                 }
             }
             self.live_data_provider.send_command_to_backend(command)
+
+    def trigger_analysis(self):
+        """
+        Envia um comando para disparar a análise de planejamento imediatamente.
+        """
+        logging.info("--- [CONTROL_CLIENT] ---> COMANDO ENVIADO: Disparar análise de planejamento")
+        if self.live_data_provider:
+            command = {
+                "type": "trigger_analysis",
+                "payload": {}
+            }
+            self.live_data_provider.send_command_to_backend(command)
+
+    def trigger_mfd_analysis(self):
+        """
+        Envia um comando para disparar a análise de otimização MFD imediatamente.
+        """
+        logging.info("--- [CONTROL_CLIENT] ---> COMANDO ENVIADO: Disparar análise MFD")
+        if self.live_data_provider:
+            command = {
+                "type": "trigger_mfd_analysis",
+                "payload": {}
+            }
+            self.live_data_provider.send_command_to_backend(command)
         

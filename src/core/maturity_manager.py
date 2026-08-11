@@ -102,7 +102,7 @@ class MaturityManager:
         self.teen_phase_min_duration = get_int_setting('teen_phase_min_episodes', 50)
         
         self.entropy_calculator = DynamicEntropyCalculator(e_max=1.8, e_ideal=0.1)
-        self.promotion_evaluator = PromotionEvaluator()
+        self.promotion_evaluator = PromotionEvaluator(settings)
         
         # Internal State
         self.is_calibrated = True # Dynamic calibration is always ready
@@ -225,7 +225,7 @@ class MaturityManager:
                     details = { 
                         lm.get_string("maturity_manager.criterion_time"): lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=required_episodes),
                         lm.get_string("maturity_manager.criterion_confidence"): lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_child_threshold),
-                        "MFD Efficiency": {"ok": True, "msg": reason}
+                        lm.get_string("maturity_manager.criterion_mfd", default="MFD Efficiency"): {"ok": True, "msg": reason}
                     }
                     self._promote_agent(agent_id, Maturity.TEEN)
                     self.reporter.report_promotion(agent_id, Maturity.TEEN, details)
@@ -234,7 +234,7 @@ class MaturityManager:
                     rejection_details = {
                         lm.get_string("maturity_manager.criterion_time"): {"ok": episodes_in_phase >= required_episodes, "msg": lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=required_episodes)},
                         lm.get_string("maturity_manager.criterion_confidence"): {"ok": confidence_ok, "msg": lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_child_threshold)},
-                        "MFD Efficiency": {"ok": is_promoted, "msg": reason}
+                        lm.get_string("maturity_manager.criterion_mfd", default="MFD Efficiency"): {"ok": is_promoted, "msg": reason}
                     }
                     self.reporter.report_rejection(agent_id, current_phase, Maturity.TEEN, rejection_details)
 
@@ -254,7 +254,7 @@ class MaturityManager:
                     details = {
                         lm.get_string("maturity_manager.criterion_time"): lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=required_episodes),
                         lm.get_string("maturity_manager.criterion_confidence"): lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_adult_threshold),
-                        "MFD Efficiency": {"ok": True, "msg": reason}
+                        lm.get_string("maturity_manager.criterion_mfd", default="MFD Efficiency"): {"ok": True, "msg": reason}
                     }
                     self._promote_agent(agent_id, Maturity.ADULT)
                     self.reporter.report_promotion(agent_id, Maturity.ADULT, details)
@@ -263,7 +263,7 @@ class MaturityManager:
                     rejection_details = {
                         lm.get_string("maturity_manager.criterion_time"): {"ok": episodes_in_phase >= required_episodes, "msg": lm.get_string("maturity_manager.time_details", episodes_in_phase=episodes_in_phase, required_episodes=required_episodes)},
                         lm.get_string("maturity_manager.criterion_confidence"): {"ok": confidence_ok, "msg": lm.get_string("maturity_manager.confidence_details", agent_entropy=agent_entropy, entropy_threshold=dynamic_adult_threshold)},
-                        "MFD Efficiency": {"ok": is_promoted, "msg": reason}
+                        lm.get_string("maturity_manager.criterion_mfd", default="MFD Efficiency"): {"ok": is_promoted, "msg": reason}
                     }
                     self.reporter.report_rejection(agent_id, current_phase, Maturity.ADULT, rejection_details)
         

@@ -64,7 +64,13 @@ class StageTransitionManager:
                 elif 'R' in state_string:
                     prev_stage_idx = (current_stage_idx - 1) % total_stages
                     prev_state_string = stage_codes.get(prev_stage_idx, "").upper()
-                    is_clearance = 'Y' in prev_state_string
+                    
+                    stage_durations = getattr(self.state_extractor, 'tl_stage_durations', {}).get(tl_id, {})
+                    default_duration = stage_durations.get(current_stage_idx, 0.0)
+                    if default_duration > 0:
+                        is_clearance = ('Y' in prev_state_string) and (default_duration <= self.all_red_time)
+                    else:
+                        is_clearance = 'Y' in prev_state_string
                     
                     threshold = self.all_red_time if is_clearance else SafetyRules.get_red()
                     

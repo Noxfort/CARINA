@@ -86,6 +86,24 @@ def run_database_worker(db_queue: Queue):
             daemon=True
         )
         cloud_sync_thread.start()
+
+        def consolidation_purge_loop(db_mgr):
+            # Wait 15 seconds before initial consolidation on boot
+            time.sleep(15)
+            while True:
+                try:
+                    db_mgr.consolidate_and_purge_old_data(keep_hours=48)
+                except Exception as e:
+                    logging.error(f"[DB_WORKER] Error in consolidation purge loop: {e}")
+                # Run consolidation every 1 hour (3600 seconds)
+                time.sleep(3600)
+
+        consolidation_purge_thread = threading.Thread(
+            target=consolidation_purge_loop,
+            args=(db_manager,),
+            daemon=True
+        )
+        consolidation_purge_thread.start()
         
         logging.info(lm.get_string("db_worker.run.worker_started"))
 
@@ -106,6 +124,9 @@ def run_database_worker(db_queue: Queue):
                     db_manager.log_analysis_report(**payload)
                 elif log_type == "sync_files":
                     db_manager.sync_all_files_to_vault(get_base_output_dir())
+                elif log_type == "consolidate_purge":
+                    keep_hours = payload.get("keep_hours", 48)
+                    db_manager.consolidate_and_purge_old_data(keep_hours=keep_hours)
                 else:
                     logging.warning(lm.get_string("db_worker.run.unknown_log_type", type=log_type))
 
@@ -118,3 +139,4 @@ def run_database_worker(db_queue: Queue):
         logging.critical(lm.get_string("db_worker.run.fatal_error", error=e), exc_info=True)
     finally:
         logging.info(lm.get_string("db_worker.run.worker_finished"))
+        os._exit(0)

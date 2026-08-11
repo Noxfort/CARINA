@@ -53,26 +53,36 @@ class HFTWorker:
     
     _BACKPRESSURE_THRESHOLD = 10
 
-    def __init__(self, controller, diagnostics: HFTDiagnostics, server_ref):
+    def __init__(self, controller, diagnostics: HFTDiagnostics, server_ref, locale_manager=None):
         self.controller = controller
         self.diagnostics = diagnostics
         self.server_ref = server_ref # To check if server state is "RUNNING"
+        self.locale_manager = locale_manager
         
         self.frame_queue: queue.Queue = queue.Queue(maxsize=100)
         self._worker_thread: Optional[threading.Thread] = None
         self._worker_running = threading.Event()
 
+    def _get_string(self, key: str, default: str = None, **kwargs) -> str:
+        if self.locale_manager and hasattr(self.locale_manager, 'get_string'):
+            return self.locale_manager.get_string(key, default=default, **kwargs)
+        return default.format(**kwargs) if default and kwargs else (default or key)
+
     def get_queue_depth(self) -> int:
         return self.frame_queue.qsize()
 
     def enqueue(self, frame, current_recv_time):
-        """Enqueues a frame for async processing."""
+        """
+        Enqueues a frame for async processing.
+        """
         try:
             self.frame_queue.put_nowait((frame, current_recv_time))
         except queue.Full:
             logging.error(
-                "[HFT] ❌ Frame queue FULL! Dropping frame. "
-                "CARINA processing is critically overloaded."
+                self._get_string(
+                    "hft_worker.queue_full",
+                    default="[HFT] ❌ Frame queue FULL! Dropping frame. CARINA processing is critically overloaded."
+                )
             )
 
     def start(self):
@@ -87,7 +97,7 @@ class HFTWorker:
             daemon=True
         )
         self._worker_thread.start()
-        logging.info("[HFT] 🧵 Frame Worker Thread started (dedicated processing).")
+        logging.info(self._get_string("hft_worker.started", default="[HFT Worker] Async worker thread started."))
 
     def stop(self):
         """Signals the worker thread to stop gracefully."""
@@ -100,9 +110,8 @@ class HFTWorker:
     def _worker_loop(self):
         """
         Worker loop: dequeues frames and processes them via the controller.
-        Measures processing time (proc_delta) for diagnostics.
         """
-        logging.info("[HFT] 🔄 Frame Worker Loop running.")
+        logging.info(self._get_string("hft_worker.loop_running", default="[HFT] 🔄 Frame Worker Loop running."))
         
         while self._worker_running.is_set():
             try:
@@ -110,7 +119,7 @@ class HFTWorker:
                 
                 if frame_item is None:
                     break
-                
+
                 frame, recv_time = frame_item
                 
                 t_proc_start = time.perf_counter()
@@ -127,6 +136,7 @@ class HFTWorker:
             except queue.Empty:
                 continue
             except Exception as e:
-                logging.error(f"[HFT] Error in frame worker: {e}")
+                logging.error(self._get_string("hft_worker.processing_error", default="[HFT Worker] Error processing frame: {error}", error=e))
         
-        logging.info("[HFT] 🛑 Frame Worker Loop exited.")
+        logging.info(self._get_string("hft_worker.stopped", default="[HFT Worker] Worker thread stopped."))
+

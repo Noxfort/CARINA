@@ -41,17 +41,18 @@ class GrpcServerManager:
         try:
             import synapse_hft_pb2_grpc as pb2_grpc
             from communication.hft_server import CarinaHFTImpl
-            pb2_grpc.add_HFTLinkServicer_to_server(CarinaHFTImpl(self.implementation_instance), self.server)
+            pb2_grpc.add_HFTLinkServicer_to_server(CarinaHFTImpl(self.implementation_instance, locale_manager=self.locale_manager), self.server)
         except ImportError:
-            logging.critical("[GrpcServerManager] Failed to import generated gRPC modules. Ensure 'proto' folder exists.")
+            logging.critical(self.locale_manager.get_string("hft_server.import_failed", default="[GrpcServerManager] Failed to import generated gRPC modules. Ensure 'proto' folder exists."))
             return
 
         bind_address = f'[::]:{server_port}'
         self.server.add_insecure_port(bind_address)
         
-        logging.info(self.locale_manager.get_string("central_controller.grpc.starting", port=server_port, fallback=f"gRPC Server listening on {bind_address}"))
+        logging.info(self.locale_manager.get_string("grpc_server.starting", default="[gRPC] Starting gRPC HFT Server on port {port}...", port=server_port))
         self.server.start()
 
     def stop(self):
         if self.server:
             self.server.stop(0)
+            logging.info(self.locale_manager.get_string("grpc_server.stopped", default="[gRPC] gRPC HFT Server stopped."))

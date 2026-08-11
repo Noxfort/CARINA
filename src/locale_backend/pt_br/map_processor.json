@@ -1,0 +1,7 @@
+{
+  "map_processor": {
+    "extracting": "[MAP_GEN] Extraindo dados vetoriais para: {path}",
+    "json_generated": "[MAP_GEN] JSON gerado. Semáforos: {tls}, Cruzamentos: {junctions}",
+    "critical_error": "[MAP_GEN] Erro crítico ao analisar mapa: {error}"
+  }
+}

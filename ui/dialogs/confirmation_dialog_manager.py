@@ -32,11 +32,11 @@ class ConfirmationDialogManager:
         self.locale_manager = locale_manager
         self._on_confirm_callback: Callable | None = None
 
-        self._confirm_button = ft.ElevatedButton(on_click=self._handle_confirm)
-        self._cancel_button = ft.TextButton(on_click=self._handle_cancel)
+        self._confirm_button = ft.ElevatedButton(self.locale_manager.get_string("dialogs.confirm_button", default="Confirmar"), on_click=self._handle_confirm)
+        self._cancel_button = ft.TextButton(self.locale_manager.get_string("dialogs.cancel_button", default="Cancelar"), on_click=self._handle_cancel)
         
         # --- CHANGE 1: Add a new "Close" button for informational dialogs ---
-        self._close_button = ft.TextButton(on_click=self._handle_cancel)
+        self._close_button = ft.TextButton(self.locale_manager.get_string("dialogs.close_button", default="Fechar"), on_click=self._handle_cancel)
         
         self._dialog_title_text = ft.Text(weight=ft.FontWeight.BOLD, size=24)
         

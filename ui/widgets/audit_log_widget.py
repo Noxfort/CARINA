@@ -23,7 +23,7 @@ import os
 import json
 import logging
 from datetime import datetime
-from utils.paths import get_base_output_dir
+from src.utils.paths import get_base_output_dir
 from ui.handlers.locale_manager import LocaleManager
 
 class AuditLogWidget(ft.Container):

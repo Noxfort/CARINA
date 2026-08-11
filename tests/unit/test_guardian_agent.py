@@ -50,7 +50,7 @@ def traffic_rules_config():
 @pytest.fixture
 def mock_locale():
     mock = MagicMock()
-    mock.get_string.return_value = "Mocked Guardian String"
+    mock.get_string.side_effect = lambda key, default=None, **kwargs: default if default is not None else key
     return mock
 
 @pytest.fixture
@@ -61,7 +61,7 @@ def guardian_agent(base_aiconfig, traffic_rules_config, mock_locale):
          patch.object(ga.SafetyRules, 'get_green', return_value=15.0), \
          patch.object(ga.SafetyRules, 'get_yellow', return_value=4.0), \
          patch.object(ga.SafetyRules, 'get_all_red', return_value=2.0), \
-         patch.object(ga.SafetyRules, 'get_red', return_value=15.0):
+         patch.object(ga.SafetyRules, 'get_red', return_value=10.0):
         
         agent = GuardianAgent(
             aiconfig=base_aiconfig,
@@ -150,3 +150,83 @@ def test_temporal_sequence_padding(guardian_agent):
         
         # The last of subsequence must be the state itself
         assert args[0][-1] == state1
+
+
+def test_symbolic_barrier_all_red_violation(guardian_agent):
+    """Tests if The Guardian VETOES changes if the minimum All-Red is not met."""
+    context = {
+        'current_stage_duration': 1.0,  # Below the 2.0s minimum all-red
+        'current_stage_state': 'R',     # Red stage (no G or Y)
+        'next_stage_has_flow': True,
+        'is_clearance_red': True,
+        'tl_id': 'TL_TEST'
+    }
+    decision, reason = guardian_agent.select_action([0,0], context)
+    assert decision == guardian_agent.ACTION_KEEP_STAGE
+    assert "Minimum All Red limits" in reason
+
+
+def test_symbolic_barrier_red_violation(guardian_agent):
+    """Tests if The Guardian VETOES changes if the minimum Red is not met."""
+    context = {
+        'current_stage_duration': 5.0,  # Below the 10.0s minimum red
+        'current_stage_state': 'R',     # Red stage (no G or Y)
+        'next_stage_has_flow': True,
+        'is_clearance_red': False,
+        'tl_id': 'TL_TEST'
+    }
+    decision, reason = guardian_agent.select_action([0,0], context)
+    assert decision == guardian_agent.ACTION_KEEP_STAGE
+    assert "Minimum Red limits" in reason
+
+
+def test_fallback_durations_and_clearance_determination():
+    """Tests if StateExtractor fallback durations are correct, and StageTransitionManager distinguishes clearance red properly."""
+    from src.engine.state_extractor import StateExtractor
+    from src.engine.stage_transition_manager import StageTransitionManager
+    
+    mock_locale = MagicMock()
+    mock_locale.get_string.return_value = "Mocked String"
+    
+    extractor = StateExtractor(locale_manager=mock_locale)
+    
+    # Mocking sumolib.net.readNet to return a net with one traffic light with no programs to trigger the fallback logic
+    mock_net = MagicMock()
+    mock_tls = MagicMock()
+    mock_tls.getID.return_value = "TL_MOCK"
+    mock_tls.getConnections.return_value = []
+    mock_tls.getPrograms.return_value = {} # Trigger fallback
+    mock_net.getTrafficLights.return_value = [mock_tls]
+    
+    with patch('sumolib.net.readNet', return_value=mock_net):
+        extractor.load_topology("mock_path.net.xml")
+        
+    assert "TL_MOCK" in extractor.tl_stage_durations
+    # Stage 2 should be clearance (3.0s), stage 5 should be normal red (10.0s)
+    assert extractor.tl_stage_durations["TL_MOCK"][2] == 3.0
+    assert extractor.tl_stage_durations["TL_MOCK"][5] == 10.0
+    
+    # Initialize StageTransitionManager
+    mock_supervisor = MagicMock()
+    stm = StageTransitionManager(state_extractor=extractor, action_supervisor=mock_supervisor)
+    
+    # Stage 2 is 'r' (All-Red clearance)
+    # In stm.auto_advance_transitions:
+    # prev stage of 2 is 1 ('y').
+    # Let's test the logic for stage 2 and stage 5
+    stage_codes = extractor.tl_stage_codes["TL_MOCK"]
+    
+    # Stage 2 logic test:
+    prev_state_string = stage_codes.get(1, "").upper()
+    stage_durations = extractor.tl_stage_durations["TL_MOCK"]
+    default_duration_2 = stage_durations.get(2, 0.0)
+    is_clearance_2 = ('Y' in prev_state_string) and (default_duration_2 <= stm.all_red_time)
+    assert is_clearance_2 is True
+    
+    # Stage 5 logic test:
+    prev_state_string_5 = stage_codes.get(4, "").upper()
+    default_duration_5 = stage_durations.get(5, 0.0)
+    is_clearance_5 = ('Y' in prev_state_string_5) and (default_duration_5 <= stm.all_red_time)
+    assert is_clearance_5 is False
+
+

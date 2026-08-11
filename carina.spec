@@ -81,9 +81,13 @@ packages_to_collect = [
     'tqdm',
     'Pillow',
     'PIL',
+    'appdirs',
 
     # --- System Tray ---
     'pystray',
+
+    # --- Document Generation ---
+    'docx',
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -241,6 +245,9 @@ all_hiddenimports.extend([
     'pystray',
     'pystray._xorg',
 
+    # --- Document Generation ---
+    'docx',
+
     # --- Deep Translator ---
     'deep_translator',
     'deep_translator.google',
@@ -347,6 +354,11 @@ excludes_list = [
     # Tk — not used (Flet-based UI)
     'tkinter',
     '_tkinter',
+
+    # Exclude setuptools and pkg_resources to prevent PyInstaller from running the pyi_rth_pkgres hook
+    # which fails on Python 3.12 due to the removal of pkgutil.ImpImporter.
+    'pkg_resources',
+    'setuptools',
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -367,13 +379,24 @@ a = Analysis(
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 6b. EXCLUDE system libs that must come from the host (avoid GLIBCXX mismatch)
+# 6b. EXCLUDE system libs that must come from the host (avoid ABI mismatch)
 # ─────────────────────────────────────────────────────────────────────────────
-# The Docker build env (Ubuntu 22.04) has older libstdc++/libgcc than the
-# target host (Ubuntu 24.04). Bundling them causes GLIBCXX_3.4.32 errors.
+# The Docker build env (Ubuntu 22.04) has older libstdc++/libgcc/GLib than the
+# target host (Ubuntu 24.04). Bundling them causes symbol errors:
+#   - GLIBCXX_3.4.32 (libstdc++)
+#   - g_once_init_leave_pointer (GLib 2.80+ symbol missing in bundled 2.72)
 # By removing them, the system's native versions are used at runtime.
 import re
-_exclude_libs = re.compile(r'libstdc\+\+\.so|libgcc_s\.so')
+_exclude_libs = re.compile(
+    r'libstdc\+\+\.so'
+    r'|libgcc_s\.so'
+    # GLib/GObject/GIO stack — must match the host's version
+    r'|libglib-2\.0\.so'
+    r'|libgobject-2\.0\.so'
+    r'|libgio-2\.0\.so'
+    r'|libgmodule-2\.0\.so'
+    r'|libgthread-2\.0\.so'
+)
 a.binaries = [b for b in a.binaries if not _exclude_libs.search(b[0])]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
@@ -386,7 +409,7 @@ exe = EXE(
     name='carina',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=True,
+    strip=False,
     upx=False,  # UPX breaks torch/CUDA shared libs
     console=False,
     disable_windowed_traceback=False,
@@ -401,7 +424,7 @@ coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
-    strip=True,
+    strip=False,
     upx=False,
     upx_exclude=[],
     name='carina',

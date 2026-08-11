@@ -87,8 +87,8 @@ class HardwareSettingsHandler:
                 self.page.snack_bar.open = True
                 self.page.update()
 
-    def on_toggle_connection(self, intersection_id: str, ip_address: str):
-        self.connection_manager.toggle_connection(intersection_id, ip_address)
+    def on_toggle_connection(self, intersection_id: str, ip_address: str, action: str = "toggle"):
+        self.connection_manager.toggle_connection(intersection_id, ip_address, action=action)
         self.refresh_ui()
         if self.settings_client:
-            self.settings_client.send_command("set_hardware_connection", {"intersection_id": intersection_id, "ip_address": ip_address})
+            self.settings_client.send_command("set_hardware_connection", {"intersection_id": intersection_id, "ip_address": ip_address, "action": action})

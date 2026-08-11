@@ -1,18 +1,13 @@
 {
   "action_supervisor": {
     "init": {
-      "actuator_created": "The environment's 'Actuator' (ActionSupervisor) was created.",
-      "min_green_time_rule": "Safety rule active: Minimum green time = {time}s."
+      "actuator_created": "ActionSupervisor initialized with ConnectionManager."
     },
-    "reset": {
-      "success": "Action Supervisor successfully reset."
-    },
-    "veto": {
-      "received": "[SUPERVISOR] Guardian veto received for traffic light {tl_id}. Action {action} will be blocked."
-    },
-    "apply": {
-      "action_blocked": "[SUPERVISOR] Action {action} blocked by Guardian for traffic light {tl_id}.",
-      "min_time_not_met": "Minimum green time not yet reached for traffic light {tl_id}. Action ignored."
-    }
+    "veto_blocked": "[{tl_id}] Action blocked by Guardian veto.",
+    "override_active": "[{tl_id}] Skipping send_stage_hold because of active override: {state}",
+    "shutdown_global": "[ActionSupervisor] Global SHUTDOWN: Stopping heartbeat for traffic light {ip}",
+    "flash_sent": "[{tl_id}] FLASH (Alert) command sent to hardware via ActionSupervisor.",
+    "dark_sent": "[{tl_id}] DARK (Off) command sent to hardware via ActionSupervisor.",
+    "normal_returned": "[{tl_id}] Traffic light returned to normal operation by operator."
   }
 }

@@ -119,7 +119,7 @@ class LearningCoordinator:
                 # 2. Universal Batch Training for Physics Engine
                 if self.shared_pae is not None and len(old_states) > 1:
                     for t in range(len(old_states) - 1):
-                        current_frame = old_states[t][:, -1, :].to(self.device) if old_states[t].dim() == 3 else old_states[t].to(self.device)
+                        current_frame = old_states[t].to(self.device)
                         next_frame = old_states[t + 1][:, -1, :].to(self.device) if old_states[t + 1].dim() == 3 else old_states[t + 1].to(self.device)
                         
                         pae_loss_sum += self.shared_pae.training_step(current_frame, next_frame)
@@ -132,3 +132,12 @@ class LearningCoordinator:
             avg_pae_loss = pae_loss_sum / pae_batches_trained
             most_advanced_step = max((getattr(a, 'steps_done', 0) for a in self.agents.values()), default=0)
             self.writer.add_scalar('Treinamento/PAE_Loss_Global', avg_pae_loss, most_advanced_step)
+
+    def close(self):
+        """Closes the TensorBoard writer to release resources."""
+        if hasattr(self, 'writer') and self.writer is not None:
+            try:
+                self.writer.close()
+            except Exception:
+                pass
+            self.writer = None

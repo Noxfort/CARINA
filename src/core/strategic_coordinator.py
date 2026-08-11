@@ -98,7 +98,7 @@ class StrategicCoordinator:
 
         # --- CHANGE 5: Edge_index is now moved to self.device (GPU/CUDA) ---
         self.graph_edge_index = torch.tensor(edge_list, dtype=torch.long).t().contiguous().to(self.device)
-        logging.info(f"[StrategicCoordinator] graph_edge_index criado no {self.device} com shape: {self.graph_edge_index.shape}")
+        logging.info(lm.get_string("strategic_coordinator.initialize.edge_index_created", default="[StrategicCoordinator] graph_edge_index created on {device} with shape: {shape}", device=self.device, shape=self.graph_edge_index.shape))
         # --- END OF CHANGE 5 ---
         
         num_edges = self.graph_edge_index.size(1) if self.graph_edge_index.dim() == 2 else 0
@@ -113,14 +113,14 @@ class StrategicCoordinator:
                 # Checks for logical definitions before attempting to access
                 logic_defs = traci_conn.trafficlight.getCompleteRedYellowGreenDefinition(tl_id)
                 if not logic_defs:
-                    logging.warning(f"Nenhuma definição de lógica encontrada para TL {tl_id}, usando 0 fases verdes.")
+                    logging.warning(lm.get_string("strategic_coordinator.initialize.no_logic_found", default="No logic definition found for TL {tl_id}, using 0 green phases.", tl_id=tl_id))
                     num_green_phases = 0
                 else:
                     logic = logic_defs[0]
                     num_green_phases = len([p for p in logic.phases if 'g' in p.state.lower() and 'y' not in p.state.lower()])
                 all_state_dims.append(num_lanes + num_green_phases)
             except Exception as e:
-                 logging.warning(f"Erro ao obter dimensões para TL {tl_id}: {e}")
+                 logging.warning(lm.get_string("strategic_coordinator.initialize.dim_error", default="Error obtaining dimensions for TL {tl_id}: {error}", tl_id=tl_id, error=e))
 
 
         self.max_state_dim = max(all_state_dims) if all_state_dims else 0
@@ -128,7 +128,7 @@ class StrategicCoordinator:
 
         # Make sure max_state_dim is not zero to avoid error in GATConv
         if self.max_state_dim <= 0:
-            logging.error("max_state_dim calculado como zero ou negativo. Não é possível inicializar o modelo GAT.")
+            logging.error(lm.get_string("strategic_coordinator.initialize.zero_dim_error", default="max_state_dim calculated as zero or negative. Cannot initialize GAT model."))
             raise ValueError("Calculated max_state_dim is zero or negative.")
 
         gat_settings = self.settings['GAT_STRATEGIST']
@@ -157,12 +157,11 @@ class StrategicCoordinator:
         if self.gat_model is None: return
         # Ensures that graph_edge_index has been initialized
         if self.graph_edge_index is None:
-             logging.warning("[StrategicCoordinator] graph_edge_index não inicializado. Pulando update.")
+             logging.warning(lm.get_string("strategic_coordinator.update.edge_index_not_init", default="[StrategicCoordinator] graph_edge_index not initialized. Skipping update."))
              return
 
         if (sim_time - self.last_update_time) >= self.update_frequency:
-            # --- CHANGE 7: Corrected translation key (will be added in the next file) ---
-            logging.info(lm.get_string("strategic_coordinator.update.running", fallback=f"Running GAT update at time {sim_time}"))
+            logging.info(lm.get_string("strategic_coordinator.update.running", default="[STRATEGIC_COORD] Running GAT update at time {time}s", time=sim_time))
 
             num_agents = len(self.tl_id_to_idx)
             node_features = []
@@ -174,7 +173,7 @@ class StrategicCoordinator:
                 state = current_states_dict.get(tl_id)
                  # Skip agents without valid state in this step
                 if state is None or not isinstance(state, list):
-                     logging.debug(f"Estado inválido ou ausente para {tl_id} no tempo {sim_time}. Usando padding.")
+                     logging.debug(lm.get_string("strategic_coordinator.update.invalid_state_debug", default="Invalid or missing state for {tl_id} at time {time}. Using padding.", tl_id=tl_id, time=sim_time))
                      # We use a vector of zeros as a fallback to maintain the structure
                      padded_state = [0.0] * self.max_state_dim
                 else:
@@ -190,7 +189,7 @@ class StrategicCoordinator:
 
             # Only continues if there are features to process
             if not node_features:
-                 logging.warning(f"Nenhum feature de nó válido para processar no tempo {sim_time}.")
+                 logging.warning(lm.get_string("strategic_coordinator.update.no_valid_features", default="No valid node features to process at time {time}.", time=sim_time))
                  return
 
             # node_features go to the GPU before feeding the model
@@ -210,18 +209,19 @@ class StrategicCoordinator:
                         if output_vectors.shape[0] == len(node_features):
                              self.strategic_vectors.index_put_((valid_indices_tensor,), output_vectors[valid_indices_tensor])
                         else:
-                             logging.error(f"Shape mismatch: output_vectors ({output_vectors.shape[0]}) vs node_features ({len(node_features)}). Não foi possível atualizar strategic_vectors.")
+                             logging.error(lm.get_string("strategic_coordinator.update.shape_mismatch", default="Shape mismatch: output_vectors ({out}) vs node_features ({features}). Could not update strategic_vectors.", out=output_vectors.shape[0], features=len(node_features)))
                     else:
-                         logging.warning(f"Nenhum agente com estado válido no tempo {sim_time}. strategic_vectors não atualizados.")
+                         logging.warning(lm.get_string("strategic_coordinator.update.no_valid_agents", default="No agents with valid state at time {time}. strategic_vectors not updated.", time=sim_time))
 
                 except Exception as gat_err:
-                     logging.error(f"Erro durante a execução do GAT model: {gat_err}", exc_info=True)
+                     logging.error(lm.get_string("strategic_coordinator.update.gat_exec_error", default="Error executing GAT model: {error}", error=gat_err), exc_info=True)
 
 
             self.last_update_time = sim_time
 
     def get_strategic_vector_for_agent(self, tl_id: str) -> list:
         """Returns the most recent strategic vector for a specific agent."""
+        lm = self.locale_manager
         if tl_id not in self.tl_id_to_idx:
             # Returns a vector of zeros if ID is not found
             return [0.0] * self.output_dim
@@ -229,11 +229,11 @@ class StrategicCoordinator:
         agent_idx = self.tl_id_to_idx[tl_id]
 
         if self.strategic_vectors is None or agent_idx >= self.strategic_vectors.shape[0]:
-             logging.warning(f"strategic_vectors não inicializado ou índice {agent_idx} fora dos limites para tl_id {tl_id}.")
+             logging.warning(lm.get_string("strategic_coordinator.vector.not_init_warning", default="strategic_vectors not initialized or index {idx} out of bounds for tl_id {tl_id}.", idx=agent_idx, tl_id=tl_id))
              return [0.0] * self.output_dim
 
         try:
             return self.strategic_vectors[agent_idx].cpu().numpy().tolist()
         except IndexError:
-             logging.error(f"IndexError ao acessar strategic_vectors no índice {agent_idx} para tl_id {tl_id}. Shape: {self.strategic_vectors.shape}")
+             logging.error(lm.get_string("strategic_coordinator.vector.index_error", default="IndexError accessing strategic_vectors at index {idx} for tl_id {tl_id}. Shape: {shape}", idx=agent_idx, tl_id=tl_id, shape=self.strategic_vectors.shape))
              return [0.0] * self.output_dim

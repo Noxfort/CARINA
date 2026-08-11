@@ -1,0 +1,9 @@
+{
+  "settings_manager": {
+    "init": "[SettingsManager] Gerenciador de configurações apontando para: {path}",
+    "not_found": "Arquivo de configuração não encontrado em {path}",
+    "save_not_found": "Arquivo de configuração não encontrado. Não é possível salvar.",
+    "save_success": "Configurações salvas com sucesso em {path}",
+    "save_error": "Falha ao escrever no arquivo de configuração: {error}"
+  }
+}

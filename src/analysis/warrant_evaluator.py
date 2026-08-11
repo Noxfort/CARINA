@@ -82,19 +82,22 @@ class WarrantEvaluator:
         all_edges = {**primary_edges, **secondary_edges}
 
         if not all_edges:
-            return None
+            # If we don't have edges but have legacy data, we can still proceed
+            if not ('volume' in junction_data or 'vol_secondary' in junction_data):
+                return None
 
         # Execute all strategies dynamically
         results = {}
+        strategy_params = {**self.params, '_legacy_data': junction_data}
         for key, strategy in self.warrants.items():
-            results[key] = strategy.evaluate(all_edges, primary_edges, secondary_edges, self.params)
+            results[key] = strategy.evaluate(all_edges, primary_edges, secondary_edges, strategy_params)
 
         w1_result = results['w1']
         w2_result = results['w2']
         w3_result = results['w3']
         w4_result = results['w4']
 
-        # --- DECISION LOGIC ---
+        # --- DECISION LOGIC & PHYSICAL COUPLING ---
         has_traffic_light = junction_id in self.true_tl_ids
         warrants_met = sum([w1_result['met'], w2_result['met'], w3_result['met'], w4_result['met']])
 
@@ -103,6 +106,13 @@ class WarrantEvaluator:
         )
 
         current_status = self.lm.get_string("warrant_evaluator.has_tl") if has_traffic_light else self.lm.get_string("warrant_evaluator.no_tl")
+
+        # Apply physical coupling: D = f(X) and P95 = f(X)
+        from analysis.warrant_math import apply_saturation_coupling
+        raw_delay = w2_result.get('avg_delay', 0.0)
+        raw_queue = w3_result.get('p95_value', 0.0)
+        sat_x = w4_result.get('max_x_ratio', 0.0)
+        coupled_delay, coupled_queue = apply_saturation_coupling(raw_delay, raw_queue, sat_x)
 
         # Keep backwards compatibility for ReportGenerator
         return {
@@ -118,9 +128,9 @@ class WarrantEvaluator:
             'data': {
                 'vol_primary_val': w1_result.get('avg_volume_primary', 0),
                 'vol_secondary_val': w1_result.get('avg_volume_secondary', 0),
-                'avg_delay': w2_result.get('avg_delay', 0),
-                'queue_p95': w3_result.get('p95_value', 0),
-                'saturation_ratio': w4_result.get('max_x_ratio', 0),
+                'avg_delay': coupled_delay,
+                'queue_p95': coupled_queue,
+                'saturation_ratio': sat_x,
                 'conflict_events': junction_data.get('conflict_events', 0),
             },
             'warrant_details': results
@@ -132,31 +142,28 @@ class WarrantEvaluator:
     def _make_recommendation(self, has_tl: bool, warrants_met: int,
                              w1: dict, w2: dict, w3: dict, w4: dict) -> tuple:
         """
-        Determines the final recommendation based on warrant results.
+        Determines the final recommendation based on warrant results and status coherence.
         """
-        rec_add = self.lm.get_string("warrant_evaluator.rec_add")
-        rec_remove = self.lm.get_string("warrant_evaluator.rec_remove")
-        rec_keep = self.lm.get_string("warrant_evaluator.rec_keep")
+        rec_add = self.lm.get_string("warrant_evaluator.rec_add", default="ADICIONAR SEMÁFORO")
+        rec_optimize = self.lm.get_string("warrant_evaluator.rec_optimize", default="OTIMIZAR SEMÁFORO")
+        rec_keep = self.lm.get_string("warrant_evaluator.rec_keep", default="MANTER SEMÁFORO")
+        rec_no_signal = self.lm.get_string("warrant_evaluator.rec_no_signal", default="MANTER NÃO SINALIZADO")
+
+        saturation_critical = w4.get('met', False) or (w4.get('max_x_ratio', 0.0) > 0.85)
 
         if has_tl:
-            if warrants_met == 0:
-                justification = self.lm.get_string("warrant_evaluator.justify_remove_no_warrants")
-                return rec_remove, justification
-            elif warrants_met <= 1:
-                vol_primary = w1.get('avg_volume_primary', 0)
-                removal_vol = self.min_volume_primary * (self.removal_threshold / 100.0)
-                if vol_primary < removal_vol:
-                    justification = self.lm.get_string("warrant_evaluator.justify_remove_low_volume")
-                    return rec_remove, justification
-            justification = self.lm.get_string("warrant_evaluator.justify_keep", count=warrants_met)
-            return rec_keep, justification
+            # Status Atual == "Sinalizado"
+            if saturation_critical or warrants_met >= 1:
+                justification = "O cruzamento já é sinalizado e opera sob alta demanda ou warrants normativos, recomendando-se a otimização dos tempos de ciclo e sincronização viária."
+                return rec_optimize, justification
+            else:
+                justification = self.lm.get_string("warrant_evaluator.justify_keep", count=warrants_met)
+                return rec_keep, justification
         else:
-            if warrants_met >= 2:
-                justification = self.lm.get_string("warrant_evaluator.justify_add", count=warrants_met)
-                return rec_add, justification
-            elif w4.get('met'):
-                justification = self.lm.get_string("warrant_evaluator.justify_add_saturation")
+            # Status Atual == "Não Sinalizado"
+            if saturation_critical or warrants_met >= 1:
+                justification = self.lm.get_string("warrant_evaluator.justify_add_saturation") if saturation_critical else self.lm.get_string("warrant_evaluator.justify_add", count=warrants_met)
                 return rec_add, justification
             else:
                 justification = self.lm.get_string("warrant_evaluator.justify_keep_no_tl", count=warrants_met)
-                return rec_keep, justification
+                return rec_no_signal, justification

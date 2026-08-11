@@ -1,0 +1,28 @@
+{
+  "insert_sample": {
+    "postgres": "INSERT INTO synapse_fluid_dynamics (collected_at, scenario_name, intersection_id, edge_id, density, mean_speed, min_speed, queue_length, max_queue, occupancy, edge_length, num_lanes, speed_limit, maturity_stage) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);",
+    "sqlite": "INSERT INTO synapse_fluid_dynamics (collected_at, scenario_name, intersection_id, edge_id, density, mean_speed, min_speed, queue_length, max_queue, occupancy, edge_length, num_lanes, speed_limit, maturity_stage) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
+  },
+  "query_history": {
+    "postgres": "SELECT edge_id, density, mean_speed, queue_length, occupancy, edge_length, num_lanes, speed_limit, collected_at, maturity_stage, scenario_name, intersection_id, min_speed, max_queue FROM synapse_fluid_dynamics WHERE collected_at >= %s;",
+    "sqlite": "SELECT edge_id, density, mean_speed, queue_length, occupancy, edge_length, num_lanes, speed_limit, collected_at, maturity_stage, scenario_name, intersection_id, min_speed, max_queue FROM synapse_fluid_dynamics WHERE collected_at >= ?;",
+    "all": "SELECT edge_id, density, mean_speed, queue_length, occupancy, edge_length, num_lanes, speed_limit, collected_at, maturity_stage, scenario_name, intersection_id, min_speed, max_queue FROM synapse_fluid_dynamics;"
+  },
+  "query_aggregated": {
+    "postgres": "SELECT edge_id, SUM(density * (mean_speed * 3.6)) AS volume_sum, COUNT(*) AS volume_cnt, SUM(CASE WHEN mean_speed > 0.1 THEN GREATEST(0.0, (edge_length / mean_speed) - (edge_length / COALESCE(NULLIF(speed_limit, 0), 13.89))) ELSE 0.0 END) AS delay_sum, COUNT(CASE WHEN mean_speed > 0.1 THEN 1 END) AS delay_cnt, AVG(queue_length) AS avg_queue, MAX(queue_length) AS max_queue, MAX(edge_length) AS edge_length, MAX(num_lanes) AS num_lanes, MAX(speed_limit) AS speed_limit, COUNT(*) AS total_samples FROM synapse_fluid_dynamics WHERE collected_at >= %s GROUP BY edge_id;",
+    "sqlite": "SELECT edge_id, SUM(density * (mean_speed * 3.6)) AS volume_sum, COUNT(*) AS volume_cnt, SUM(CASE WHEN mean_speed > 0.1 THEN MAX(0.0, (edge_length / mean_speed) - (edge_length / COALESCE(NULLIF(speed_limit, 0), 13.89))) ELSE 0.0 END) AS delay_sum, COUNT(CASE WHEN mean_speed > 0.1 THEN 1 END) AS delay_cnt, AVG(queue_length) AS avg_queue, MAX(queue_length) AS max_queue, MAX(edge_length) AS edge_length, MAX(num_lanes) AS num_lanes, MAX(speed_limit) AS speed_limit, COUNT(*) AS total_samples FROM synapse_fluid_dynamics WHERE collected_at >= ? GROUP BY edge_id;",
+    "postgres_all": "SELECT edge_id, SUM(density * (mean_speed * 3.6)) AS volume_sum, COUNT(*) AS volume_cnt, SUM(CASE WHEN mean_speed > 0.1 THEN GREATEST(0.0, (edge_length / mean_speed) - (edge_length / COALESCE(NULLIF(speed_limit, 0), 13.89))) ELSE 0.0 END) AS delay_sum, COUNT(CASE WHEN mean_speed > 0.1 THEN 1 END) AS delay_cnt, AVG(queue_length) AS avg_queue, MAX(queue_length) AS max_queue, MAX(edge_length) AS edge_length, MAX(num_lanes) AS num_lanes, MAX(speed_limit) AS speed_limit, COUNT(*) AS total_samples FROM synapse_fluid_dynamics GROUP BY edge_id;",
+    "sqlite_all": "SELECT edge_id, SUM(density * (mean_speed * 3.6)) AS volume_sum, COUNT(*) AS volume_cnt, SUM(CASE WHEN mean_speed > 0.1 THEN MAX(0.0, (edge_length / mean_speed) - (edge_length / COALESCE(NULLIF(speed_limit, 0), 13.89))) ELSE 0.0 END) AS delay_sum, COUNT(CASE WHEN mean_speed > 0.1 THEN 1 END) AS delay_cnt, AVG(queue_length) AS avg_queue, MAX(queue_length) AS max_queue, MAX(edge_length) AS edge_length, MAX(num_lanes) AS num_lanes, MAX(speed_limit) AS speed_limit, COUNT(*) AS total_samples FROM synapse_fluid_dynamics GROUP BY edge_id;"
+  },
+  "purge_old": {
+    "postgres": "DELETE FROM synapse_fluid_dynamics WHERE collected_at < NOW() - INTERVAL '%s minutes';",
+    "sqlite": "DELETE FROM synapse_fluid_dynamics WHERE collected_at < datetime('now', ? || ' minutes');"
+  },
+  "get_count": "SELECT COUNT(*) FROM synapse_fluid_dynamics;",
+  "get_max_collected_at": "SELECT MAX(collected_at) FROM synapse_fluid_dynamics;",
+  "get_min_max_time": {
+    "postgres": "SELECT MIN(collected_at), MAX(collected_at) FROM synapse_fluid_dynamics WHERE collected_at >= %s;",
+    "sqlite": "SELECT MIN(collected_at), MAX(collected_at) FROM synapse_fluid_dynamics WHERE collected_at >= ?;",
+    "all": "SELECT MIN(collected_at), MAX(collected_at) FROM synapse_fluid_dynamics;"
+  }
+}

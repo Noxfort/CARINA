@@ -10,7 +10,7 @@
       "edges": "  - Total Connections (Edges): {count}"
     },
     "step_header": "\n--- {message} ---",
-    "step_start": "SIMULATION STEP {step} (Time: {sim_time}s)",
+    "step_start": "REAL-TIME OPERATION STEP {step} (Time: {sim_time}s)",
     "step_mode": "\u001b[97mControle Global\u001b[0m Current Operation Mode: {mode}",
     "agent_suggestion": "[🧠 AGENT {tl_id} | {maturity_level}] Suggestion: {action_str}",
     "status_approved": "APPROVED",

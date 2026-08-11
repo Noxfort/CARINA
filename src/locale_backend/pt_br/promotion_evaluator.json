@@ -1,0 +1,9 @@
+{
+  "promotion_evaluator": {
+    "loaded_thresholds": "[PromotionEvaluator] Limites carregados das configurações: CHILD t_min={child_t_min}, TEEN t_min={teen_t_min}",
+    "already_max": "Agente já está no nível máximo de maturidade ou em fase desconhecida.",
+    "not_enough_episodes": "Episódios suficientes não concluídos na fase. Exigido: {required}, Atual: {current}",
+    "promoted_reason": "Eficiência {eff:.2%} excedeu o limite dinâmico de {thresh:.2%}",
+    "rejected_reason": "Eficiência {eff:.2%} está abaixo do limite dinâmico de {thresh:.2%}"
+  }
+}

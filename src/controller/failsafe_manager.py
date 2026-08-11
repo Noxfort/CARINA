@@ -91,6 +91,11 @@ class FailsafeManager:
         elapsed = time.perf_counter() - self._last_frame_time
         return elapsed <= self._failsafe_timeout
 
+    def _get_string(self, key: str, default: str = None, **kwargs) -> str:
+        if self.locale_manager and hasattr(self.locale_manager, 'get_string'):
+            return self.locale_manager.get_string(key, default=default, **kwargs)
+        return default.format(**kwargs) if default and kwargs else (default or key)
+
     def trigger_failsafe(self):
         """
         Forces the system into Fail-Safe (Watchdog) mode.
@@ -101,15 +106,18 @@ class FailsafeManager:
             self._failsafe_activation_time = time.perf_counter()
 
             logger.critical(
-                f"[FailsafeManager] 🚨 ENTERING WATCHDOG MODE (Fixed-Time Fallback). "
-                f"AI Neural Network PAUSED. Event #{self._total_failsafe_events}."
+                self._get_string(
+                    "failsafe_manager.entering_watchdog",
+                    default="[FailsafeManager] 🚨 ENTERING WATCHDOG MODE (Fixed-Time Fallback). AI Neural Network PAUSED. Event #{event}.",
+                    event=self._total_failsafe_events
+                )
             )
 
             self.failsafe_active = True
             self.current_operation_mode = "WATCHDOG"
 
             # TODO: Emit command to hardware controller to activate ALL_RED then local fixed-plans
-            logger.critical("[FailsafeManager] ⚠️ COMMANDING LOCAL CONTROLLER: Execute ALL_RED transition followed by local fixed-time plans.")
+            logger.critical(self._get_string("failsafe_manager.commanding_all_red", default="[FailsafeManager] ⚠️ COMMANDING LOCAL CONTROLLER: Execute ALL_RED transition followed by local fixed-time plans."))
 
             # Report Critical Incident to External Monitor (MQTT)
             if self.monitor_client:
@@ -117,7 +125,7 @@ class FailsafeManager:
                     self.monitor_client.report_incident(
                         category="SOFTWARE",
                         level="CRITICAL",
-                        message=self.locale_manager.get_string(
+                        message=self._get_string(
                             "monitor.watchdog_trigger",
                             default="Watchdog timeout triggered (>{timeout}ms silence). Switching to Fixed-Time fallback. Event #{event}.",
                             timeout=f"{self._failsafe_timeout * 1000:.0f}",
@@ -125,7 +133,7 @@ class FailsafeManager:
                         )
                     )
                 except Exception as e:
-                    logger.error(f"Error reporting failsafe incident via MQTT: {e}")
+                    logger.error(self._get_string("failsafe_manager.mqtt_incident_error", default="Error reporting failsafe incident via MQTT: {error}", error=e))
 
     def attempt_recovery(self) -> bool:
         """
@@ -138,12 +146,15 @@ class FailsafeManager:
             elapsed = time.perf_counter() - self._failsafe_activation_time if self._failsafe_activation_time else 0
 
             logger.info(
-                f"[FailsafeManager] ✅ SYNAPSE SIGNAL RESTORED after {elapsed:.1f}s. "
-                f"Resuming AI Neural Network control."
+                self._get_string(
+                    "failsafe_manager.signal_restored",
+                    default="[FailsafeManager] ✅ SYNAPSE SIGNAL RESTORED after {elapsed:.1f}s. Resuming AI Neural Network control.",
+                    elapsed=elapsed
+                )
             )
 
             # TODO: Emit command to hardware controller to resume remote control
-            logger.info("[FailsafeManager] ✅ COMMANDING LOCAL CONTROLLER: Resume remote AI control.")
+            logger.info(self._get_string("failsafe_manager.commanding_resume", default="[FailsafeManager] ✅ COMMANDING LOCAL CONTROLLER: Resume remote AI control."))
 
             self.failsafe_active = False
             self.current_operation_mode = "AUTOMATIC"
@@ -154,20 +165,20 @@ class FailsafeManager:
                     self.monitor_client.report_incident(
                         category="SOFTWARE",
                         level="INFO",
-                        message=self.locale_manager.get_string(
+                        message=self._get_string(
                             "monitor.synapse_restored",
                             default="Synapse signal restored after {elapsed}s. Watchdog mode disabled, resuming AI Neural Network.",
                             elapsed=f"{elapsed:.1f}"
                         )
                     )
                 except Exception as e:
-                    logger.error(f"Error reporting recovery incident via MQTT: {e}")
+                    logger.error(self._get_string("failsafe_manager.mqtt_recovery_error", default="Error reporting recovery incident via MQTT: {error}", error=e))
 
             # Wake up AI process
             try:
                 self.ai_pipe_conn.send(('system', 'wakeup', (), {}))
             except Exception as e:
-                logger.error(f"Error sending wakeup signal to AI: {e}")
+                logger.error(self._get_string("failsafe_manager.wakeup_error", default="Error sending wakeup signal to AI: {error}", error=e))
 
             return True
         return False

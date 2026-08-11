@@ -83,6 +83,11 @@ class SettingsView(ft.Container):
             if self.hardware_handler and self.hardware_card:
                 self.hardware_handler.mount(self.page, self.hardware_card)
             
+            # Ensure any cards with file pickers are registered to the page overlay immediately on view mount
+            for card in self.all_cards:
+                if hasattr(card, "logo_file_picker") and card.logo_file_picker not in self.page.overlay:
+                    self.page.overlay.append(card.logo_file_picker)
+            
         self.update_translations(self.locale_manager)
         
     def update_translations(self, lm: LocaleManager):
@@ -119,6 +124,24 @@ class SettingsView(ft.Container):
 
     def _save_click(self, e):
         if not self.dialog_manager: return
+        
+        # Validation pass
+        validation_failed = False
+        for card in self.all_cards:
+            if hasattr(card, 'validate_fields'):
+                if not card.validate_fields():
+                    validation_failed = True
+                    if hasattr(card, 'update') and hasattr(card, 'page') and card.page:
+                        card.update()
+        
+        if validation_failed:
+            info_title = self.locale_manager.get_string("settings_view.title")
+            info_content = "Erro de validação: Por favor, corrija os erros nos campos destacados antes de salvar."
+            if self.locale_manager:
+                info_content = self.locale_manager.get_string("settings_view.validation_error_message", default=info_content)
+            self.dialog_manager.show_info(title=info_title, content=info_content)
+            return
+
         title = self.locale_manager.get_string("dialogs.confirm_action_title")
         content = self.locale_manager.get_string("dialogs.save_settings_content")
         self.dialog_manager.show(title=title, content=content, on_confirm=self._execute_save)

@@ -1,0 +1,11 @@
+{
+  "map_data_parser": {
+    "reading_nodes": "[MapParser] Lendo arquivo de nós: {path}",
+    "no_nodes": "[MapParser] Nenhum nó encontrado no arquivo .nod.xml.",
+    "reading_edges": "[MapParser] Lendo arquivo de arestas: {path}",
+    "no_edges": "[MapParser] Nenhuma aresta processável encontrada no arquivo .edg.xml.",
+    "read_success": "[MapParser] Leitura concluída: {nodes} nós, {edges} arestas e {lanes} vias mapeadas.",
+    "file_not_found": "[MapParser] ERRO: Arquivo de mapa não encontrado: {filename}",
+    "read_error": "[MapParser] ERRO ao ler os arquivos XML do mapa: {error}"
+  }
+}

@@ -30,7 +30,7 @@ Updated to include:
 
 import logging
 import torch
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, Optional
 
 from core.observation_builder import ObservationBuilder
 from core.inference_engine import InferenceEngine
@@ -60,9 +60,10 @@ class DecisionCoordinator:
                  neighborhoods: dict, 
                  environment: 'SumoEnvironment', 
                  strategic_coordinator: 'StrategicCoordinator',
-                 guardian_agent: 'GuardianAgent', # Guardian's Injection
                  message_size: int,
-                 n_observations: int):
+                 n_observations: int,
+                 guardian_agent: Optional['GuardianAgent'] = None,
+                 locale_manager=None):
         """
         Inicializa o Coordenador de Decisões.
         """
@@ -73,6 +74,7 @@ class DecisionCoordinator:
         self.guardian = guardian_agent # Stores the Guardian
         self.message_size = message_size
         self.n_observations = n_observations
+        self.locale_manager = locale_manager
         
         self.override_states: Dict[str, str] = {} 
         
@@ -87,7 +89,12 @@ class DecisionCoordinator:
         # Pre-compute Sparse Spatial Topology Tensor for O(1) graph message passing
         self.adjacency_matrix = self._build_sparse_adjacency()
         
-        logging.info(f"[COORDINATOR] Coordenador Resolutivo ativado (Grafo Topológico Esparso: {len(self.tl_list)}x{len(self.tl_list)}).")
+        logging.info(self._get_string("decision_coordinator.init_info", default="[COORDINATOR] Resolutive Coordinator activated (Sparse Topological Graph: {count}x{count}).", count=len(self.tl_list)))
+
+    def _get_string(self, key: str, default: str = None, **kwargs) -> str:
+        if self.locale_manager and hasattr(self.locale_manager, 'get_string'):
+            return self.locale_manager.get_string(key, default=default, **kwargs)
+        return default.format(**kwargs) if default and kwargs else (default or key)
 
     def _build_sparse_adjacency(self) -> torch.Tensor:
         """
@@ -205,8 +212,6 @@ class DecisionCoordinator:
                 }
 
             except Exception as e_action:
-                 logging.error(f"[Coordinator] Erro na decisão para {tl_id}: {e_action}", exc_info=True)
-
-        return actions_to_apply, last_decision_data
+                 logging.error(self._get_string("decision_coordinator.decision_error", default="[Coordinator] Error in decision for {tl_id}: {error}", tl_id=tl_id, error=e_action), exc_info=True)
 
         return actions_to_apply, last_decision_data

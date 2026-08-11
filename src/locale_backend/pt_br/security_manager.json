@@ -1,0 +1,21 @@
+{
+  "security_manager": {
+    "migrated_security": "[SecurityManager] Migrado security.json de {old} para {new}",
+    "migrate_security_fail": "[SecurityManager] Falha ao migrar security.json: {error}",
+    "migrated_lockdown": "[SecurityManager] Migrado lockdown.flag de {old} para {new}",
+    "migrate_lockdown_fail": "[SecurityManager] Falha ao migrar lockdown.flag: {error}",
+    "default_user_created": "[SecurityManager] Arquivo de segurança criado com usuário padrão 'admin' (senha: 'admin').",
+    "read_db_error": "[SecurityManager] Erro ao ler banco de segurança: {error}",
+    "save_db_error": "[SecurityManager] Erro ao salvar banco de segurança: {error}",
+    "lockdown_triggered": "[SecurityManager] 🚨 SISTEMA ENTROU EM LOCKDOWN (Muitas tentativas falhas).",
+    "lockdown_flag_error": "[SecurityManager] Falha ao criar flag de lockdown: {error}",
+    "lockdown_remove_error": "[SecurityManager] Falha ao remover flag de lockdown: {error}",
+    "lockdown_cleared": "[SecurityManager] Lockdown removido e contador de falhas zerado.",
+    "invalid_credentials": "Credenciais inválidas",
+    "system_locked": "SISTEMA BLOQUEADO. Apenas Super Usuários podem desbloquear.",
+    "failed_attempt_registered": "[SecurityManager] Tentativa de login falha registrada. Total: {current}/{max}",
+    "user_added": "[SecurityManager] Novo usuário cadastrado: {username} ({role})",
+    "admin_remove_blocked": "[SecurityManager] Tentativa bloqueada de remover o usuário 'admin'.",
+    "user_removed": "[SecurityManager] Usuário removido: {username}"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "strategist_agent": {
+    "building_graph": "[Strategist] Construindo Grafo a partir de: {net_file}",
+    "net_not_found": "Arquivo de rede SUMO não encontrado em: {net_file}. Grafo não construído.",
+    "building_graph_log": "Construindo Grafo do Estrategista a partir de: {net_file}",
+    "graph_built_success": "[Strategist] Grafo construído com sucesso. Nós: {nodes}, Arestas: {edges}",
+    "no_connections": "[Strategist] Nenhuma conexão encontrada entre os semáforos. Grafo desconectado.",
+    "build_failed": "Falha ao construir a topologia do grafo: {error}",
+    "topology_not_init": "Agente Estrategista: Topologia do grafo não inicializada.",
+    "checkpoint_saved": "Checkpoint do Agente Estrategista salvo em {path}",
+    "checkpoint_loaded": "Checkpoint do Agente Estrategista carregado de {path}",
+    "checkpoint_not_found": "Checkpoint não encontrado em {path}"
+  }
+}

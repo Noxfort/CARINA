@@ -121,13 +121,14 @@ class MacroscopicFundamentalDiagram:
     # Core Step Computation (Facade)
     # ─────────────────────────────────────────────────────────
 
-    def compute_step(self, edges_data: Dict[str, Dict[str, Any]], sim_time: float) -> MFDSnapshot:
+    def compute_step(self, edges_data: Dict[str, Dict[str, Any]], sim_time: float, intersections: dict = None) -> MFDSnapshot:
         """
         Computes network-wide MFD metrics for the current simulation step.
 
         Args:
             edges_data: Dictionary of edge_id -> {occupancy, mean_speed, queue_length, density}.
             sim_time: Current simulation time in seconds.
+            intersections: Optional dictionary of intersection metrics at this step.
 
         Returns:
             MFDSnapshot with all computed metrics for this instant.
@@ -166,7 +167,8 @@ class MacroscopicFundamentalDiagram:
             mean_flow=mean_flow,
             efficiency=efficiency,
             congestion_ratio=congestion_ratio,
-            active_edges=active_edges
+            active_edges=active_edges,
+            intersections=intersections
         )
 
         # 4. Delegate tracking to the Tracker

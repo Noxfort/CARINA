@@ -47,48 +47,53 @@ class MapAssetLoader:
         """Inicializa o carregador de ativos."""
         self.project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
+    def _has_map_files(self, folder_path: str) -> bool:
+        """Verifica se um diretório (ou sua subpasta maps) possui arquivos de mapa suportados."""
+        if not os.path.exists(folder_path):
+            return False
+        candidates = [folder_path]
+        maps_sub = os.path.join(folder_path, "maps")
+        if os.path.exists(maps_sub):
+            candidates.insert(0, maps_sub)
+            
+        for cand in candidates:
+            try:
+                for f in os.listdir(cand):
+                    if f == "map_topology.json" or f.endswith(".net.xml.gz") or f.endswith(".net.xml") or f.endswith(".nod.xml"):
+                        return True
+            except Exception:
+                continue
+        return False
+
     def _find_latest_scenario_dir(self) -> str | None:
-        """Encontra o caminho absoluto para a pasta de cenário mais recente."""
+        """Retorna exclusivamente o caminho para a sessão hft_live_session."""
         try:
             from src.utils.paths import get_base_output_dir
-            results_dir = os.path.join(get_base_output_dir(), "results")
-            if not os.path.exists(results_dir):
-                logging.warning("[AssetLoader] Diretório 'results' não encontrado.")
-                return None
-            
-            # Defines a set of service folders to ignore.
-            ignored_dirs = {"database"}
-            
-            # Filters the directory list to remove ignored folders.
-            all_scenarios = [
-                d for d in os.listdir(results_dir) 
-                if os.path.isdir(os.path.join(results_dir, d)) and d not in ignored_dirs
-            ]
-
-            if not all_scenarios:
-                logging.warning("[AssetLoader] Nenhum cenário encontrado no diretório 'results'.")
-                return None
-                
-            latest_scenario_name = max(all_scenarios, key=lambda d: os.path.getmtime(os.path.join(results_dir, d)))
-            return os.path.join(results_dir, latest_scenario_name)
+            hft_dir = os.path.join(get_base_output_dir(), "results", "hft_live_session")
+            if not os.path.exists(hft_dir):
+                os.makedirs(hft_dir, exist_ok=True)
+            return hft_dir
         except Exception as e:
-            logging.error(f"[AssetLoader] Erro ao procurar o diretório do cenário mais recente: {e}")
+            logging.error(f"[AssetLoader] Erro ao obter diretório hft_live_session: {e}")
             return None
 
     def get_asset_path(self, asset_type: str, asset_filename: str) -> str | None:
         """
-        Constrói o caminho para um ativo específico no cenário mais recente.
+        Constrói o caminho para um ativo específico exclusivamente na sessão hft_live_session.
         """
-        latest_scenario_dir = self._find_latest_scenario_dir()
-        if not latest_scenario_dir:
-            return None
-        
-        asset_path = os.path.join(latest_scenario_dir, asset_type, asset_filename)
-        return asset_path if os.path.exists(asset_path) else None
+        scenario_dir = self._find_latest_scenario_dir()
+        if scenario_dir:
+            asset_path = os.path.join(scenario_dir, asset_type, asset_filename)
+            if os.path.exists(asset_path):
+                return asset_path
+            direct_path = os.path.join(scenario_dir, asset_filename)
+            if os.path.exists(direct_path):
+                return direct_path
+        return None
 
     def load_coordinates(self) -> Dict[str, Any] | None:
         """
-        Encontra e carrega o conteúdo do arquivo de coordenadas mais recente.
+        Encontra e carrega o conteúdo do arquivo de coordenadas da hft_live_session.
         """
         coords_path = self.get_asset_path("maps", "map_coords.json")
         if not coords_path:
@@ -104,62 +109,80 @@ class MapAssetLoader:
 
     def load_map_data(self) -> Tuple[Dict, Any, Dict] | None:
         """
-        Encontra e carrega os dados brutos do mapa.
-        Prioriza o arquivo 'map_topology.json' (Novo Sistema Synapse).
-        Faz fallback para arquivos XML (Sistema Legado) se o JSON não existir.
+        Carrega os dados do mapa exclusivamente do diretório hft_live_session.
+        Prioriza 'map_topology.json' e converte arquivos SUMO (.net.xml.gz / .net.xml) dinamicamente se necessário.
         """
-        latest_scenario_dir = self._find_latest_scenario_dir()
-        if not latest_scenario_dir:
-            logging.debug("[AssetLoader] Diretório de cenário não encontrado para carregar dados do mapa.")
+        scenario_dir = self._find_latest_scenario_dir()
+        if not scenario_dir:
+            logging.error("[AssetLoader] Diretório hft_live_session não encontrado.")
             return None
 
+        res = self._try_load_from_scenario_dir(scenario_dir)
+        if res:
+            return res
+
+        logging.error("[AssetLoader] Falha ao encontrar mapa válido em hft_live_session (.net.xml.gz, .net.xml ou map_topology.json).")
+        return None
+
+    def _try_load_from_scenario_dir(self, scenario_dir: str) -> Tuple[Dict, Any, Dict] | None:
         try:
-            maps_dir = os.path.join(latest_scenario_dir, "maps")
+            maps_dir = os.path.join(scenario_dir, "maps")
+            target_dir = maps_dir if os.path.exists(maps_dir) else scenario_dir
             
-            # --- ATTEMPT 1: Load Topology JSON (Synapse/HFT Standard) ---
-            json_topology_path = os.path.join(maps_dir, "map_topology.json")
+            # --- ATTEMPT 1: Load Topology JSON ---
+            json_topology_path = os.path.join(target_dir, "map_topology.json")
             if os.path.exists(json_topology_path):
                 logging.info(f"[AssetLoader] Carregando topologia vetorial moderna: {json_topology_path}")
                 try:
                     with open(json_topology_path, 'r', encoding='utf-8') as f:
                         topology = json.load(f)
-                    
-                    # Extract lists from JSON
                     nodes_list = topology.get("nodes", [])
                     edges_list = topology.get("edges", [])
                     bounds = topology.get("bounds", {})
-
-                    # Converts the node list to a Dictionary {id: data}, as expected by the UI
                     nodes_dict = {node["id"]: node for node in nodes_list}
-
-                    # Returns in the format (nodes_dict, edges_list, bounds)
-                    # MapDrawer must be prepared to receive edges_list of dicts
                     return nodes_dict, edges_list, bounds
-                    
                 except Exception as e:
                     logging.error(f"[AssetLoader] Erro ao processar map_topology.json: {e}", exc_info=True)
-                    # If it fails, try the fallback below
-            
-            # --- ATTEMPT 2: Load Legacy XML (SUMO Native) ---
-            scenario_name = os.path.basename(latest_scenario_dir)
-            map_data_prefix = os.path.join(maps_dir, f"{scenario_name}_map")
-            
-            logging.info(f"[AssetLoader] Fallback: Procurando por arquivos de mapa XML legado: {map_data_prefix}")
-            
-            if not os.path.exists(map_data_prefix + ".nod.xml"):
-                 logging.warning(f"[AssetLoader] ARQUIVO NÃO ENCONTRADO: {map_data_prefix}.nod.xml")
-                 return None
 
-            parsed_data = parse_map_data(map_data_prefix)
-            if parsed_data and len(parsed_data) == 3:
-                return parsed_data
-            else:
-                logging.error("[AssetLoader] parse_map_data não retornou os 3 valores esperados.")
-                return None
+            # --- ATTEMPT 2: Load SUMO Network Map (*.net.xml.gz / *.net.xml) ---
+            net_file_path = None
+            if os.path.exists(target_dir):
+                gz_candidates = [os.path.join(target_dir, f) for f in os.listdir(target_dir) if f.endswith(".net.xml.gz")]
+                xml_candidates = [os.path.join(target_dir, f) for f in os.listdir(target_dir) if f.endswith(".net.xml")]
+                if gz_candidates:
+                    net_file_path = gz_candidates[0]
+                elif xml_candidates:
+                    net_file_path = xml_candidates[0]
+            
+            if net_file_path:
+                logging.info(f"[AssetLoader] Mapa SUMO encontrado ({os.path.basename(net_file_path)}): {net_file_path}. Extraindo topologia JSON...")
+                from src.utils.map_processor import MapProcessor
+                try:
+                    MapProcessor.extract_topology_to_json(net_file_path, json_topology_path)
+                    if os.path.exists(json_topology_path):
+                        with open(json_topology_path, 'r', encoding='utf-8') as f:
+                            topology = json.load(f)
+                        nodes_list = topology.get("nodes", [])
+                        edges_list = topology.get("edges", [])
+                        bounds = topology.get("bounds", {})
+                        nodes_dict = {node["id"]: node for node in nodes_list}
+                        return nodes_dict, edges_list, bounds
+                except Exception as e:
+                    logging.error(f"[AssetLoader] Erro ao extrair topologia de {net_file_path}: {e}", exc_info=True)
+
+            # --- ATTEMPT 3: Load Legacy Plain XML (.nod.xml) ---
+            scenario_name = os.path.basename(scenario_dir)
+            map_data_prefix = os.path.join(target_dir, f"{scenario_name}_map")
+            if os.path.exists(map_data_prefix + ".nod.xml"):
+                logging.info(f"[AssetLoader] Carregando arquivos XML legado: {map_data_prefix}")
+                parsed_data = parse_map_data(map_data_prefix)
+                if parsed_data and len(parsed_data) == 3:
+                    return parsed_data
 
         except Exception as e:
-            logging.error(f"[AssetLoader] Falha crítica ao carregar os dados do mapa: {e}", exc_info=True)
-            return None
+            logging.error(f"[AssetLoader] Erro ao tentar carregar mapa de {scenario_dir}: {e}", exc_info=True)
+            
+        return None
 
     def load_background_map(self) -> tuple[str, dict] | None:
         """

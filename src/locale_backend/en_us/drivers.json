@@ -1,0 +1,37 @@
+{
+  "drivers": {
+    "traffic_light": {
+      "init": "[Intersection {id}] Initializing TrafficLightDriver...",
+      "connected": "[Intersection {id}] Connected via {protocol}",
+      "connect_failed": "[Intersection {id}] Failed to connect to hardware at {ip}:{port}",
+      "map_not_found": "[Intersection {id}] Map file not found: {path}",
+      "map_load_failed": "[Intersection {id}] Failed to load stage states from map: {error}",
+      "action_disconnected": "[Intersection {id}] Cannot apply logical action. Driver is disconnected.",
+      "colors_log_error": "[Intersection {id}] Error writing to carina_colors.log: {error}",
+      "override_log_error": "[Intersection {id}] Error writing override to carina_colors.log: {error}",
+      "applying_action": "[Intersection {id}] Applying action: {action}",
+      "cmd_sending": "CARINA sending command to {id} ({ip}): {action}",
+      "shutdown": "[Intersection {id}] Shutting down driver. Stopping heartbeat..."
+    },
+    "factory": {
+      "detecting": "[DriverFactory] Detecting protocol at IP {ip}:{port}...",
+      "ntcip_success": "[DriverFactory] NTCIP response received at IP {ip}.",
+      "utmc_success": "[DriverFactory] UTMC2 response received at IP {ip}.",
+      "snmp_no_response": "[DriverFactory] No SNMP response at IP {ip}:{port}.",
+      "snmp_error": "[DriverFactory] SNMP query error at IP {ip}:{port}: {error}",
+      "unknown_protocol": "[DriverFactory] No supported protocol responded at IP {ip}:{port}."
+    },
+    "ntcip": {
+      "init": "[NTCIP Driver] Initialized for IP {ip}:{port}.",
+      "heartbeat_start": "[NTCIP Driver] Heartbeat activated (Interval: {interval}s).",
+      "heartbeat_stop": "[NTCIP Driver] Heartbeat stopped.",
+      "heartbeat_failed": "[NTCIP Driver] Heartbeat failed for {ip}: {error}"
+    },
+    "utmc": {
+      "init": "[UTMC2 Driver] Initialized for IP {ip}:{port}.",
+      "heartbeat_start": "[UTMC2 Driver] Heartbeat activated (Interval: {interval}s).",
+      "heartbeat_stop": "[UTMC2 Driver] Heartbeat stopped.",
+      "heartbeat_failed": "[UTMC2 Driver] Heartbeat failed for {ip}: {error}"
+    }
+  }
+}

@@ -75,10 +75,10 @@ def run_guardian_worker(
     os.makedirs(log_dir, exist_ok=True)
     setup_logging(log_dir)
 
-    logging.info("[GUARDIAN_WORKER] Asynchronous Guardian Process started.")
-
     # --- FIX 2: Create the LocaleManagerBackend instance ---
     lm = LocaleManagerBackend()
+
+    logging.info(lm.get_string("guardian_worker.process_started", default="[GUARDIAN_WORKER] Asynchronous Guardian Process started."))
 
     # --- Reconstruct PAE in inference-only mode (process isolation) ---
     shared_pae_worker = None
@@ -87,9 +87,9 @@ def run_guardian_worker(
             shared_pae_worker = PredictiveAutoencoder(**pae_config)
             shared_pae_worker.load_state_dict(pae_state_dict)
             shared_pae_worker.eval()  # Inference-only — no training in subprocess
-            logging.info("[GUARDIAN_WORKER] Universal PAE reconstructed (inference-only)")
+            logging.info(lm.get_string("guardian_worker.pae_reconstructed", default="[GUARDIAN_WORKER] Universal PAE reconstructed (inference-only)"))
         except Exception as e:
-            logging.error(f"[GUARDIAN_WORKER] Failed to reconstruct PAE: {e}", exc_info=True)
+            logging.error(lm.get_string("guardian_worker.pae_failed", default="[GUARDIAN_WORKER] Failed to reconstruct PAE: {error}", error=e), exc_info=True)
             shared_pae_worker = None
 
     # --- Initialization ---
@@ -108,7 +108,7 @@ def run_guardian_worker(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dqn_optimizer = DQNOptimizer(hyperparams=guardian_config, device=device)
 
-    logging.info(f"[GUARDIAN_WORKER] {len(guardians)} guardians created and ready.")
+    logging.info(lm.get_string("guardian_worker.guardians_ready", default="[GUARDIAN_WORKER] {count} guardians created and ready.", count=len(guardians)))
     
     # --- Main Loop ---
     while True:
@@ -167,10 +167,10 @@ def run_guardian_worker(
             time.sleep(0.01) # Reduced sleep for faster thinking mode
 
         except (KeyboardInterrupt, SystemExit):
-            logging.info("[GUARDIAN_WORKER] Shutdown signal received.")
+            logging.info(lm.get_string("guardian_worker.shutdown", default="[GUARDIAN_WORKER] Shutdown signal received."))
             break
         except Exception as e:
-            logging.error(f"[GUARDIAN_WORKER] Fatal error in loop: {e}", exc_info=True)
+            logging.error(lm.get_string("guardian_worker.fatal_error", default="[GUARDIAN_WORKER] Fatal error in loop: {error}", error=e), exc_info=True)
             time.sleep(1)
     
-    logging.info("[GUARDIAN_WORKER] Process finished.")
+    logging.info(lm.get_string("guardian_worker.process_finished", default="[GUARDIAN_WORKER] Process finished."))

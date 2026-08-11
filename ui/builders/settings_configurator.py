@@ -49,7 +49,7 @@ def build_settings_view(locale_manager, settings_client):
     initial_settings = handler.get_current_settings()
 
     # Handlers
-    hardware_handler = HardwareSettingsHandler(HardwareConnectionManager(), settings_client)
+    hardware_handler = HardwareSettingsHandler(HardwareConnectionManager.get_instance(), settings_client)
     account_handler = AccountSettingsHandler(settings_client)
     monitor_handler = MonitorSettingsHandler(settings_client)
     

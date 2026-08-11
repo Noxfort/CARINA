@@ -1,0 +1,50 @@
+{
+  "intersection_defaults": {
+    "status_label": "Sinalizado (Controle Ativo CARINA)",
+    "configured_entropy_limit": 0.15,
+    "configured_min_window": "1 episódio (24h)",
+    "configured_performance_margin": "+0.0%"
+  },
+  "stages": {
+    "initial": {
+      "maturity_label": "CHILD",
+      "speed_kmh": 20.9,
+      "delay_s": 78.0,
+      "queue": 28.0,
+      "saturation": 1.35,
+      "entropy": 0.38,
+      "efficiency_gain_pct": 0.0,
+      "aggregate_avg_speed": 5.8
+    },
+    "intermediate": {
+      "maturity_label": "TEEN",
+      "speed_kmh": 32.4,
+      "delay_s": 42.0,
+      "queue": 16.0,
+      "saturation": 0.92,
+      "entropy": 0.22,
+      "efficiency_gain_pct": 55.0,
+      "aggregate_avg_speed": 9.0
+    },
+    "mature": {
+      "maturity_label": "ADULT",
+      "speed_kmh": 42.5,
+      "delay_s": 24.5,
+      "queue": 9.5,
+      "saturation": 0.68,
+      "entropy": 0.08,
+      "efficiency_gain_pct": 103.3,
+      "aggregate_avg_speed": 11.8
+    }
+  },
+  "comparison_metrics": {
+    "speed_gain_inter_pct": 55.2,
+    "speed_gain_mature_pct": 103.3,
+    "queue_reduction_inter_pct": -42.8,
+    "queue_reduction_mature_pct": -66.1,
+    "delay_reduction_inter_pct": -46.1,
+    "delay_reduction_mature_pct": -68.6,
+    "production_gain_mature_pct": 0.0,
+    "efficiency_gain_mature_pct": 103.3
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "map_processor": {
+    "extracting": "[MAP_GEN] Extracting vector data to: {path}",
+    "json_generated": "[MAP_GEN] JSON generated. TLS: {tls}, Junctions: {junctions}",
+    "critical_error": "[MAP_GEN] Critical error parsing map: {error}"
+  }
+}

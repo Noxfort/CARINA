@@ -86,3 +86,4 @@ def run_sds_worker(sds_data_queue: Queue, settings: configparser.ConfigParser, u
         logging.critical(lm.get_string("sds_worker.run.fatal_error", error=e), exc_info=True)
     finally:
         logging.info(lm.get_string("sds_worker.run.worker_finished"))
+        os._exit(0)
