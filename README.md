@@ -31,13 +31,18 @@ Explore the full architecture, internal mechanics, and developer guides for the 
 | Card / Subsystem | Focus Area | Direct Link |
 | :--- | :--- | :---: |
 | 📚 **Documentation Hub** | Central Index & Navigation for all technical docs | [Explore Hub](docs/CARINA_MOC.md) |
-| 🏛️ **Core Architecture** | 7 Concurrent OS processes, GOMES & DA SILVA curriculum | [View Blueprint](ARCHITECTURE.md) |
+| 🏛️ **Core Architecture** | 8 Concurrent OS microservices, GOMES & DA SILVA curriculum | [View Blueprint](ARCHITECTURE.md) |
 | ⚡ **Synapse HFT API** | Sub-millisecond gRPC telemetry & Protobuf IPC specifications | [View API Reference](docs/API_REFERENCE.md) |
 | 🧠 **Neural Formulations** | PPO-TCN, Dueling DQN-TCN & Predictive Autoencoder (PAE) | [View Research](docs/RESEARCH_NOTES.md) |
+| 🛡️ **Safety Firewall & Watchdog** | Symbolic rules inventory, PAE Neural Vetoes & Watchdog | [View Safety Guide](docs/SAFETY_AND_WATCHDOG.md) |
+| 🗄️ **Database & Schemas** | PostgreSQL/SQLite schemas, connection pooling & async worker | [View DB Specs](docs/DATABASE_AND_SCHEMAS.md) |
+| 📈 **MFD & Traffic Analytics** | Network density-flow curves, capacity drop & gating | [View MFD Guide](docs/MFD_AND_ANALYTICS.md) |
 | 🔍 **Explainable AI (XAI)** | Captum Integrated Gradients & Qwen3 LLM engineering reports | [View XAI & SAS](docs/XAI_AND_SAS.md) |
 | 🖥️ **Flet Dashboard** | Native desktop UI running in an isolated process | [View UI Guide](docs/UI_AND_DASHBOARD.md) |
 | 🛠️ **Developer Guides** | Schema migrations, PyInstaller builds, IPC queues | [View Guides](docs/DEVELOPER_GUIDES.md) |
 | 🧪 **Testing & Validation** | Pytest suite, coverage reports & Guardian safety mocks | [View Guidelines](docs/TESTING.md) |
+| 🚀 **Deployment & Packaging** | Docker containerization, Systemd services & Debian packages | [View Deployment](docs/DEPLOYMENT_AND_PACKAGING.md) |
+
 
 > 💡 **Obsidian Vault Support:** This repository is also fully compatible with [Obsidian](https://obsidian.md/). Open this root folder as a vault and navigate from `CARINA_MOC.md`.
 

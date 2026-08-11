@@ -33,7 +33,11 @@ CARINA_CORE/
 │   ├── XAI_AND_SAS.md          # Explainable AI (Qwen3 LLM), SAS Analytics & MFD Engine
 │   ├── UI_AND_DASHBOARD.md     # Flet Desktop Application, System Tray & SDS Architecture
 │   ├── DEVELOPER_GUIDES.md     # Setup, Custom Agent Creation, PyInstaller & Settings
-│   └── TESTING.md              # Pytest Suite, Safety Mocks & Coverage Validation
+│   ├── TESTING.md              # Pytest Suite, Safety Mocks & Coverage Validation
+│   ├── DATABASE_AND_SCHEMAS.md # Persistence Tier, Async Worker & SQL Schemas
+│   ├── SAFETY_AND_WATCHDOG.md  # Guardian Safety Firewall, Veto Rules & Watchdog
+│   ├── MFD_AND_ANALYTICS.md    # Macroscopic Dynamics, Flow-Density Curves & Gating
+│   └── DEPLOYMENT_AND_PACKAGING.md # Docker, Systemd, Debian & PyInstaller Builds
 │
 ├── src/                        # Primary Source Code
 │   ├── agents/                 # PPO-TCN, Dueling DQN, Guardian & Strategic Agents
@@ -62,17 +66,22 @@ CARINA_CORE/
 ### 1. Core Infrastructure & Process Engineering
 - **[Architecture Deep-Dive](../ARCHITECTURE.md)**: Exhaustive technical blueprint detailing all 8 concurrent OS microservices, process isolation via `multiprocessing`, IPC Pipe/Queue channels, and the `EpisodeRunner` execution loop.
 - **[API Reference & HFT Protocol](API_REFERENCE.md)**: Complete specifications for the `Synapse HFT` gRPC interface, Protobuf message schemas, Prometheus metric endpoints (port 8001), and IPC queue schemas.
+- **[Database Architecture & Schemas](DATABASE_AND_SCHEMAS.md)**: Specifications for `DatabaseWorker`, async batching, connection pooling, and PostgreSQL/SQLite relational tables.
 
 ### 2. Artificial Intelligence & Neuro-Symbolic Safety
 - **[Neural Research & Formulations](RESEARCH_NOTES.md)**: Deep mathematical formulations for PPO-TCN, Predictive Autoencoder (PAE) latent projection $Z$, Dueling DQN-TCN value/advantage streams, GATv2 Lite Graph Attention, and the DA SILVA maturation curriculum.
+- **[Safety Architecture & Watchdog](SAFETY_AND_WATCHDOG.md)**: Inventory of Symbolic Veto rules, PAE Neural Veto thresholds, and real-time Watchdog heartbeat monitoring.
 - **[Explainable AI, SAS & MFD Analytics](XAI_AND_SAS.md)**: Operational details of the `XAI_Worker` (Captum Integrated Gradients + Qwen3 1.7B LLM), the `AnalysisService` (PostgreSQL offline analytics), and the `MFD_Worker` (Macroscopic Fundamental Diagram capacity estimation).
+- **[Macroscopic Fundamental Diagram & Dynamics](MFD_AND_ANALYTICS.md)**: Network-wide flow-density theory, capacity drop detection, perimeter gating, and incident filters.
 
 ### 3. Desktop Application & Monitoring
 - **[UI & Smart Dashboard Service](UI_AND_DASHBOARD.md)**: Architectural breakdown of the native `Flet` desktop UI, system tray integration, single instance socket locking (port 42123), live telemetry charts, and incident filtering.
 
-### 4. Developer Operations & Quality Assurance
+### 4. Developer Operations, Deployment & Quality Assurance
 - **[Developer & Integration Guides](DEVELOPER_GUIDES.md)**: Complete guide for setting up environments, modifying `config/settings.ini`, extending custom agents, writing database migrations, and building frozen executables (`carina.spec`).
 - **[Testing & Validation](TESTING.md)**: Guidelines for executing `pytest`, generating coverage reports (`--cov=src`), mocking gRPC telemetry, and testing Guardian safety vetoes.
+- **[Deployment, Packaging & Containerization](DEPLOYMENT_AND_PACKAGING.md)**: Guide for Docker containerization (`Dockerfile.build`), Systemd service units, Debian `.deb` packages, and PyInstaller builds.
+
 
 ---
 
