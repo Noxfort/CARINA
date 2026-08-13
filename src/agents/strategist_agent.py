@@ -25,7 +25,7 @@ import torch.optim as optim
 import sumolib
 from collections import deque
 from typing import Dict, Any, Optional, List, Tuple, Set
-from src.models.gatv2_lite import GATv2Lite
+from src.models.st_gatv2_lite import STGATv2Lite, GATv2Lite
 
 class StrategistAgent:
     """
@@ -198,7 +198,8 @@ class StrategistAgent:
         if graph_edges is None:
             raise RuntimeError(self._get_string("strategist_agent.topology_not_init", default="Strategist Agent: Graph topology not initialized."))
 
-        with torch.no_grad():
+        device_type = self.device.type
+        with torch.no_grad(), torch.amp.autocast(device_type=device_type, enabled=(device_type == 'cuda')):
             x = node_features.to(self.device)
             edges = graph_edges.to(self.device)
             strategic_vectors = self.model(x, edges)

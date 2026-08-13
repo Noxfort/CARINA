@@ -40,34 +40,45 @@ class CaptumAttributionEngine:
         self.ig = IntegratedGradients(self.wrapped_model)
 
     def compute_importances(self, limit: int = 100) -> Optional[np.ndarray]:
-        if self.agent.xai_memory.size == 0:
-            return None
+        try:
+            if self.agent.xai_memory is None or self.agent.xai_memory.size == 0:
+                import logging
+                logging.info(f"[CaptumAttributionEngine] No tensor data in memory for agent {getattr(self.agent, 'id', 'N/A')}.")
+                return None
+
+            # Limit the number of samples to avoid excessive CPU compute times (max 100 samples)
+            limit = min(self.agent.xai_memory.size, limit)
+            if self.agent.xai_memory.size <= limit:
+                input_tensors = self.agent.xai_memory.states[:self.agent.xai_memory.size].to(self.device)
+            else:
+                ptr = self.agent.xai_memory.ptr
+                indices = [(ptr - 1 - i) % self.agent.xai_memory.capacity for i in range(limit)]
+                indices_t = torch.tensor(indices, device=self.agent.xai_memory.states.device, dtype=torch.long)
+                input_tensors = self.agent.xai_memory.states[indices_t].to(self.device)
+
+            baselines = torch.zeros_like(input_tensors)
             
-        # Limit the number of samples to avoid excessive CPU compute times (max 100 samples)
-        limit = min(self.agent.xai_memory.size, limit)
-        
-        if self.agent.xai_memory.size <= limit:
-            input_tensors = self.agent.xai_memory.states[:self.agent.xai_memory.size].to(self.device)
-        else:
-            ptr = self.agent.xai_memory.ptr
-            # Retrieve the last 'limit' inserted elements (most recent experiences)
-            indices = [(ptr - 1 - i) % self.agent.xai_memory.capacity for i in range(limit)]
-            indices_t = torch.tensor(indices, device=self.agent.xai_memory.states.device, dtype=torch.long)
-            input_tensors = self.agent.xai_memory.states[indices_t].to(self.device)
+            # Run Integrated Gradients (n_steps=25 for TCN efficiency)
+            try:
+                attributions, _ = self.ig.attribute(
+                    input_tensors, baselines, target=0, 
+                    return_convergence_delta=True, n_steps=25
+                )
+            except Exception:
+                attributions, _ = self.ig.attribute(
+                    input_tensors, baselines,
+                    return_convergence_delta=True, n_steps=25
+                )
+            
+            # Aggregation for TCN
+            attributions = attributions.abs().sum(dim=0).sum(dim=0)
 
-        baselines = torch.zeros_like(input_tensors)
-        
-        # Run Integrated Gradients (n_steps=25 for TCN efficiency)
-        attributions, _ = self.ig.attribute(
-            input_tensors, baselines, target=0, 
-            return_convergence_delta=True, n_steps=25
-        )
-        
-        # Aggregation for TCN
-        attributions = attributions.abs().sum(dim=0).sum(dim=0)
-
-        # Normalization
-        if torch.norm(attributions) > 0:
-            attributions = attributions / torch.norm(attributions)
-        
-        return attributions.cpu().detach().numpy()
+            # Normalization
+            if torch.norm(attributions) > 0:
+                attributions = attributions / torch.norm(attributions)
+            
+            return attributions.cpu().detach().numpy()
+        except Exception as e:
+            import logging
+            logging.error(f"[CaptumAttributionEngine] Failed to compute importances: {e}")
+            return None

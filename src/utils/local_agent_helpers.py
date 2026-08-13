@@ -131,22 +131,29 @@ class AgentCheckpointManager:
             
             saved_maturity = checkpoint.get('maturity_stage', "CHILD")
             
-            # Dynamic Dimension Fallback
+            # Dynamic Dimension Fallback & Auto-Adaptation
             should_load_weights = True
             try:
                 state_dict = checkpoint['policy_net_state_dict']
                 in_channels = state_dict['tcn.network.0.conv1.weight_v'].shape[1]
-                expected_channels = agent.n_observations + agent.pae_latent_dim
+                expected_channels = agent.n_observations + getattr(agent, 'pae_latent_dim', 0)
                 if in_channels != expected_channels:
-                    logging.warning(lm.get_string(
-                        "local_agent.load.dim_mismatch",
-                        default="Dimension mismatch detected: checkpoint weight has {fnd} channels but current model expects {exp} channels. Skipping policy weights loading.",
-                        exp=expected_channels,
-                        fnd=in_channels
-                    ))
-                    should_load_weights = False
-                    agent._build_network()
-                    agent._create_optimizer()
+                    latent_diff = in_channels - agent.n_observations
+                    if latent_diff > 0:
+                        logging.info(f"[LocalAgentHelpers] Auto-adapting PAE latent dimension to {latent_diff} for agent {agent.id} (matching {in_channels} channels).")
+                        agent.pae_latent_dim = latent_diff
+                        agent._build_network()
+                        agent._create_optimizer()
+                    else:
+                        logging.warning(lm.get_string(
+                            "local_agent.load.dim_mismatch",
+                            default="Dimension mismatch detected: checkpoint weight has {fnd} channels but current model expects {exp} channels. Skipping policy weights loading.",
+                            exp=expected_channels,
+                            fnd=in_channels
+                        ))
+                        should_load_weights = False
+                        agent._build_network()
+                        agent._create_optimizer()
             except KeyError:
                 pass
 

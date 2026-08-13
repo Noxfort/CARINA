@@ -1,0 +1,72 @@
+{
+  "classification_table": [
+    {
+      "threshold": 0.7,
+      "state": "FREE_FLOW",
+      "description": {
+        "pt_br": "A malha viária opera adequadamente abaixo da capacidade máxima.",
+        "en": "Network is operating well below capacity.",
+        "fr": "Le réseau fonctionne nettement en dessous de sa capacité.",
+        "es": "La red opera adecuadamente por debajo de la capacidad.",
+        "ru": "Сеть работает значительно ниже предельной емкости.",
+        "zh": "路网运行良好，远低于饱和容量。"
+      }
+    },
+    {
+      "threshold": 1.0,
+      "state": "APPROACHING_CAPACITY",
+      "description": {
+        "pt_br": "A malha viária está próxima da vazão máxima ótima.",
+        "en": "Network is near optimal throughput.",
+        "fr": "Le réseau est proche du débit optimal.",
+        "es": "La red está cerca del flujo óptimo.",
+        "ru": "Сеть близка к оптимальной пропускной способности.",
+        "zh": "路网接近最佳通行能力。"
+      }
+    },
+    {
+      "threshold": 1.3,
+      "state": "MILD_CONGESTION",
+      "description": {
+        "pt_br": "A malha excedeu a densidade crítica. A vazão viária está em declínio.",
+        "en": "Network has exceeded critical density. Throughput is declining.",
+        "fr": "Le réseau a dépassé la densité critique. Le débit diminue.",
+        "es": "La red ha superado la densidad crítica. El flujo está disminuyendo.",
+        "ru": "Сеть превысила критическую плотность. Пропускная способность снижается.",
+        "zh": "路网已超过临界密度，通行能力在下降。"
+      }
+    },
+    {
+      "threshold": 1.8,
+      "state": "HEAVY_CONGESTION",
+      "description": {
+        "pt_br": "A malha viária apresenta severa retenção de fluxo. Perda expressiva de vazão.",
+        "en": "Network is severely congested. Significant throughput loss.",
+        "fr": "Le réseau est fortement congestionné. Perte significative de débit.",
+        "es": "La red presenta congestión severa. Pérdida significativa de flujo.",
+        "ru": "Сеть сильно перегружена. Значительная потеря пропускной способности.",
+        "zh": "路网严重拥堵，通行能力大幅下降。"
+      }
+    },
+    {
+      "threshold": null,
+      "state": "GRIDLOCK",
+      "description": {
+        "pt_br": "A malha viária está em estado próximo de colapso/gridlock. Intervenção imediata necessária.",
+        "en": "Network is near gridlock. Immediate intervention required.",
+        "fr": "Le réseau est proche du blocage total. Intervention immédiate requise.",
+        "es": "La red está cerca del colapso total (gridlock). Intervención inmediata requerida.",
+        "ru": "Сеть близка к полному затору (gridlock). Требуется немедленное вмешательство.",
+        "zh": "路网接近全网瘫痪 (gridlock)，需立即干预。"
+      }
+    }
+  ],
+  "calibrating_description": {
+    "pt_br": "Coletando dados da Linha Base para estabelecer a produção máxima viária.",
+    "en": "Collecting baseline data to establish peak production.",
+    "fr": "Collecte des données de référence pour établir la production maximale.",
+    "es": "Recolectando datos de línea base para establecer la producción máxima.",
+    "ru": "Сбор базовых данных для определения пиковой производительности.",
+    "zh": "正在采集基线数据以确定最大通行产出。"
+  }
+}

@@ -72,14 +72,16 @@ class FeatureAggregator:
         Dynamically infers the number of incoming edges and active phases 
         for the given observation vector dimension of an agent.
         """
-        for num_edges in range(12, 0, -1):
+        # For augmented observation vectors (>= 30 features), local physical sensors occupy 4 edges (12 features) and 4 active phases
+        if n_obs >= 30:
+            return 4, 4
+            
+        for num_edges in range(8, 0, -1):
             num_phases = n_obs - 1 - 3 * num_edges
             if 2 <= num_phases <= 8:
                 return num_edges, num_phases
         # Fallback default
-        num_edges = (n_obs - 3) // 3
-        num_phases = n_obs - 1 - 3 * num_edges
-        return max(1, num_edges), max(1, num_phases)
+        return 4, 4
 
     def aggregate(self, importances: np.ndarray) -> List[Dict[str, Any]]:
         # Mapping with Glossary
@@ -109,43 +111,43 @@ class FeatureAggregator:
         
         categories = {
             "occupancy": {
-                "name": self.locale_manager.get_string("xai_report.categories.occupancy.name", default="Lane Occupancy"),
-                "desc": self.locale_manager.get_string("xai_report.categories.occupancy.description", default="Traffic volume occupancy rate on incoming lanes."),
+                "name": self.locale_manager.get_string("xai_report.categories.occupancy.name", default="Taxa de Ocupação da Faixa (%)"),
+                "desc": self.locale_manager.get_string("xai_report.categories.occupancy.description", default="Taxa percentual de ocupação do volume de tráfego nas faixas de aproximação."),
                 "val": 0.0
             },
             "speed": {
-                "name": self.locale_manager.get_string("xai_report.categories.speed.name", default="Average Speed"),
-                "desc": self.locale_manager.get_string("xai_report.categories.speed.description", default="Average speed of incoming vehicles."),
+                "name": self.locale_manager.get_string("xai_report.categories.speed.name", default="Velocidade Média de Escoamento (km/h)"),
+                "desc": self.locale_manager.get_string("xai_report.categories.speed.description", default="Velocidade média dos veículos nas faixas de aproximação."),
                 "val": 0.0
             },
             "queue": {
-                "name": self.locale_manager.get_string("xai_report.categories.queue.name", default="Queue Lengths"),
-                "desc": self.locale_manager.get_string("xai_report.categories.queue.description", default="Physical length of vehicle queues on incoming lanes."),
+                "name": self.locale_manager.get_string("xai_report.categories.queue.name", default="Fila de Aproximação (veículos)"),
+                "desc": self.locale_manager.get_string("xai_report.categories.queue.description", default="Extensão física de veículos acumulados nas faixas de aproximação."),
                 "val": 0.0
             },
             "phase": {
-                "name": self.locale_manager.get_string("xai_report.categories.phase.name", default="Active Phase"),
-                "desc": self.locale_manager.get_string("xai_report.categories.phase.description", default="Currently active traffic light phase configuration."),
+                "name": self.locale_manager.get_string("xai_report.categories.phase.name", default="Tempo de Fase Verde Ativa (segundos)"),
+                "desc": self.locale_manager.get_string("xai_report.categories.phase.description", default="Configuração do tempo e fase semafórica ativa no momento."),
                 "val": 0.0
             },
             "pedestrian": {
-                "name": self.locale_manager.get_string("xai_report.categories.pedestrian.name", default="Pedestrian Calls"),
-                "desc": self.locale_manager.get_string("xai_report.categories.pedestrian.description", default="Pedestrian crossing requests registered at the intersection."),
+                "name": self.locale_manager.get_string("xai_report.categories.pedestrian.name", default="Chamadas de Pedestres"),
+                "desc": self.locale_manager.get_string("xai_report.categories.pedestrian.description", default="Requisições registradas para travessia de pedestres na interseção."),
                 "val": 0.0
             },
             "pae": {
-                "name": self.locale_manager.get_string("xai_report.categories.pae.name", default="AI Predictions (PAE Latent)"),
-                "desc": self.locale_manager.get_string("xai_report.categories.pae.description", default="Predictive latent feature projections from the autoencoder."),
+                "name": self.locale_manager.get_string("xai_report.categories.pae.name", default="Projeções Preditivas de IA (PAE Latente)"),
+                "desc": self.locale_manager.get_string("xai_report.categories.pae.description", default="Componentes preditivos latentes da rede autoencodera da IA."),
                 "val": 0.0
             },
             "strategic": {
-                "name": self.locale_manager.get_string("xai_report.categories.strategic.name", default="Strategic Coordination"),
-                "desc": self.locale_manager.get_string("xai_report.categories.strategic.description", default="Coordination signals received from adjacent traffic controllers."),
+                "name": self.locale_manager.get_string("xai_report.categories.strategic.name", default="Coordenação Gráfica GATv2 Lite (Onda Verde)"),
+                "desc": self.locale_manager.get_string("xai_report.categories.strategic.description", default="Vetor de atenção espacial em grafo (GATv2 Lite) responsável pela sincronização de fases e onda verde no corredor viário."),
                 "val": 0.0
             },
             "other": {
-                "name": self.locale_manager.get_string("xai_report.categories.other.name", default="Other / Padding"),
-                "desc": self.locale_manager.get_string("xai_report.categories.other.description", default="Padding dimensions or other auxiliary variables."),
+                "name": self.locale_manager.get_string("xai_report.categories.other.name", default="Variáveis Auxiliares de Controle"),
+                "desc": self.locale_manager.get_string("xai_report.categories.other.description", default="Dimensões auxiliares ou variáveis secundárias de controle."),
                 "val": 0.0
             }
         }
@@ -158,7 +160,7 @@ class FeatureAggregator:
             # Grouping rules
             if "PAE_latent_" in name or "PAE" in name:
                 categories["pae"]["val"] += val
-            elif "Strategic Vector" in name:
+            elif any(k in name.upper() for k in ["STRATEGIC", "GAT", "GRAPH", "CORRIDOR", "ONDA VERDE", "NEIGHBOR"]):
                 categories["strategic"]["val"] += val
             elif "Padding" in name:
                 categories["other"]["val"] += val
@@ -177,12 +179,13 @@ class FeatureAggregator:
                 elif idx == 3 * num_edges + num_phases:
                     categories["pedestrian"]["val"] += val
                 else:
-                    categories["other"]["val"] += val
+                    # Indices beyond local sensors & active phase represent GATv2 Lite / Neighbor Strategic Vectors!
+                    categories["strategic"]["val"] += val
         
         # Re-normalize/organize grouped data
         grouped_analysis = []
         for cat_key, cat_info in categories.items():
-            if cat_info["val"] > 0 or cat_key in ["occupancy", "speed", "queue", "phase"]: # Keep main categories always
+            if cat_info["val"] > 0 or cat_key in ["occupancy", "speed", "queue", "phase", "strategic"]: # Keep main categories & GATv2 Lite always
                 grouped_analysis.append({
                     "name": cat_info["name"],
                     "importance": cat_info["val"],

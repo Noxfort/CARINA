@@ -1,0 +1,58 @@
+{
+  "section_3_table": {
+    "pt_br": {
+      "title": "## 3. Tabela Sintética de Desempenho Operacional por Cruzamento\n",
+      "headers": "| ID do Cruzamento | Status Semafórico | Vel. Criança | Vel. Adolescente | Vel. Adulta | Atraso Médio | Fila P95 | Entropia H | Ganho Eficiência |",
+      "separator": "|---|---|---|---|---|---|---|---|---|",
+      "status_tags": {
+        "ADULT": "Fase Adulta (Otimizado)",
+        "TEEN": "Fase Adolescente (Em Otimização)"
+      }
+    },
+    "en": {
+      "title": "## 3. Synthetic Operational Performance Table by Intersection\n",
+      "headers": "| Intersection ID | Signal Status | Child Speed | Teen Speed | Adult Speed | Avg Delay | Queue P95 | Entropy H | Efficiency Gain |",
+      "separator": "|---|---|---|---|---|---|---|---|---|",
+      "status_tags": {
+        "ADULT": "Adult Phase (Optimized)",
+        "TEEN": "Teen Phase (Optimizing)"
+      }
+    },
+    "fr": {
+      "title": "## 3. Tableau synthétique de performance opérationnelle par carrefour\n",
+      "headers": "| ID du carrefour | Statut du feu | Vit. Enfant | Vit. Ado | Vit. Adulte | Retard moyen | File P95 | Entropie H | Gain |",
+      "separator": "|---|---|---|---|---|---|---|---|---|",
+      "status_tags": {
+        "ADULT": "Phase Adulte (Optimisé)",
+        "TEEN": "Phase Adolescente (En cours)"
+      }
+    },
+    "es": {
+      "title": "## 3. Tabla sintética de rendimiento operacional por intersección\n",
+      "headers": "| ID Intersección | Estado Semáforo | Vel. Niño | Vel. Adolescente | Vel. Adulta | Demora Media | Cola P95 | Entropía H | Ganancia |",
+      "separator": "|---|---|---|---|---|---|---|---|---|",
+      "status_tags": {
+        "ADULT": "Fase Adulta (Optimizado)",
+        "TEEN": "Fase Adolescente (En Optimización)"
+      }
+    },
+    "ru": {
+      "title": "## 3. Сводная таблица операционной эффективности по перекресткам\n",
+      "headers": "| ID перекрестка | Статус светофора | Скорость Детская | Скорость Подростк. | Скорость Взрослая | Сред. задержка | Очередь P95 | Энтропия H | Прирост |",
+      "separator": "|---|---|---|---|---|---|---|---|---|",
+      "status_tags": {
+        "ADULT": "Взрослая фаза (Оптимизирован)",
+        "TEEN": "Подростковая фаза (В процессе)"
+      }
+    },
+    "zh": {
+      "title": "## 3. 各交叉口运行绩效综合汇总表\n",
+      "headers": "| 交叉口 ID | 信号灯状态 | 初始车速 | 优化中车速 | 成熟车速 | 平均延误 | 排队 P95 | 策略熵 H | 效率提升 |",
+      "separator": "|---|---|---|---|---|---|---|---|---|",
+      "status_tags": {
+        "ADULT": "成熟阶段（已优化）",
+        "TEEN": "青少年阶段（优化中）"
+      }
+    }
+  }
+}

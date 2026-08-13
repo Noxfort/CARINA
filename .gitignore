@@ -21,7 +21,9 @@ venv/
 *.tmp
 *.swp
 *.swo
+*.stamp
 *.carina_incident_filter_cache.json
+.carina_incident_filter.stamp
 carina_incident_filter_debug.log
 
 # Editors

@@ -37,13 +37,13 @@ if TYPE_CHECKING:
     from utils.locale_manager_backend import LocaleManagerBackend
 
 from agents.strategist_agent import GATStrategist
+from agents.consultant_agent import ConsultantAgent
 from utils.network_parser import build_structural_neighborhood_map
 from core.system_reporter import SystemReporter # Fixed to import from core
 
 class StrategicCoordinator:
-    """Manages the lifecycle and execution of the GAT Strategist."""
+    """Manages the lifecycle and execution of the GAT Strategist and Consultant Agent."""
 
-    # --- CHANGE 2: Modify the constructor ---
     def __init__(self, settings, device, locale_manager: 'LocaleManagerBackend'):
         self.settings = settings
         self.device = device # Maintains the device (GPU) for the GAT model
@@ -54,6 +54,7 @@ class StrategicCoordinator:
         self.update_frequency = gat_settings.getint('update_frequency_seconds')
         self.output_dim = gat_settings.getint('output_dim')
         self.gat_model = None
+        self.consultant_agent = ConsultantAgent(pae_model=None, locale_manager=self.locale_manager)
         self.last_update_time = -self.update_frequency # Guarantees first execution
         self.strategic_vectors = None
         
@@ -218,6 +219,10 @@ class StrategicCoordinator:
 
 
             self.last_update_time = sim_time
+            
+            # Trigger Consultant Agent event telemetry cognitive loop
+            stgat_dict = {tid: self.get_strategic_vector_for_agent(tid) for tid in self.tl_id_to_idx.keys()}
+            self.consultant_agent.process_event_telemetry(current_states_dict, stgat_dict)
 
     def get_strategic_vector_for_agent(self, tl_id: str) -> list:
         """Returns the most recent strategic vector for a specific agent."""

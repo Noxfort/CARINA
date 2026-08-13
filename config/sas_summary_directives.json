@@ -1,0 +1,114 @@
+{
+  "consolidated_summary_items": {
+    "pt_br": {
+      "header": "Resumo Consolidado de Intervenções e Recomendação de Ações\n\n**Total de Cruzamentos Avaliados:** {total_junctions}\n",
+      "optimize": "- **Otimizar Semáforo:** {count} (Reprogramação de ciclo e integração à central semafórica)",
+      "add": "- **Adicionar Semáforo:** {count} (Instalação nova recomendada por saturação crítica)",
+      "keep": "- **Manter Semáforo:** {count} (Preservação da onda verde e operação estável)",
+      "remove": "- **Remover Semáforo:** {count} (Eliminação de atraso artificial)",
+      "no_signal": "- **Manter Não Sinalizado:** {count} (Fluxo adequado sob sinalização passiva de Parada/Preferência)",
+      "stable_operation": "- **Operação Estável:** Todos os cruzamentos operando dentro dos limiares normativos."
+    },
+    "en": {
+      "header": "Consolidated Summary of Interventions and Recommendations\n\n**Total Intersections Evaluated:** {total_junctions}\n",
+      "optimize": "- **Optimize Traffic Light:** {count} (Cycle timing adjustment and green wave integration)",
+      "add": "- **Add Traffic Light:** {count} (New installation recommended due to critical saturation)",
+      "keep": "- **Maintain Traffic Light:** {count} (Green Wave Preservation and Saturation Control)",
+      "remove": "- **Remove Traffic Light:** {count} (Artificial Delay Elimination and Time Savings)",
+      "no_signal": "- **Maintain Unsignalized:** {count} (Flow operating safely under passive Stop/Yield signage)",
+      "stable_operation": "- **Stable Operation:** All intersections operating within normative thresholds."
+    },
+    "fr": {
+      "header": "Résumé consolidé des interventions et recommandations\n\n**Total des carrefours évalués :** {total_junctions}\n",
+      "optimize": "- **Optimiser le feu :** {count} (Reprogrammation de cycle et onde verte)",
+      "add": "- **Ajouter un feu :** {count} (Nouvelle installation recommandée)",
+      "keep": "- **Maintenir le feu :** {count} (Stabilité opérationnelle)",
+      "remove": "- **Retirer le feu :** {count} (Élimination des retards artificiels)",
+      "no_signal": "- **Maintenir non régulé :** {count} (Signalisation passive)",
+      "stable_operation": "- **Opération stable :** Tous les carrefours fonctionnent selon les normes."
+    },
+    "es": {
+      "header": "Resumen consolidado de intervenciones y recomendaciones\n\n**Total de intersecciones evaluadas:** {total_junctions}\n",
+      "optimize": "- **Optimizar semáforo:** {count} (Reprogramación de ciclo y ola verde)",
+      "add": "- **Agregar semáforo:** {count} (Nueva instalación recomendada)",
+      "keep": "- **Mantener semáforo:** {count} (Estabilidad operacional)",
+      "remove": "- **Retirar semáforo:** {count} (Eliminación de demoras artificiales)",
+      "no_signal": "- **Mantener sin señalizar:** {count} (Señalización pasiva)",
+      "stable_operation": "- **Operación estable:** Todas las intersecciones dentro de normas."
+    },
+    "ru": {
+      "header": "Сводный итог вмешательств и рекомендаций\n\n**Всего проверено перекрестков:** {total_junctions}\n",
+      "optimize": "- **Оптимизировать светофор:** {count} (Настройка циклов и зеленая волна)",
+      "add": "- **Добавить светофор:** {count} (Рекомендована новая установка)",
+      "keep": "- **Сохранить светофор:** {count} (Стабильная работа)",
+      "remove": "- **Демонтировать светофор:** {count} (Устранение искусственных задержек)",
+      "no_signal": "- **Оставить без сигнала:** {count} (Пассивное регулирование)",
+      "stable_operation": "- **Стабильная работа:** Все перекрестки работают в пределах норм."
+    },
+    "zh": {
+      "header": "综合干预与建议总结\n\n**评估的交叉口总数:** {total_junctions}\n",
+      "optimize": "- **优化信号灯:** {count} (周期重排与绿波带整合)",
+      "add": "- **新增信号灯:** {count} (鉴于临界饱和建议新建)",
+      "keep": "- **维持信号灯:** {count} (绿波带保持与稳定运行)",
+      "remove": "- **拆除信号灯:** {count} (消除人为延误)",
+      "no_signal": "- **维持无信号:** {count} (被动让行标志控制)",
+      "stable_operation": "- **运行稳定:** 所有交叉口均在标准阈值内运行。"
+    }
+  },
+  "conclusions_directives": {
+    "pt_br": {
+      "header": "### Diretrizes Operacionais por Categoria de Intervenção\n\nCom base no parecer do motor CARINA v1.0 (SAS Engine), recomendam-se as seguintes diretrizes:\n\n",
+      "add": "{idx}. **Para os cruzamentos a serem adicionados ({count} ponto(s)):** Iniciar estudos geotécnicos e infraestrutura elétrica para instalação das colunas semafóricas, priorizando a segurança de manobra.",
+      "optimize": "{idx}. **Para os cruzamentos a serem otimizados ({count} ponto(s)):** Reajustar tempos de ciclo, planos de fases e sincronismo de onda verde para mitigar atrasos e saturação crítica.",
+      "remove": "{idx}. **Para os cruzamentos a serem removidos ({count} ponto(s)):** Executar desligamento programado e transição para sinalização vertical (placas de Pare/Dê a Preferência) para extinguir atrasos artificiais.",
+      "keep": "{idx}. **Para os cruzamentos a serem mantidos ({count} ponto(s)):** Preservar a integração e os tempos de ciclo vigentes para manter a estabilidade operacional.",
+      "no_signal": "{idx}. **Para os cruzamentos mantidos sem sinalização ({count} ponto(s)):** Preservar o regime de preferência física atual sem alocação de semáforo.",
+      "none_required": "Nenhum cruzamento requer alteração na sinalização atual."
+    },
+    "en": {
+      "header": "### Operational Directives by Intervention Category\n\nBased on CARINA v1.0 (SAS Engine) diagnostics, the following actions are recommended:\n\n",
+      "add": "{idx}. **For intersections to be added ({count} point(s)):** Initiate electrical and physical layout for traffic signal installation.",
+      "optimize": "{idx}. **For intersections to be optimized ({count} point(s)):** Adjust cycle timings, phase plans, and green wave coordination.",
+      "remove": "{idx}. **For intersections to be removed ({count} point(s)):** Implement scheduled deactivation and transition to passive signage.",
+      "keep": "{idx}. **For intersections to be maintained ({count} point(s)):** Preserve existing signal timing and green wave coordination.",
+      "no_signal": "{idx}. **For intersections maintained unsignalized ({count} point(s)):** Preserve passive right-of-way control.",
+      "none_required": "No intersections require signalization changes."
+    },
+    "fr": {
+      "header": "### Directives opérationnelles par catégorie d'intervention\n\n",
+      "add": "{idx}. **Pour les carrefours à ajouter ({count} point(s)) :** Engager l'infrastructure pour l'installation des feux.",
+      "optimize": "{idx}. **Pour les carrefours à optimiser ({count} point(s)) :** Réajuster le plan de feu et l'onde verte.",
+      "remove": "{idx}. **Pour les carrefours à retirer ({count} point(s)) :** Passer à la signalisation passive.",
+      "keep": "{idx}. **Pour les carrefours à maintenir ({count} point(s)) :** Préserver la coordination existante.",
+      "no_signal": "{idx}. **Pour les carrefours non régulés ({count} point(s)) :** Conserver la priorité physique.",
+      "none_required": "Aucune modification de signalisation requise."
+    },
+    "es": {
+      "header": "### Directrices operacionales por categoría de intervención\n\n",
+      "add": "{idx}. **Para las intersecciones a agregar ({count} punto(s)):** Iniciar infraestructura eléctrica para la instalación.",
+      "optimize": "{idx}. **Para las intersecciones a optimizar ({count} punto(s)):** Reajustar tiempos de ciclo y ola verde.",
+      "remove": "{idx}. **Para las intersecciones a retirar ({count} punto(s)):** Transición a señalización vertical pasiva.",
+      "keep": "{idx}. **Para las intersecciones a mantener ({count} punto(s)):** Preservar tiempos de ciclo vigentes.",
+      "no_signal": "{idx}. **Para las intersecciones sin señalizar ({count} punto(s)):** Mantener prioridad física.",
+      "none_required": "Ninguna intersección requiere modificación."
+    },
+    "ru": {
+      "header": "### Оперативные директивы по категориям вмешательства\n\n",
+      "add": "{idx}. **Для добавляемых перекрестков ({count} ед.):** Начать подготовку к установке светофоров.",
+      "optimize": "{idx}. **Для оптимизируемых перекрестков ({count} ед.):** Перенастроить фазы и зеленую волну.",
+      "remove": "{idx}. **Для демонтируемых светофоров ({count} ед.):** Переход на пассивные знаки.",
+      "keep": "{idx}. **Для сохраняемых светофоров ({count} ед.):** Сохранить текущие настройки.",
+      "no_signal": "{idx}. **Для перекрестков без сигнала ({count} ед.):** Оставить приоритет без изменений.",
+      "none_required": "Изменения не требуются."
+    },
+    "zh": {
+      "header": "### 按干预类别划分的运营指令\n\n",
+      "add": "{idx}. **针对拟新增信号灯的交叉口 ({count} 处):** 启动信号杆电气与物理布局建设。",
+      "optimize": "{idx}. **针对拟优化信号灯的交叉口 ({count} 处):** 重新调整信号周期与绿波带协调。",
+      "remove": "{idx}. **针对拟拆除信号灯的交叉口 ({count} 处):** 实施有计划停用并过渡至被动标志。",
+      "keep": "{idx}. **针对拟维持信号灯的交叉口 ({count} 处):** 保持现行配时与绿波带协调。",
+      "no_signal": "{idx}. **针对维持无信号的交叉口 ({count} 处):** 保持现行物理通行权控制。",
+      "none_required": "无需更改信号灯配置。"
+    }
+  }
+}

@@ -109,7 +109,13 @@ class CaptumAnalyzer:
             importances = self.attribution_engine.compute_importances()
             if importances is None:
                 logging.warning(self.locale_manager.get_string("captum_analyzer.run.empty_memory_warning", default="Memory empty for agent {agent_id}", agent_id=self.agent.id))
-                return None
+                return {
+                    "has_tensor_data": False,
+                    "message": "Atenção: Ausência de dados de amostragem dos tensores de tráfego no buffer de memória.",
+                    "image_base64": "",
+                    "text_report": "Atenção: Não há dados de amostragem dos tensores de tráfego acumulados na memória do agente para realizar a análise pericial de explicabilidade matemática.",
+                    "sorted_analysis": []
+                }
             
             # 2. Group & Aggregate feature importances
             sorted_analysis = self.aggregator.aggregate(importances)

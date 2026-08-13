@@ -20,7 +20,7 @@ aliases: [Projeto CARINA, Root]
   </a>
 </p>
 
-**CARINA** is a massively distributed Deep Reinforcement Learning ecosystem designed for real-time traffic control and smart city orchestration. Bypassing Python's Global Interpreter Lock (GIL) via 7 concurrent OS processes, it integrates a Tactical PPO agent and a Guardian Agent (Dueling DQN-TCN + Predictive Autoencoder) to provide neuro-symbolic safety. CARINA learns online directly in production via the sub-millisecond Synapse HFT protocol.
+**CARINA** is a massively distributed Deep Reinforcement Learning ecosystem designed for real-time traffic control and smart city orchestration. Bypassing Python's Global Interpreter Lock (GIL) via 8 concurrent OS processes, it integrates a Tactical PPO agent, an ST-GATv2 Lite Graph Coordinator, a Global Consultant Agent (PAE 128-channel), and a Guardian Agent (D3QN) to provide 100% ABNT-compliant forensic auditability and neuro-symbolic safety.
 
 ---
 
@@ -31,76 +31,45 @@ Explore the full architecture, internal mechanics, and developer guides for the 
 | Card / Subsystem | Focus Area | Direct Link |
 | :--- | :--- | :---: |
 | 📚 **Documentation Hub** | Central Index & Navigation for all technical docs | [Explore Hub](docs/CARINA_MOC.md) |
-| 🏛️ **Core Architecture** | 8 Concurrent OS microservices, GOMES & DA SILVA curriculum | [View Blueprint](ARCHITECTURE.md) |
+| 🏛️ **Core Architecture** | 8 Concurrent OS microservices, ST-GATv2 Lite & Consultant PAE | [View Blueprint](ARCHITECTURE.md) |
 | ⚡ **Synapse HFT API** | Sub-millisecond gRPC telemetry & Protobuf IPC specifications | [View API Reference](docs/API_REFERENCE.md) |
-| 🧠 **Neural Formulations** | PPO-TCN, Dueling DQN-TCN & Predictive Autoencoder (PAE) | [View Research](docs/RESEARCH_NOTES.md) |
-| 🛡️ **Safety Firewall & Watchdog** | Symbolic rules inventory, PAE Neural Vetoes & Watchdog | [View Safety Guide](docs/SAFETY_AND_WATCHDOG.md) |
-| 🗄️ **Database & Schemas** | PostgreSQL/SQLite schemas, connection pooling & async worker | [View DB Specs](docs/DATABASE_AND_SCHEMAS.md) |
+| 🧠 **Neural Formulations** | PPO-TCN, ST-GATv2 Lite, Cross-Attention & Consultant PAE | [View Research](docs/RESEARCH_NOTES.md) |
+| 🛡️ **Safety Firewall & Watchdog** | Guardian D3QN Vetoes, Symbolic rules & Watchdog | [View Safety Guide](docs/SAFETY_AND_WATCHDOG.md) |
+| 🗄️ **Database & Schemas** | PostgreSQL Delta Storage (97.9% reduction), 1-byte Enums | [View DB Specs](docs/DATABASE_AND_SCHEMAS.md) |
 | 📈 **MFD & Traffic Analytics** | Network density-flow curves, capacity drop & gating | [View MFD Guide](docs/MFD_AND_ANALYTICS.md) |
-| 🔍 **Explainable AI (XAI)** | Captum Integrated Gradients & Qwen3 LLM engineering reports | [View XAI & SAS](docs/XAI_AND_SAS.md) |
+| 🔍 **Explainable AI (XAI)** | Captum Integrated Gradients, 5 Formal Equations & Word export | [View XAI & SAS](docs/XAI_AND_SAS.md) |
 | 🖥️ **Flet Dashboard** | Native desktop UI running in an isolated process | [View UI Guide](docs/UI_AND_DASHBOARD.md) |
 | 🛠️ **Developer Guides** | Schema migrations, PyInstaller builds, IPC queues | [View Guides](docs/DEVELOPER_GUIDES.md) |
 | 🧪 **Testing & Validation** | Pytest suite, coverage reports & Guardian safety mocks | [View Guidelines](docs/TESTING.md) |
 | 🚀 **Deployment & Packaging** | Docker containerization, Systemd services & Debian packages | [View Deployment](docs/DEPLOYMENT_AND_PACKAGING.md) |
 
-
-> 💡 **Obsidian Vault Support:** This repository is also fully compatible with [Obsidian](https://obsidian.md/). Open this root folder as a vault and navigate from `CARINA_MOC.md`.
-
 ---
 
 ## ⚡ Core Architecture (GOMES & DA SILVA)
 
-CARINA relies on the **Graph-based Operational Multi-agent Expert System (GOMES)** to handle complex intersections, governed by the **DA SILVA** statistical maturation curriculum.
-
-- **Tactical Layer (PPO-TCN):** Hyper-focused on local intersection throughput using Temporal Convolutional Networks to eliminate BPTT explosion.
-- **Strategic Layer (GATv2 Lite):** Coordinates "Green Waves" using Graph Attention Networks to prioritize massive avenues.
-- **Guardian Layer (Neuro-Symbolic):** A background firewall that instantaneously vetoes any action violating strict physical safety constraints.
-- **Explainable AI (XAI):** A massive `Qwen3 1.7B` LLM process coupled with `Captum` Integrated Gradients to generate natural-language engineering reports explaining neural reasoning.
-
-*See the full breakdown in the [System Blueprint](ARCHITECTURE.md)*
-
----
-
-## 🛠️ Key Features
-
-- **Synapse HFT Protocol:** High-frequency, bidirectional gRPC telemetry capable of sub-millisecond physical actuation. (See [API Reference](docs/API_REFERENCE.md))
-- **Decoupled Flet Frontend:** A beautiful, responsive desktop Dashboard Service (SDS) that runs completely isolated from the AI inference loop. (See [UI & Dashboard](docs/UI_AND_DASHBOARD.md))
-- **Smart Analysis System (SAS):** Offline background process that analyzes historical PostgreSQL data to suggest infrastructure modifications. (See [XAI & SAS](docs/XAI_AND_SAS.md))
-- **Process Watchdog:** Deterministic fail-safes that automatically revert physical intersections to hardcoded states if the neural engines hang.
+- **Tactical Layer (PPO-TCN Edge AI):** Hyper-focused on local intersection throughput with sub-millisecond ($< 0.5\text{ ms}$) execution.
+- **Strategic Layer (ST-GATv2 Lite):** Dynamic spatiotemporal graph attention coordinating Green Waves across urban avenues.
+- **Global Consultant Layer (PAE 128-channel):** Event-triggered background mentor projecting future traffic states ($t + \Delta t$).
+- **Guardian Layer (Neuro-Symbolic D3QN):** Inviolable safety firewall validating or vetoing actions against traffic codes and spillback risks.
+- **Explainable AI (XAI Engine):** Google Captum Integrated Gradients exporting ABNT NBR 14724 reports with 5 formal neural equations and Guardian veto audit tables.
+- **PostgreSQL Delta Storage:** Non-blocking async queue with 1-byte Smallint enums and run-length encoding achieving **97.9% storage reduction** (~380 MB/day for 200 intersections).
 
 ---
 
 ## 🚀 Quick Start
 
 ### 1. Requirements
-Ensure you have Python 3.10+ and a CUDA-compatible GPU (highly recommended for the XAI Worker).
+Ensure you have Python 3.10+ and a CUDA-compatible GPU (accelerated via PyTorch AMP & NVIDIA TensorCores).
 
 ### 2. Installation
-Install the necessary dependencies from the requirements file:
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Database Setup (Optional but Recommended)
-By default, CARINA falls back to SQLite, but for full feature support (SAS and offline training data), set up your `config/settings.ini` to connect to PostgreSQL.
-*(Refer to [Developer Integration Guide](docs/DEVELOPER_GUIDES.md))*
-
-### 4. Running the Ecosystem
-Launch the central orchestrator:
+### 3. Running the Ecosystem
 ```bash
 python carina.py
 ```
-This single command spins up the 7 concurrent processes, initializes the IPC memory queues, boots the Flet UI, and begins listening on the gRPC port.
-
----
-
-## 🧪 Testing & Validation
-
-All Guardian rules and TCN inference pipelines are strictly tested.
-```bash
-pytest tests/ -v --cov=src
-```
-*(Read the [Testing Guidelines](docs/TESTING.md))*
 
 ---
 

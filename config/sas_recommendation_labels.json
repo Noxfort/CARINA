@@ -1,0 +1,134 @@
+{
+  "recommendations": {
+    "pt_br": {
+      "add": "ADICIONAR SEMÁFORO",
+      "optimize": "OTIMIZAR SEMÁFORO",
+      "remove": "REMOVER SEMÁFORO",
+      "keep": "MANTER SEMÁFORO",
+      "no_signal": "MANTER NÃO SINALIZADO"
+    },
+    "en": {
+      "add": "ADD TRAFFIC LIGHT",
+      "optimize": "OPTIMIZE TRAFFIC LIGHT",
+      "remove": "REMOVE TRAFFIC LIGHT",
+      "keep": "MAINTAIN TRAFFIC LIGHT",
+      "no_signal": "MAINTAIN UNSIGNALIZED"
+    },
+    "fr": {
+      "add": "AJOUTER UN FEU",
+      "optimize": "OPTIMISER LE FEU",
+      "remove": "RETIRER LE FEU",
+      "keep": "MAINTENIR LE FEU",
+      "no_signal": "MAINTENIR NON RÉGULÉ"
+    },
+    "es": {
+      "add": "ADICIONAR SEMÁFORO",
+      "optimize": "OPTIMIZAR SEMÁFORO",
+      "remove": "RETIRAR SEMÁFORO",
+      "keep": "MANTENER SEMÁFORO",
+      "no_signal": "MANTENER NO SEMAFORIZADO"
+    },
+    "ru": {
+      "add": "УСТАНОВИТЬ СВЕТОФОР",
+      "optimize": "ОПТИМИЗИРОВАТЬ СВЕТОФОР",
+      "remove": "ДЕМОНТИРОВАТЬ СВЕТОФОР",
+      "keep": "СОХРАНИТЬ СВЕТОФОР",
+      "no_signal": "СОХРАНИТЬ БЕЗ СВЕТОФОРА"
+    },
+    "zh": {
+      "add": "新设信号灯",
+      "optimize": "优化信号灯",
+      "remove": "拆除信号灯",
+      "keep": "保留信号灯",
+      "no_signal": "维持无信号"
+    }
+  },
+  "status": {
+    "pt_br": {
+      "active": "Sinalizado",
+      "inactive": "Não Sinalizado"
+    },
+    "en": {
+      "active": "Signalized",
+      "inactive": "Unsignalized"
+    },
+    "fr": {
+      "active": "Régulé",
+      "inactive": "Non régulé"
+    },
+    "es": {
+      "active": "Semaforizado",
+      "inactive": "No semaforizado"
+    },
+    "ru": {
+      "active": "Регулируемый",
+      "inactive": "Нерегулируемый"
+    },
+    "zh": {
+      "active": "有信号灯",
+      "inactive": "无信号灯"
+    }
+  },
+  "translations": {
+    "pt_br": {
+      "intersection_label": "Cruzamento",
+      "details_header": "### 2. Detalhamento Técnico e Justificativas por Cruzamento",
+      "main_title": "LAUDO DESCRITIVO DE TRÁFEGO E INFRAESTRUTURA",
+      "date_prefix": "Data de Emissão: ",
+      "section_1_title": "1. Mapa de Planejamento Tático",
+      "section_2_title": "2. Parecer Técnico de Planejamento e Justificativas",
+      "footer_text": "Este documento foi consolidado de forma determinística e imparcial pelo motor Neuro-Simbólico CARINA SAS. Ele atesta as recomendações de engenharia de tráfego para a malha.",
+      "cluster_prefix": "Agrupamento"
+    },
+    "en": {
+      "intersection_label": "Intersection",
+      "details_header": "### 2. Technical Breakdown and Justifications by Intersection",
+      "main_title": "TRAFFIC AND INFRASTRUCTURE DESCRIPTIVE REPORT",
+      "date_prefix": "Date of Issue: ",
+      "section_1_title": "1. Tactical Planning Map",
+      "section_2_title": "2. Technical Planning Opinion and Justifications",
+      "footer_text": "This document was consolidated deterministically and impartially by the CARINA SAS Neuro-Symbolic engine. It certifies traffic engineering recommendations for the network.",
+      "cluster_prefix": "Cluster"
+    },
+    "fr": {
+      "intersection_label": "Carrefour",
+      "details_header": "### 2. Détail technique et justifications par carrefour",
+      "main_title": "RAPPORT DÉSCRIPTIF DU TRAFIC ET DE L'INFRASTRUCTURE",
+      "date_prefix": "Date d'émission : ",
+      "section_1_title": "1. Carte de planification tactique",
+      "section_2_title": "2. Avis technique de planification et justifications",
+      "footer_text": "Ce document a été consolidé de manière détermiste et impartiale par le moteur Neuro-Symbolique CARINA SAS. Il atteste des recommandations d'ingénierie de trafic pour le réseau.",
+      "cluster_prefix": "Groupe"
+    },
+    "es": {
+      "intersection_label": "Intersección",
+      "details_header": "### 2. Detalle técnico y justificaciones por intersección",
+      "main_title": "INFORME DESCRIPTIVO DE TRÁFICO E INFRAESTRUCTURA",
+      "date_prefix": "Fecha de emisión: ",
+      "section_1_title": "1. Mapa de planificación táctica",
+      "section_2_title": "2. Informe técnico de planificación y justificaciones",
+      "footer_text": "Este documento fue consolidado de forma determinística e imparcial por el motor Neuro-Simbólico CARINA SAS. Certifica las recomendaciones de ingeniería de tráfico para la red.",
+      "cluster_prefix": "Agrupamiento"
+    },
+    "ru": {
+      "intersection_label": "Перекресток",
+      "details_header": "### 2. Технический анализ и обоснование по каждому перекрестку",
+      "main_title": "ТЕХНИЧЕСКИЙ ОТЧЕТ ПО ДОРОЖНОМУ ДВИЖЕНИЮ И ИНФРАСТРУКТУРЕ",
+      "date_prefix": "Дата выдачи: ",
+      "section_1_title": "1. Карта тактического планирования",
+      "section_2_title": "2. Техническое заключение и обоснование",
+      "footer_text": "Этот документ был сформирован детерминистически и беспристрастно нейросимволическим движком CARINA SAS. Он подтверждает рекомендации по организации дорожного движения.",
+      "cluster_prefix": "Группа"
+    },
+    "zh": {
+      "intersection_label": "交叉口",
+      "details_header": "### 2. 交叉口技术分析与决策依据",
+      "main_title": "交通运行与基础设施诊断报告",
+      "date_prefix": "出具日期: ",
+      "section_1_title": "1. 战术规划分布图",
+      "section_2_title": "2. 规划技术论证与分析",
+      "footer_text": "本文件由 CARINA SAS 神经符号引擎客观计算并生成，用于证明道路网络交通工程优化建议的有效性。",
+      "cluster_prefix": "路口组"
+    }
+  }
+}

@@ -18,20 +18,70 @@
 # Author: Gabriel Moraes
 # Date: August 9, 2026
 
+import os
+import json
 import logging
 from typing import Dict, Any, List, Tuple
 from mfd.mfd_template_provider import MFDTemplateProvider
 from mfd.mfd_prompt_builder import MFDPromptBuilder
+from mfd.mfd_subprocess_fallback import MFDSubprocessFallback
 from blocks.report_post_processor import ReportPostProcessor
 
 class MFDSectionBuilder:
     """
-    Responsibility (SRP): Construct structured Markdown document sections (1 to 5 and Anexo I)
-    for MFD performance and optimization reports.
+    Responsibility (SRP & OCP): Construct structured Markdown document sections (1 to 5 and Anexo I)
+    for MFD performance and optimization reports. Loads section headers and narrative fallbacks from JSON.
     """
 
-    @staticmethod
-    def build_executive_intro(normalized_data: Dict[str, Any], transducer: Any = None, lang: str = "pt_br") -> Tuple[str, str]:
+    _fallbacks_cache: Dict[str, Any] = None
+
+    @classmethod
+    def _load_fallbacks_config(cls) -> Dict[str, Any]:
+        """Loads narrative fallbacks from config/mfd_section_fallbacks.json with caching and fallback."""
+        if cls._fallbacks_cache is not None:
+            return cls._fallbacks_cache
+
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        json_path = os.path.join(base_dir, "config", "mfd_section_fallbacks.json")
+
+        if os.path.exists(json_path):
+            try:
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    cls._fallbacks_cache = json.load(f)
+                    logging.info(f"[MFDSectionBuilder] Loaded fallbacks from {json_path}")
+                    return cls._fallbacks_cache
+            except Exception as e:
+                logging.warning(f"[MFDSectionBuilder] Failed to load JSON '{json_path}': {e}. Using fallback.")
+
+        cls._fallbacks_cache = {}
+        return cls._fallbacks_cache
+
+    @classmethod
+    def _get_section_title(cls, title_key: str, lang: str = "pt_br") -> str:
+        """Resolves section title markdown header from JSON configuration across languages."""
+        cfg = cls._load_fallbacks_config()
+        titles = cfg.get("section_titles", {})
+        lang_key = (lang or "pt_br").lower()
+
+        title_obj = titles.get(title_key, {})
+        if isinstance(title_obj, dict):
+            return title_obj.get(lang_key, title_obj.get("pt_br", title_obj.get("en", "")))
+        return str(title_obj)
+
+    @classmethod
+    def _get_fallback_text(cls, section_key: str, outcome_key: str, lang: str = "pt_br") -> str:
+        """Resolves section narrative fallback string from JSON configuration across languages."""
+        cfg = cls._load_fallbacks_config()
+        sec_cfg = cfg.get(section_key, {})
+        lang_key = (lang or "pt_br").lower()
+
+        outcome_obj = sec_cfg.get(outcome_key, {})
+        if isinstance(outcome_obj, dict):
+            return outcome_obj.get(lang_key, outcome_obj.get("pt_br", outcome_obj.get("en", "")))
+        return str(outcome_obj)
+
+    @classmethod
+    def build_executive_intro(cls, normalized_data: Dict[str, Any], transducer: Any = None, lang: str = "pt_br") -> Tuple[str, str]:
         """
         Build Section 1: Executive Introduction & Context.
 
@@ -57,26 +107,32 @@ class MFDSectionBuilder:
                 logging.warning(f"[MFD_SECTION_BUILDER] SLM generation for Executive Summary failed: {slm_err}")
                 raw_exec_summary = ""
 
+        if not raw_exec_summary or len(raw_exec_summary.strip()) < 20:
+            try:
+                raw_exec_summary = MFDSubprocessFallback.try_subprocess_transducer(summary_payload)
+            except Exception as sub_err:
+                logging.debug(f"[MFD_SECTION_BUILDER] Subprocess fallback failed: {sub_err}")
+
+        lang_key = (lang or "pt_br").lower()
         if not raw_exec_summary or len(raw_exec_summary.strip()) < 20 or "Não foi possível" in raw_exec_summary or "DATA_PAYLOAD" in raw_exec_summary:
-            if speed_gain > 0:
-                raw_exec_summary = (
-                    f"A mobilidade urbana da malha viária analisada apresenta evolução operacional positiva sob o controle ativo do motor CARINA v1.0. "
-                    f"A velocidade média alcançou {spd.get('mature', 42.5)} km/h (Fase Adulta), registrando ganho de fluidez de +{speed_gain:.1f}% em relação à Linha Base (Fase Criança). "
-                    f"Os cruzamentos semafóricos auditados demonstraram estabilização na entropia da política e alívio contínuo do acúmulo de filas no tráfego urbano."
-                )
-            else:
-                raw_exec_summary = (
-                    f"A mobilidade urbana da malha viária analisada registrou ponto de atrito e retenção de fluxo sob o controle ativo do motor CARINA v1.0. "
-                    f"A velocidade média da malha evoluiu para {spd.get('mature', 42.5)} km/h, apresentando variação de {speed_gain:.1f}% e elevação no volume de acúmulo de filas. "
-                    f"Os dados empíricos observados indicam a necessidade de readequação e sintonia fina nos tempos de ciclo semafórico."
-                )
+            mature_spd = f"{spd.get('mature', 42.5):.1f}" if isinstance(spd.get('mature'), float) else str(spd.get('mature', 42.5))
+            spd_gain_str = f"+{speed_gain:.1f}" if speed_gain > 0 else f"{speed_gain:.1f}"
+
+            outcome_key = "positive" if speed_gain > 0 else "negative"
+            fallback_tmpl = cls._get_fallback_text("executive_summary", outcome_key, lang=lang)
+
+            try:
+                raw_exec_summary = fallback_tmpl.format(mature_speed=mature_spd, speed_gain=spd_gain_str)
+            except Exception:
+                raw_exec_summary = fallback_tmpl
 
         clean_intro = ReportPostProcessor.clean_ai_preamble(raw_exec_summary)
-        intro_section = f"## 1. INTRODUÇÃO E CONTEXTO EXECUTIVO\n{clean_intro}"
+        intro_title = cls._get_section_title("section_1_intro", lang=lang)
+        intro_section = f"{intro_title}\n{clean_intro}"
         return intro_section, raw_exec_summary
 
-    @staticmethod
-    def build_narrative_sections(normalized_data: Dict[str, Any], transducer: Any = None, lang: str = "pt_br") -> Tuple[str, str]:
+    @classmethod
+    def build_narrative_sections(cls, normalized_data: Dict[str, Any], transducer: Any = None, lang: str = "pt_br") -> Tuple[str, str]:
         """
         Assemble the full narrative text (Sections 1 through 5).
 
@@ -87,10 +143,10 @@ class MFDSectionBuilder:
         """
         intersections_list = normalized_data.get("intersections_list", [])
 
-        intro_section, raw_exec_summary = MFDSectionBuilder.build_executive_intro(normalized_data, transducer=transducer, lang=lang)
-        equations_section = MFDTemplateProvider.get_section_4_equations()
-        synthesis_table_section = MFDTemplateProvider.get_section_5_synthesis_table(intersections_list)
-        consolidated_section = MFDTemplateProvider.get_section_6_consolidated_summary(normalized_data)
+        intro_section, raw_exec_summary = cls.build_executive_intro(normalized_data, transducer=transducer, lang=lang)
+        equations_section = MFDTemplateProvider.get_section_4_equations(lang=lang)
+        synthesis_table_section = MFDTemplateProvider.get_section_5_synthesis_table(intersections_list, lang=lang)
+        consolidated_section = MFDTemplateProvider.get_section_6_consolidated_summary(normalized_data, lang=lang)
 
         # Build Section 5: Technical Final Opinion
         opinion_payload = MFDPromptBuilder.build_final_opinion_input(normalized_data, lang=lang)
@@ -104,32 +160,29 @@ class MFDSectionBuilder:
                 logging.warning(f"[MFD_SECTION_BUILDER] SLM generation for Technical Final Opinion failed: {slm_err}")
                 raw_final_opinion = ""
 
+        if not raw_final_opinion or len(raw_final_opinion.strip()) < 20:
+            try:
+                raw_final_opinion = MFDSubprocessFallback.try_subprocess_transducer(opinion_payload)
+            except Exception as sub_err:
+                logging.debug(f"[MFD_SECTION_BUILDER] Subprocess fallback failed: {sub_err}")
+
         impacts = normalized_data.get("impact_stats", {})
         comp = impacts.get("comparative_table", {})
         speed_gain = comp.get("speed_kmh", {}).get("delta_pct", 0.0)
 
         if not raw_final_opinion or len(raw_final_opinion.strip()) < 20:
-            if speed_gain > 0:
-                raw_final_opinion = (
-                    "O Motor CARINA v1.0 (MFD Engine / Método DA SILVA) atesta que a malha viária urbana analisada registrou ganho efetivo na velocidade de fluxo "
-                    "e redução significativa no tempo de espera dos veículos. Com base nos dados empíricos observados, emitimos o Parecer Técnico de "
-                    "APROVAÇÃO E HOMOLOGAÇÃO DA OTIMIZAÇÃO SEMAFÓRICA da malha auditada."
-                )
-            else:
-                raw_final_opinion = (
-                    "O Motor CARINA v1.0 (MFD Engine / Método DA SILVA) atesta que a malha viária urbana analisada registrou retenção no fluxo de veículos "
-                    "e aumento no acúmulo de filas no cenário sob auditoria. Com base nos dados empíricos observados, emitimos o Parecer Técnico de "
-                    "REAPRECIAÇÃO E REAJUSTE DOS PARÂMETROS SEMAFÓRICOS, recomendando a readequação dos tempos de ciclo e a recalibração dos modelos neurais de Aprendizado por Reforço antes da homologação definitiva."
-                )
+            outcome_key = "positive" if speed_gain > 0 else "negative"
+            raw_final_opinion = cls._get_fallback_text("final_opinion", outcome_key, lang=lang)
 
         clean_final_opinion = ReportPostProcessor.clean_ai_preamble(raw_final_opinion)
+        final_opinion_title = cls._get_section_title("section_5_final_opinion", lang=lang)
 
         narrative_lines = [
             intro_section,
             equations_section,
             synthesis_table_section,
             consolidated_section,
-            "## 5. Considerações Finais e Parecer Técnico",
+            final_opinion_title,
             clean_final_opinion
         ]
 
@@ -152,15 +205,21 @@ class MFDSectionBuilder:
         fichas_anexo_i = []
 
         for row in intersections_list:
-            justificativa = None
+            justification = None
+            single_payload = MFDPromptBuilder.build_single_intersection_input(row, lang=lang)
             if transducer is not None and hasattr(transducer, "generate_report"):
                 try:
-                    single_payload = MFDPromptBuilder.build_single_intersection_input(row, lang=lang)
-                    justificativa = transducer.generate_report(single_payload)
+                    justification = transducer.generate_report(single_payload)
                 except Exception as ex_single:
                     logging.warning(f"[MFD_SECTION_BUILDER] Failed SLM justification for intersection {row.get('id')}: {ex_single}")
 
-            ficha_md = MFDTemplateProvider.get_intersection_ficha_template(row, justificativa=justificativa)
+            if not justification or len(justification.strip()) < 20:
+                try:
+                    justification = MFDSubprocessFallback.try_subprocess_transducer(single_payload)
+                except Exception:
+                    justification = None
+
+            ficha_md = MFDTemplateProvider.get_intersection_audit_sheet_template(row, justification=justification, lang=lang)
             fichas_anexo_i.append(ficha_md)
 
         anexo_text = "\n\n".join(fichas_anexo_i)

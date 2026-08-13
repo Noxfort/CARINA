@@ -28,6 +28,11 @@ from logging.handlers import RotatingFileHandler
 import sys
 import os
 import gzip
+import warnings
+
+# Suppress PyTorch weight_norm deprecation warning
+warnings.filterwarnings("ignore", category=FutureWarning, message=".*weight_norm.*")
+warnings.filterwarnings("ignore", category=FutureWarning, module="torch.nn.utils.weight_norm")
 
 def gzip_namer(name: str) -> str:
     return name + ".gz"

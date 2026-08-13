@@ -86,6 +86,10 @@
     { "pattern": "\\(Otimizado\\)[\"']", "replacement": "(Otimizado)", "flags": [] }
   ],
   "demographic_purges": [
+    { "pattern": "\\batender\\s+a\\s+uma\\s+faixa\\s+etária\\s+específica\\s+de\\s+adolescentes\\b", "replacement": "atender ao ciclo de otimização supervisada", "flags": ["IGNORECASE"] },
+    { "pattern": "\\benquanto\\s+apenas\\s+um\\s+cruzamento\\s+já\\s+atende\\s+adultos\\b", "replacement": "enquanto um cruzamento já opera em autonomia plena", "flags": ["IGNORECASE"] },
+    { "pattern": "\\bvelocidade\\s+média\\s+da\\s+população\\b", "replacement": "velocidade média da malha viária", "flags": ["IGNORECASE"] },
+    { "pattern": "\\bpara\\s+(adultos|crianças|adolescentes)\\b", "replacement": "nas fases de maturação do modelo de IA", "flags": ["IGNORECASE"] },
     { "pattern": "\\b(usuários\\s+de\\s+)?faixa\\s+etária\\s+adolescente\\b", "replacement": "modelos de otimização supervisada", "flags": ["IGNORECASE"] },
     { "pattern": "\\b(usuários\\s+de\\s+)?faixa\\s+etária\\s+adulta\\b", "replacement": "modelos de otimização autônoma", "flags": ["IGNORECASE"] },
     { "pattern": ",?\\s*sem\\s+(qualquer\\s+)?(menção|distinção|necessidade\\s+de\\s+intervenç[ãoõ]es)\\s+([^\\.\\n]*?)(pedestres|demogr[áa]fic[os|as]|faixas?\\s+et[áa]rias?|faixa\\s+de\\s+idade|pessoas|humana?s?)[^\\.\\n]*[\\.\\n]?", "replacement": ".", "flags": ["IGNORECASE"] },
@@ -108,6 +112,7 @@
     { "pattern": "(\\b(velocidade|v_med|v_reg|fluidez)\\b[^\\n\\.]*?)\\b(\\d+([,\\.]\\d+)?)\\s*m/s\\b", "replacement": "\\1\\3 km/h", "flags": ["IGNORECASE"] }
   ],
   "abnt_bold_label_markers": [
+    { "pattern": "\\bLimiar\\s+de\\s+Entropia\\s+Máxima\\s+Permitida\\s*\\(Hlimiar\\)", "replacement": "Limiar de Entropia Máxima Permitida ($H_{\\text{limiar}}$)", "flags": ["IGNORECASE"] },
     { "pattern": "(?<!\\*)\\*(Definição|Motivo da Escolha|Impacto Prático):\\*(?!\\*)", "replacement": "**\\1:**", "flags": [] },
     { "pattern": "(?<!\\*)\\b(Justificativa Técnico-Gerencial MFD|Caracterização Física das Vias|Limiar de Entropia Máxima Permitida \\([^\\)]+\\)|Janela / Tempo Mínimo de Amostragem|Margem Mínima de Ganho Exigida|Total de Cruzamentos Semafóricos[^\\:]*|Agentes Graduados na Fase Adulta[^\\:]*|Agentes em Fase Adolescente[^\\:]*|Velocidade Média da Malha|Produção Máxima de Pico[^\\:]*|Tempo Médio de Espera|Economia Diária de Tempo Acumulada):", "replacement": "**\\1:**", "flags": [] }
   ],

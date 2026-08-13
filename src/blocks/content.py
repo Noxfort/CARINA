@@ -33,8 +33,11 @@ class ContentBlock(ReportBlock):
         text_content = context.get("text_content", "")
         mode = config.get("mode", "XAI")
         
+        content_title = config.get("content_title")
+        content_fallback = config.get("content_fallback")
+
         should_add_heading = True
-        if text_content and ("## " in text_content or "# " in text_content):
+        if text_content and ("## " in text_content or "# " in text_content or "### " in text_content):
             should_add_heading = False
             fallback_text = "Nenhum laudo analítico disponível."
         elif content_title is not None and content_fallback is not None:

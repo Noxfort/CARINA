@@ -98,16 +98,55 @@ class UITrayManager:
 
     def on_tray_quit(self):
         """Callback triggered when user selects quit from system tray menu."""
-        logging.info("[Tray] Full shutdown requested via system tray. Sending interrupt signal (Ctrl+C)...")
+        logging.info("[Tray] Encerrando CARINA via bandeja (system tray)...")
         self.shutdown_requested.set()
+
+        # 1. Direct window destruction to unblock Flet event loop on main thread
         try:
-            if sys.platform != 'win32':
-                os.kill(os.getpid(), signal.SIGINT)
-            else:
-                os.kill(os.getpid(), signal.CTRL_C_EVENT)
+            for mod_name in ['ui.main_ui', 'main_ui']:
+                if mod_name in sys.modules:
+                    ui_mod = sys.modules[mod_name]
+                    page = getattr(ui_mod, 'active_page', None)
+                    if page:
+                        try:
+                            if hasattr(page, 'window') and page.window is not None:
+                                page.window.prevent_close = False
+                                page.window.destroy()
+                            else:
+                                page.window_prevent_close = False
+                                page.window_destroy()
+                        except Exception:
+                            pass
         except Exception as e:
-            logging.error(f"[Tray] Failed to send interrupt signal: {e}")
-            self.shutdown_requested.set()
+            logging.debug(f"[Tray] Exception destroying window: {e}")
+
+        # 2. Complete shutdown of all backend processes and IPC queues
+        try:
+            if self.process_manager:
+                self.process_manager.shutdown_all()
+        except Exception as e:
+            logging.error(f"[Tray] Error executing process_manager.shutdown_all: {e}")
+
+        # 3. Kill lingering child processes
+        try:
+            import psutil
+            current_proc = psutil.Process(os.getpid())
+            children = current_proc.children(recursive=True)
+            for child in children:
+                try:
+                    if child.is_running():
+                        cmdline = " ".join(child.cmdline()) if hasattr(child, 'cmdline') else ""
+                        if "resource_tracker" not in cmdline:
+                            child.kill()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # 4. Instant exit of main launcher process
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(0)
 
     def launch_flet_ui(self):
         """Launches or re-launches the Flet UI window."""

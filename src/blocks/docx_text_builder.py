@@ -63,29 +63,32 @@ def _load_omml_templates() -> Dict[str, Any]:
     return _cached_omml_config
 
 def _load_subscript_rules() -> Dict[str, Any]:
-    """Dynamically loads subscript regex rules from config/subscript_rules.json with in-memory caching."""
+    """Dynamically loads subscript regex rules from config/xai_report_templates.json or config/report_templates.json with in-memory caching."""
     global _cached_subscript_config
     if _cached_subscript_config is not None:
         return _cached_subscript_config
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
     candidates = [
-        os.path.join(base_dir, "..", "..", "config", "subscript_rules.json"),
-        os.path.join(base_dir, "..", "config", "subscript_rules.json"),
-        os.path.join(os.getcwd(), "config", "subscript_rules.json")
+        os.path.join(base_dir, "..", "..", "config", "xai_report_templates.json"),
+        os.path.join(base_dir, "..", "config", "xai_report_templates.json"),
+        os.path.join(os.getcwd(), "config", "xai_report_templates.json"),
+        os.path.join(os.getcwd(), "config", "report_templates.json")
     ]
 
     for json_path in candidates:
         if os.path.exists(json_path):
             try:
                 with open(json_path, "r", encoding="utf-8") as f:
-                    _cached_subscript_config = json.load(f)
-                    return _cached_subscript_config
+                    cfg = json.load(f)
+                    if "subscript_rules" in cfg:
+                        _cached_subscript_config = cfg["subscript_rules"]
+                        return _cached_subscript_config
             except Exception as e:
                 logging.warning(f"Failed to load subscript rules from '{json_path}': {e}")
 
     _cached_subscript_config = {
-        "subscript_regex_pattern": r'\b([a-zA-Z]{1,3})_\{?([a-zA-Z0-9]+)\}?|\b(v)(real|limite)\b|\b(F)(ideal)\b|\b(P)(95)\b'
+        "subscript_regex_pattern": r"([a-zA-Z\']+|\b[a-zA-Z]{1,50})_\{?([a-zA-Z0-9]+)\}?|\b(v)(real|limite)\b|\b(F)(ideal)\b|\b(P)(95)\b"
     }
     return _cached_subscript_config
 
@@ -115,8 +118,8 @@ def add_omml_equation_to_document(doc: Any, eq_raw: str, tag_str: str = "", font
             omml_xml = raw_xml_str.replace("{ns_decl}", ns_decl)
             break
 
-    # Generic Division / Fraction fallback (num / den)
-    if not omml_xml and ('/' in eq_clean or r'\frac' in eq_clean):
+    # Generic Division / Fraction fallback (num / den) - ONLY for simple fraction expressions
+    if not omml_xml and ('/' in eq_clean) and not any(op in eq_clean for op in ['∫', '∫', '∑', '∂', 'dα', 'dx', 'integral', 'partial']):
         if '=' in eq_clean:
             left_part, right_part = eq_clean.split('=', 1)
             left_part = left_part.strip() + " = "
@@ -124,27 +127,22 @@ def add_omml_equation_to_document(doc: Any, eq_raw: str, tag_str: str = "", font
             left_part = ""
             right_part = eq_clean
 
-        if '/' in right_part:
+        if '/' in right_part and right_part.count('/') == 1:
             num_str, den_str = right_part.split('/', 1)
-        else:
-            num_str, den_str = right_part, ""
-        
-        num_clean = num_str.strip()
-        den_clean = den_str.strip().strip('()')
-        if not den_clean:
-            den_clean = "1"
-
-        omml_xml = (
-            f'<m:oMathPara {ns_decl}>\n'
-            f'  <m:oMath>\n'
-            f'    <m:r><m:t>{left_part}</m:t></m:r>\n'
-            f'    <m:f>\n'
-            f'      <m:num><m:r><m:t>{num_clean}</m:t></m:r></m:num>\n'
-            f'      <m:den><m:r><m:t>{den_clean}</m:t></m:r></m:den>\n'
-            f'    </m:f>\n'
-            f'  </m:oMath>\n'
-            f'</m:oMathPara>'
-        )
+            num_clean = num_str.strip()
+            den_clean = den_str.strip().strip('()')
+            if num_clean and den_clean:
+                omml_xml = (
+                    f'<m:oMathPara {ns_decl}>\n'
+                    f'  <m:oMath>\n'
+                    f'    <m:r><m:t>{left_part}</m:t></m:r>\n'
+                    f'    <m:f>\n'
+                    f'      <m:num><m:r><m:t>{num_clean}</m:t></m:r></m:num>\n'
+                    f'      <m:den><m:r><m:t>{den_clean}</m:t></m:r></m:den>\n'
+                    f'    </m:f>\n'
+                    f'  </m:oMath>\n'
+                    f'</m:oMathPara>'
+                )
 
     if not omml_xml:
         return False
@@ -187,7 +185,7 @@ def add_text_run_with_subscript_support(p: Any, text_segment: str, font_size: fl
     sub_config = _load_subscript_rules()
     pattern = sub_config.get(
         "subscript_regex_pattern",
-        r'\b([a-zA-Z]{1,3})_\{?([a-zA-Z0-9]+)\}?|\b(v)(real|limite)\b|\b(F)(ideal)\b|\b(P)(95)\b'
+        r"([a-zA-Z\']+|\b[a-zA-Z]{1,50})_\{?([a-zA-Z0-9]+)\}?|\b(v)(real|limite)\b|\b(F)(ideal)\b|\b(P)(95)\b"
     )
 
     last_idx = 0

@@ -133,10 +133,19 @@ def render_markdown_to_docx(doc: Any, markdown_text: str, default_font_size: flo
             header_text = line_str[level:].strip()
             header_text = clean_latex_math(header_text)
 
-            # Insert a Page Break before Anexo or Apêndice sections if a page break wasn't just added
-            if ("ANEXO" in header_text.upper() or "APÊNDICE" in header_text.upper()) and not last_was_page_break:
-                doc.add_page_break()
-            last_was_page_break = False
+            # Render Signature Block before Anexo or Apêndice sections if not already rendered
+            if "ANEXO" in header_text.upper() or "APÊNDICE" in header_text.upper():
+                if not context.get("_signature_rendered", False):
+                    try:
+                        from blocks.signature import SignatureBlock
+                        SignatureBlock().build(doc, context, config)
+                    except Exception:
+                        pass
+                if not last_was_page_break:
+                    doc.add_page_break()
+                    last_was_page_break = True
+            else:
+                last_was_page_break = False
 
             # Map level to professional font sizes
             if level == 1:

@@ -1,0 +1,102 @@
+{
+  "section_2_equations": {
+    "pt_br": {
+      "lines": [
+        "## 2. Metodologia, Modelo MFD e Currículo de Maturação DA SILVA",
+        "A otimização promovida pelo ecossistema CARINA assenta-se na integração entre a física do tráfego macroscópico e a aprendizagem por reforço segura:\n",
+        "### A. O Diagrama Fundamental Macroscópico (MFD)",
+        "O MFD estabelece a relação física entre a quantidade de veículos circulando em uma região viária (Acumulação N) e o número de viagens concluídas por hora (Produção P):\n\n$$P(N) = N \\cdot V(N)$$\n\nExiste um ponto ótimo de acumulação de veículos ($N_{\\text{crítico}}$). Se a malha ultrapassa esse limite, o acúmulo drástico reduz a velocidade fluida e a cidade produz menos viagens completadas. O CARINA ajusta dinamicamente a distribuição de tempos de verde para manter cada cruzamento operando na faixa de capacidade máxima da curva MFD.\n",
+        "### B. Fundamentação Matemática dos 3 Critérios de Maturação DA SILVA",
+        "Para autorizar a transição autônoma de um semáforo da Fase Criança até a Fase Adulta, o sistema exige o cumprimento rigoroso de **três critérios independentes**:\n",
+        "1. **Critério de Tempo / Janela Operacional (Parâmetro Configurado na Interface):**\n   - **Definição:** Janela de amostragem mínima obrigatória (ex: 24 horas ou episódios completos de simulação) definida nas configurações do sistema.\n   - **Motivo da Escolha:** O tráfego urbano possui ciclos temporais marcantes (pico da manhã, entrepicos e pico da tarde). A amostragem temporal estendida impede avaliações precipitadas baseadas em intervalos atípicos e garante uma Linha Base justa (Ponto Zero).\n   - **Impacto Prático:** Garante representatividade estatística e imparcialidade na auditoria viária.\n",
+        "2. **Critério de Entropia da Política H(π) (Calculado em Tempo Real):**\n   - **Fórmula Matemática:**\n\n$$\\mathcal{H}(\\pi) = -\\sum_{a} \\pi\\left(\\frac{a}{s}\\right) \\cdot \\log \\pi\\left(\\frac{a}{s}\\right)$$\n\n   - **Motivo da Escolha:** Na fase inicial (Criança), o modelo de IA explora opções gerando Entropia Alta ($\\mathcal{H} > 0,25$). Conforme aprende os padrões do cruzamento, a distribuição converge para políticas determinísticas, fazendo a entropia cair para o limiar configurado ($\\mathcal{H} < 0,15$).\n   - **Impacto Prático:** A Entropia Baixa ($\\mathcal{H} < 0,15$) é a garantia matemática de estabilidade e segurança, assegurando que o semáforo não apresentará decisões oscilantes ou imprevisíveis no trânsito real.\n",
+        "3. **Critério de Desempenho e Performance Viária (Calculado em Relação à Linha Base):**\n   - **Fórmula Matemática:**\n\n$$\\Delta \\text{Atraso (\\%)} = \\left( \\frac{A_{\\text{base}} - A_{\\text{atual}}}{A_{\\text{base}}} \\right) \\times 100$$\n\n   - **Motivo da Escolha:** Assegura que o agente neural só será graduado se superar comprovadamente o plano semafórico estático tradicional pré-existente.\n   - **Impacto Prático:** Garantia jurídica e técnica de ganho efetivo de mobilidade viária.\n",
+        "### C. O Currículo de Maturação do Modelo de IA em 3 Fases (Aprendizado por Reforço)",
+        "1. **Fase Criança (Linha Base / Modo Estático):** O tráfego opera sob o plano semafórico tradicional fixo. Fase de medição passiva para registro da Linha Base real (Ponto Zero).",
+        "2. **Fase Adolescente (Em Otimização / Autonomia Supervisada):** O modelo de Aprendizado por Reforço (RL) assume a gestão semafórica com restrições de segurança. Fase de aprendizado ativo do modelo de IA com queda contínua da Entropia ($\\mathcal{H}$).",
+        "3. **Fase Adulta (Otimizado / Autonomia Plena):** O modelo cumpre o limiar de entropia ($\\mathcal{H} < 0,15$) e desempenho superior, assumindo operação autônoma 24/7."
+      ]
+    },
+    "en": {
+      "lines": [
+        "## 2. Methodology, MFD Model and DA SILVA Maturation Curriculum",
+        "Optimization promoted by the CARINA ecosystem integrates macroscopic traffic physics with safe reinforcement learning:\n",
+        "### A. Macroscopic Fundamental Diagram (MFD)",
+        "The MFD establishes the physical relationship between vehicle accumulation (N) and completed trip throughput (P):\n\n$$P(N) = N \\cdot V(N)$$\n\nCARINA dynamically adjusts green split allocations to keep intersections operating near optimal MFD capacity.\n",
+        "### B. Mathematical Foundation of DA SILVA 3 Maturation Criteria",
+        "To authorize autonomous transition from Child to Adult phase, three independent criteria must be met:\n",
+        "1. **Time Window Criterion:** Minimum required sampling window (e.g. 24h) to ensure statistical validity.\n",
+        "2. **Policy Entropy Criterion H(π):** Evaluates policy convergence until entropy falls below threshold (H < 0.15).\n",
+        "3. **Performance Gain Criterion:** Ensures measurable delay reductions relative to static baseline.\n",
+        "### C. 3-Phase AI Maturation Curriculum",
+        "1. **Child Phase (Baseline / Static Mode):** Traditional static timing baseline measurement.",
+        "2. **Teen Phase (Optimizing / Supervised Autonomy):** Active RL learning under safety constraints.",
+        "3. **Adult Phase (Optimized / Full Autonomy 24/7):** High performance and low entropy autonomous operation."
+      ]
+    },
+    "fr": {
+      "lines": [
+        "## 2. Méthodologie, Modèle MFD et Cursus de Maturation DA SILVA",
+        "L'optimisation du système CARINA intègre la physique du trafic avec l'apprentissage par renforcement sécurisé :\n",
+        "### A. Le Diagramme Fondamental Macroscopique (MFD)",
+        "Le MFD établit la relation physique entre l'accumulation de véhicules (N) et la production de voyages (P).\n",
+        "### B. Fondement Mathématique des 3 Critères DA SILVA",
+        "1. **Critère Temporel :** Fenêtre minimale d'échantillonnage.\n",
+        "2. **Critère d'Entropie H(π) :** Convergence vers une politique déterministe (H < 0,15).\n",
+        "3. **Critère de Performance :** Réduction du retard par rapport à la référence.\n",
+        "### C. Cursus de Maturation IA en 3 Phases",
+        "1. **Phase Enfant (Référence) :** Mode statique traditionnel.",
+        "2. **Phase Adolescente (En Outil) :** Autonomie supervisée.",
+        "3. **Phase Adulte (Optimisée) :** Autonomie complète 24/7."
+      ]
+    },
+    "es": {
+      "lines": [
+        "## 2. Metodología, Modelo MFD y Currículo de Maduración DA SILVA",
+        "La optimización de CARINA integra la física del tráfico con aprendizaje por refuerzo seguro :\n",
+        "### A. El Diagrama Fundamental Macroscópico (MFD)",
+        "El MFD establece la relación física entre la acumulación de vehículos (N) y la producción de viajes (P).\n",
+        "### B. Fundamentación Matemática de los 3 Criterios DA SILVA",
+        "1. **Criterio de Tiempo :** Ventana mínima de muestreo.\n",
+        "2. **Criterio de Entropía H(π) :** Convergencia determinista (H < 0,15).\n",
+        "3. **Criterio de Desempeño :** Reducción de demoras frente a la base.\n",
+        "### C. Currículo de Maduración en 3 Fases",
+        "1. **Fase Niño (Línea Base) :** Control estático tradicional.",
+        "2. **Fase Adolescente (En Optimización) :** Autonomía supervisada.",
+        "3. **Fase Adulta (Optimizado) :** Autonomía plena 24/7."
+      ]
+    },
+    "ru": {
+      "lines": [
+        "## 2. Методология, модель MFD и программа обучения DA SILVA",
+        "Оптимизация CARINA объединяет макроскопическую физику движения и безопасное обучение с подкреплением :\n",
+        "### A. Макроскопическая фундаментальная диаграмма (MFD)",
+        "MFD устанавливает связь между накоплением автомобилей (N) и завершенными поездками (P).\n",
+        "### B. Математическое обоснование 3 критериев DA SILVA",
+        "1. **Временной критерий :** Минимальное окно выборки.\n",
+        "2. **Критерий энтропии H(π) :** Сходимость к детерминированной политике (H < 0,15).\n",
+        "3. **Критерий эффективности :** Снижение задержек по сравнению с базой.\n",
+        "### C. Программа обучения ИИ из 3 фаз",
+        "1. **Детская фаза (Базовый уровень) :** Статический режим.",
+        "2. **Подростковая фаза (Оптимизация) :** Контролируемая автономия.",
+        "3. **Взрослая фаза (Оптимизировано) :** Полная автономия 24/7."
+      ]
+    },
+    "zh": {
+      "lines": [
+        "## 2. 方法论、MFD 模型与 DA SILVA 成熟度课程",
+        "CARINA 系统的优化融合了宏观交通物理学与安全强化学习：\n",
+        "### A. 宏观基本图 (MFD)",
+        "MFD 建立了车辆积聚量 (N) 与每小时完成出行量 (P) 之间的物理关系。\n",
+        "### B. DA SILVA 三大判定标准的数学基础",
+        "1. **时间窗口标准：** 必需的最小采样时间窗口。\n",
+        "2. **策略熵标准 H(π)：** 评估策略收敛性 (H < 0.15)。\n",
+        "3. **绩效收益标准：** 确保较静态基线有显著延误降低。\n",
+        "### C. 三阶段 AI 成熟度课程",
+        "1. **初始阶段（基线模式）：** 传统静态定时基线测量。",
+        "2. **优化阶段（监督式自动）：** 安全约束下的主动强化学习。",
+        "3. **成熟阶段（全自动）：** 高绩效与低熵全自动运行。"
+      ]
+    }
+  }
+}

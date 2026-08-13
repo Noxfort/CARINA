@@ -18,19 +18,22 @@
 # Author: Gabriel Moraes
 # Date: May 31, 2026
 
+import os
+import json
 import sqlite3
 import logging
-import os
 import configparser
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from src.utils.locale_manager_backend import LocaleManagerBackend
 
+
 class DatabaseEngine:
     """
     Central engine for managing database connections (SQLite or PostgreSQL).
-    Responsible only for connecting, initializing the schema, and providing the active connection.
+    Responsible for connecting, initializing the schema dynamically from config/schema_queries.json,
+    and providing active database connections.
     """
     def __init__(self, locale_manager: 'LocaleManagerBackend', db_name: str = "carina_data.db"):
         self.locale_manager = locale_manager
@@ -90,329 +93,63 @@ class DatabaseEngine:
                 logging.error(f"[DB_ENGINE] Failed to connect to the database ({self.db_type}): {e}")
             return None
 
+    def _load_schema_config(self) -> dict:
+        try:
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+            json_path = os.path.join(base_dir, "config", "schema_queries.json")
+            if os.path.exists(json_path):
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            logging.error(f"[DB_ENGINE] Failed to load schema_queries.json: {e}")
+        return {}
+
     def _initialize_db(self):
         """
-        Creates the necessary tables in the database with a specific SQL dialect.
+        Creates the necessary tables, migrations, and indexes in the database dynamically from JSON.
         """
         conn = self.get_connection()
         if not conn:
             return
         try:
             cursor = conn.cursor()
-            
+            schema_config = self._load_schema_config()
+            dialect_config = schema_config.get(self.db_type, schema_config.get("sqlite", {}))
+
+            # 1. Create Tables
+            for table_sql in dialect_config.get("tables", []):
+                cursor.execute(table_sql)
+                conn.commit()
+
+            # 2. Migrations
+            migrations = dialect_config.get("migrations", [])
             if self.db_type == "postgres":
-                # Ensure each isolated block can commit successfully
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS simulation_runs (
-                    run_id SERIAL PRIMARY KEY,
-                    start_time TIMESTAMP NOT NULL,
-                    scenario_name TEXT
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS episodes (
-                    episode_id SERIAL PRIMARY KEY,
-                    run_id INTEGER NOT NULL REFERENCES simulation_runs(run_id),
-                    episode_number INTEGER NOT NULL,
-                    total_reward REAL,
-                    end_time TIMESTAMP
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS analysis_reports (
-                    report_id SERIAL PRIMARY KEY,
-                    run_id INTEGER NOT NULL REFERENCES simulation_runs(run_id),
-                    timestamp TIMESTAMP NOT NULL,
-                    summary TEXT,
-                    report_content TEXT
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS synapse_fluid_dynamics (
-                    id SERIAL PRIMARY KEY,
-                    collected_at TIMESTAMP NOT NULL DEFAULT NOW(),
-                    scenario_name TEXT NOT NULL DEFAULT 'default',
-                    intersection_id TEXT,
-                    edge_id TEXT NOT NULL,
-                    density REAL NOT NULL,
-                    mean_speed REAL NOT NULL,
-                    min_speed REAL,
-                    queue_length INTEGER NOT NULL,
-                    max_queue INTEGER,
-                    occupancy REAL NOT NULL,
-                    edge_length REAL,
-                    num_lanes INTEGER,
-                    speed_limit REAL,
-                    maturity_stage TEXT NOT NULL DEFAULT 'CHILD'
-                );
-                """)
-                conn.commit()
-
-                # Migration for existing PostgreSQL DBs - check column existence to avoid lock queue blocking
                 cursor.execute("""
                     SELECT column_name FROM information_schema.columns 
                     WHERE table_name = 'synapse_fluid_dynamics';
                 """)
                 existing_cols = {row[0] for row in cursor.fetchall()}
-
-                migrations = [
-                    ('scenario_name', "ALTER TABLE synapse_fluid_dynamics ADD COLUMN scenario_name TEXT DEFAULT 'default';"),
-                    ('intersection_id', "ALTER TABLE synapse_fluid_dynamics ADD COLUMN intersection_id TEXT;"),
-                    ('min_speed', "ALTER TABLE synapse_fluid_dynamics ADD COLUMN min_speed REAL;"),
-                    ('max_queue', "ALTER TABLE synapse_fluid_dynamics ADD COLUMN max_queue INTEGER;"),
-                    ('maturity_stage', "ALTER TABLE synapse_fluid_dynamics ADD COLUMN maturity_stage TEXT DEFAULT 'CHILD';")
-                ]
-                for col_name, migration_sql in migrations:
-                    if col_name not in existing_cols:
+                for m in migrations:
+                    if isinstance(m, dict) and m.get("column") not in existing_cols:
                         try:
-                            cursor.execute(migration_sql)
+                            cursor.execute(m["sql"])
                             conn.commit()
                         except Exception:
                             pass
-
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_collected_at ON synapse_fluid_dynamics(collected_at);")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_edge_id ON synapse_fluid_dynamics(edge_id);")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_maturity_stage ON synapse_fluid_dynamics(maturity_stage);")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_scen_stage_time ON synapse_fluid_dynamics(scenario_name, maturity_stage, collected_at DESC);")
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS synapse_edge_phase_hourly_summary (
-                    edge_id TEXT NOT NULL,
-                    maturity_stage TEXT NOT NULL,
-                    summary_hour TIMESTAMP NOT NULL,
-                    scenario_name TEXT NOT NULL DEFAULT 'default',
-                    sample_count INTEGER NOT NULL,
-                    avg_speed REAL NOT NULL,
-                    min_speed REAL NOT NULL,
-                    avg_density REAL NOT NULL,
-                    avg_queue REAL NOT NULL,
-                    max_queue REAL NOT NULL,
-                    total_production REAL NOT NULL,
-                    avg_occupancy REAL NOT NULL,
-                    PRIMARY KEY (edge_id, maturity_stage, summary_hour)
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS synapse_intersection_phase_hourly_summary (
-                    intersection_id TEXT NOT NULL,
-                    maturity_stage TEXT NOT NULL,
-                    summary_hour TIMESTAMP NOT NULL,
-                    scenario_name TEXT NOT NULL DEFAULT 'default',
-                    sample_count INTEGER NOT NULL,
-                    avg_speed REAL NOT NULL,
-                    min_speed REAL NOT NULL,
-                    avg_queue REAL NOT NULL,
-                    max_queue REAL NOT NULL,
-                    total_production REAL NOT NULL,
-                    total_delay REAL NOT NULL,
-                    PRIMARY KEY (intersection_id, maturity_stage, summary_hour)
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS cloud_file_vault (
-                    id SERIAL PRIMARY KEY,
-                    filename TEXT NOT NULL,
-                    relative_path TEXT NOT NULL UNIQUE,
-                    file_content BYTEA,
-                    last_updated TIMESTAMP NOT NULL DEFAULT NOW()
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS hardware_controller_connections (
-                    intersection_id TEXT PRIMARY KEY,
-                    ip_address TEXT NOT NULL,
-                    auto_connect BOOLEAN NOT NULL DEFAULT TRUE,
-                    last_connected TIMESTAMP DEFAULT NOW()
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS sas_analysis_cache (
-                    scenario_name VARCHAR(255) PRIMARY KEY,
-                    metrics_cache JSONB NOT NULL,
-                    updated_at TIMESTAMP DEFAULT NOW()
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS mfd_analysis_cache (
-                    scenario_name VARCHAR(255) NOT NULL,
-                    cache_type VARCHAR(50) NOT NULL,
-                    metrics_cache JSONB NOT NULL,
-                    updated_at TIMESTAMP DEFAULT NOW(),
-                    PRIMARY KEY (scenario_name, cache_type)
-                );
-                """)
-                conn.commit()
-
             else:
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS simulation_runs (
-                    run_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    start_time TIMESTAMP NOT NULL,
-                    scenario_name TEXT
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS episodes (
-                    episode_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    run_id INTEGER NOT NULL,
-                    episode_number INTEGER NOT NULL,
-                    total_reward REAL,
-                    end_time TIMESTAMP,
-                    FOREIGN KEY (run_id) REFERENCES simulation_runs (run_id)
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS analysis_reports (
-                    report_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    run_id INTEGER NOT NULL,
-                    timestamp TIMESTAMP NOT NULL,
-                    summary TEXT,
-                    report_content TEXT,
-                    FOREIGN KEY (run_id) REFERENCES simulation_runs (run_id)
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS synapse_fluid_dynamics (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    collected_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    scenario_name TEXT NOT NULL DEFAULT 'default',
-                    intersection_id TEXT,
-                    edge_id TEXT NOT NULL,
-                    density REAL NOT NULL,
-                    mean_speed REAL NOT NULL,
-                    min_speed REAL,
-                    queue_length INTEGER NOT NULL,
-                    max_queue INTEGER,
-                    occupancy REAL NOT NULL,
-                    edge_length REAL,
-                    num_lanes INTEGER,
-                    speed_limit REAL,
-                    maturity_stage TEXT NOT NULL DEFAULT 'CHILD'
-                );
-                """)
-                conn.commit()
-
-                # Migration for existing SQLite DBs
-                for migration_sql in [
-                    "ALTER TABLE synapse_fluid_dynamics ADD COLUMN scenario_name TEXT DEFAULT 'default';",
-                    "ALTER TABLE synapse_fluid_dynamics ADD COLUMN intersection_id TEXT;",
-                    "ALTER TABLE synapse_fluid_dynamics ADD COLUMN min_speed REAL;",
-                    "ALTER TABLE synapse_fluid_dynamics ADD COLUMN max_queue INTEGER;",
-                    "ALTER TABLE synapse_fluid_dynamics ADD COLUMN maturity_stage TEXT DEFAULT 'CHILD';"
-                ]:
+                for migration_sql in migrations:
+                    sql_stmt = migration_sql if isinstance(migration_sql, str) else migration_sql.get("sql")
                     try:
-                        cursor.execute(migration_sql)
+                        cursor.execute(sql_stmt)
                         conn.commit()
                     except Exception:
                         pass
 
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_collected_at ON synapse_fluid_dynamics(collected_at);")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_edge_id ON synapse_fluid_dynamics(edge_id);")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_maturity_stage ON synapse_fluid_dynamics(maturity_stage);")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_sfd_scen_stage_time ON synapse_fluid_dynamics(scenario_name, maturity_stage, collected_at DESC);")
+            # 3. Create Indexes
+            for index_sql in dialect_config.get("indexes", []):
+                cursor.execute(index_sql)
                 conn.commit()
 
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS synapse_edge_phase_hourly_summary (
-                    edge_id TEXT NOT NULL,
-                    maturity_stage TEXT NOT NULL,
-                    summary_hour TIMESTAMP NOT NULL,
-                    scenario_name TEXT NOT NULL DEFAULT 'default',
-                    sample_count INTEGER NOT NULL,
-                    avg_speed REAL NOT NULL,
-                    min_speed REAL NOT NULL,
-                    avg_density REAL NOT NULL,
-                    avg_queue REAL NOT NULL,
-                    max_queue REAL NOT NULL,
-                    total_production REAL NOT NULL,
-                    avg_occupancy REAL NOT NULL,
-                    PRIMARY KEY (edge_id, maturity_stage, summary_hour)
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS synapse_intersection_phase_hourly_summary (
-                    intersection_id TEXT NOT NULL,
-                    maturity_stage TEXT NOT NULL,
-                    summary_hour TIMESTAMP NOT NULL,
-                    scenario_name TEXT NOT NULL DEFAULT 'default',
-                    sample_count INTEGER NOT NULL,
-                    avg_speed REAL NOT NULL,
-                    min_speed REAL NOT NULL,
-                    avg_queue REAL NOT NULL,
-                    max_queue REAL NOT NULL,
-                    total_production REAL NOT NULL,
-                    total_delay REAL NOT NULL,
-                    PRIMARY KEY (intersection_id, maturity_stage, summary_hour)
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS cloud_file_vault (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    filename TEXT NOT NULL,
-                    relative_path TEXT NOT NULL UNIQUE,
-                    file_content BLOB,
-                    last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS hardware_controller_connections (
-                    intersection_id TEXT PRIMARY KEY,
-                    ip_address TEXT NOT NULL,
-                    auto_connect BOOLEAN NOT NULL DEFAULT TRUE,
-                    last_connected TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS sas_analysis_cache (
-                    scenario_name TEXT PRIMARY KEY,
-                    metrics_cache TEXT NOT NULL,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-                """)
-                conn.commit()
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS mfd_analysis_cache (
-                    scenario_name TEXT NOT NULL,
-                    cache_type TEXT NOT NULL,
-                    metrics_cache TEXT NOT NULL,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (scenario_name, cache_type)
-                );
-                """)
-                conn.commit()
-            
         except Exception as e:
             if conn:
                 conn.rollback()

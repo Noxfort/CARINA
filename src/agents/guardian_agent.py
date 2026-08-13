@@ -22,6 +22,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
+import numpy as np
 import logging
 from collections import deque
 from typing import TYPE_CHECKING, Optional, Dict, Any, List, Tuple
@@ -139,7 +140,8 @@ class GuardianAgent:
         while len(seq) < self.TEMPORAL_SEQ_LEN:
             seq.insert(0, seq[0])
         
-        return torch.tensor([seq], dtype=torch.float32, device=self.device)
+        seq_np = np.array(seq, dtype=np.float32)
+        return torch.from_numpy(seq_np).unsqueeze(0).to(self.device)
 
     def _get_pae_latent(self, seq_tensor: torch.Tensor) -> torch.Tensor:
         """

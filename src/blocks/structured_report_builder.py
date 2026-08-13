@@ -107,6 +107,14 @@ class StructuredReportBuilder:
                 if block:
                     block.build(doc, context, config)
 
+            # Fallback: Guarantee signature is rendered if not already processed in content/block_order
+            if not context.get("_signature_rendered", False):
+                try:
+                    from blocks.signature import SignatureBlock
+                    SignatureBlock().build(doc, context, config)
+                except Exception as sig_err:
+                    logging.warning(f"[STRUCTURED_REPORT_BUILDER] Fallback signature rendering failed: {sig_err}")
+
             os.makedirs(os.path.dirname(os.path.abspath(dest_path)), exist_ok=True)
             doc.save(dest_path)
             logging.info(f"[STRUCTURED_REPORT_BUILDER] Successfully saved report to: {dest_path}")

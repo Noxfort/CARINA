@@ -41,20 +41,20 @@ class ReportWriter:
         lines = []
         lines.append("=" * 60)
         
-        title = lm.get_string("xai_report.title", default="XAI Analysis Report - Agent {agent_id}", agent_id=self.agent_id)
+        title = lm.get_string("xai_report.title", default="Laudo Técnico de Explicabilidade Algorítmica XAI - Agente {agent_id}", agent_id=self.agent_id)
         lines.append(title)
         
-        subtitle = lm.get_string("xai_report.subtitle", default="Generated on: {timestamp}", timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        subtitle = lm.get_string("xai_report.subtitle", default="Data de Emissão: {timestamp}", timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         lines.append(subtitle)
         
         lines.append("=" * 60 + "\n")
         
-        header_desc = lm.get_string("xai_report.header_description", default="This report presents the importance of each sensor (feature) for the agent's decision making, based on the Integrated Gradients method.")
+        header_desc = lm.get_string("xai_report.header_description", default="Este laudo apresenta o peso de importância matemática de cada sensor (variável) para o processo de tomada de decisão da Rede Neural Profunda, fundamentado no método de Gradientes Integrados (Captum).")
         lines.append(header_desc + "\n")
 
-        lbl_sensor = lm.get_string('xai_report.section_sensor', default="Sensor")
-        lbl_importance = lm.get_string('xai_report.section_importance', default="Importance")
-        lbl_desc = lm.get_string('xai_report.section_description', default="Description")
+        lbl_sensor = lm.get_string('xai_report.section_sensor', default="Sensor / Variável")
+        lbl_importance = lm.get_string('xai_report.section_importance', default="Importância Relativa (Captum)")
+        lbl_desc = lm.get_string('xai_report.section_description', default="Descrição Técnica")
 
         for item in sorted_analysis:
             bar_length = 20

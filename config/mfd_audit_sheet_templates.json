@@ -1,0 +1,144 @@
+{
+  "intersection_ficha": {
+    "pt_br": {
+      "default_road_characterization": "Via Principal (2 faixas | Vreg: 50 km/h | Extensão: 150 m) | Via Secundária (1 faixa | Vreg: 40 km/h | Extensão: 100 m)",
+      "status_description": "Sinalizado (Controle Ativo CARINA)",
+      "adult_stage_title": "Fase Adulta (Graduado com Autonomia Plena 24/7)",
+      "teen_stage_title": "Fase Adolescente (Autonomia Supervisada)",
+      "labels": {
+        "header": "### Cruzamento Semafórico: ID {inter_id}",
+        "status": "**Status Semafórico:** {status_desc}",
+        "method_status": "**Status no Método DA SILVA:** {stage_title}",
+        "road_char": "**Caracterização Física das Vias:** {road_char}",
+        "params_header": "\n**Parâmetros de Maturação Configurados no Sistema (Interface):**",
+        "param_entropy": "- **Limiar de Entropia Máxima Permitida ($H_{{\\text{{limiar}}}}$):** H < {entropy_limit}",
+        "param_window": "- **Janela / Tempo Mínimo de Amostragem:** {min_window}",
+        "param_margin": "- **Margem Mínima de Ganho Exigida:** {perf_margin} (Superar Linha Base)",
+        "calc_header": "\n**Evolução Real Calculada por Fase de Maturação (Método DA SILVA):**",
+        "child_phase": "- **Fase Criança (Linha Base / Modo Estático):** Entropia Medida (H): **{ent_child}** | Velocidade: {spd_child} km/h | Atraso Médio: {delay_child} s | Fila Máxima (P95): {queue_child} veículos | Taxa Saturação (X): {sat_child}",
+        "teen_phase": "- **Fase Adolescente (Em Otimização / Autonomia Supervisada):** Entropia Medida (H): **{ent_teen}** | Velocidade: {spd_teen} km/h | Atraso Médio: {delay_teen} s | Fila Máxima (P95): {queue_teen} veículos | Taxa Saturação (X): {sat_teen}",
+        "adult_phase": "- **Fase Adulta (Otimizado / Autonomia Plena):** Entropia Medida (H): **{ent_adult}** *(Cumpriu H < {entropy_limit})* | Velocidade: {spd_adult} km/h | Atraso Médio: {delay_adult} s | Fila Máxima (P95): {queue_adult} veículos | Taxa Saturação (X): {sat_adult} | **Ganho Líquido: {gain_str}**",
+        "justification_header": "\n**Justificativa Técnico-Gerencial MFD:** {justification}\n"
+      }
+    },
+    "en": {
+      "default_road_characterization": "Major Street (2 lanes | Speed Limit: 50 km/h | Length: 150 m) | Minor Street (1 lane | Speed Limit: 40 km/h | Length: 100 m)",
+      "status_description": "Signalized (CARINA Active Control)",
+      "adult_stage_title": "Adult Phase (Full Autonomy 24/7)",
+      "teen_stage_title": "Teen Phase (Supervised Autonomy)",
+      "labels": {
+        "header": "### Signalized Intersection: ID {inter_id}",
+        "status": "**Signal Status:** {status_desc}",
+        "method_status": "**DA SILVA Status:** {stage_title}",
+        "road_char": "**Physical Road Characteristics:** {road_char}",
+        "params_header": "\n**System Configured Maturation Parameters:**",
+        "param_entropy": "- **Max Allowed Entropy Threshold ($H_{{\\text{{limit}}}}$):** H < {entropy_limit}",
+        "param_window": "- **Min Sampling Time Window:** {min_window}",
+        "param_margin": "- **Min Required Gain Margin:** {perf_margin} (Beat Baseline)",
+        "calc_header": "\n**Calculated Real Progression by Maturation Phase (DA SILVA Method):**",
+        "child_phase": "- **Child Phase (Baseline / Static Mode):** Measured Entropy (H): **{ent_child}** | Speed: {spd_child} km/h | Avg Delay: {delay_child} s | Max Queue (P95): {queue_child} vehicles | Saturation (X): {sat_child}",
+        "teen_phase": "- **Teen Phase (Optimizing / Supervised Autonomy):** Measured Entropy (H): **{ent_teen}** | Speed: {spd_teen} km/h | Avg Delay: {delay_teen} s | Max Queue (P95): {queue_teen} vehicles | Saturation (X): {sat_teen}",
+        "adult_phase": "- **Adult Phase (Optimized / Full Autonomy):** Measured Entropy (H): **{ent_adult}** *(Met H < {entropy_limit})* | Speed: {spd_adult} km/h | Avg Delay: {delay_adult} s | Max Queue (P95): {queue_adult} vehicles | Saturation (X): {sat_adult} | **Net Gain: {gain_str}**",
+        "justification_header": "\n**MFD Technical & Managerial Justification:** {justification}\n"
+      }
+    },
+    "fr": {
+      "default_road_characterization": "Voie principale (2 voies | 50 km/h) | Voie secondaire (1 voie | 40 km/h)",
+      "status_description": "Signalé (Contrôle CARINA)",
+      "adult_stage_title": "Phase Adulte (Autonomie 24/7)",
+      "teen_stage_title": "Phase Adolescente (Supervisé)",
+      "labels": {
+        "header": "### Carrefour à feux : ID {inter_id}",
+        "status": "**Statut :** {status_desc}",
+        "method_status": "**Statut DA SILVA :** {stage_title}",
+        "road_char": "**Caractérisation physique :** {road_char}",
+        "params_header": "\n**Paramètres de maturation configurés :**",
+        "param_entropy": "- **Seuil maximal d'entropie ($H_{{\\text{{limite}}}}$) :** H < {entropy_limit}",
+        "param_window": "- **Fenêtre d'échantillonnage minimale :** {min_window}",
+        "param_margin": "- **Marge minimale exigée :** {perf_margin}",
+        "calc_header": "\n**Évolution réelle calculée par phase (Méthode DA SILVA) :**",
+        "child_phase": "- **Phase Enfant (Référence) :** Entropie (H) : **{ent_child}** | Vitesse : {spd_child} km/h | Retard : {delay_child} s",
+        "teen_phase": "- **Phase Adolescente :** Entropie (H) : **{ent_teen}** | Vitesse : {spd_teen} km/h | Retard : {delay_teen} s",
+        "adult_phase": "- **Phase Adulte :** Entropie (H) : **{ent_adult}** | Vitesse : {spd_adult} km/h | Retard : {delay_adult} s | **Gain : {gain_str}**",
+        "justification_header": "\n**Avis technique MFD :** {justification}\n"
+      }
+    },
+    "es": {
+      "default_road_characterization": "Vía principal (2 carriles | 50 km/h) | Vía secundaria (1 carril | 40 km/h)",
+      "status_description": "Semaforizado (Control CARINA)",
+      "adult_stage_title": "Fase Adulta (Autonomía 24/7)",
+      "teen_stage_title": "Fase Adolescente (Supervisado)",
+      "labels": {
+        "header": "### Intersección semafórica: ID {inter_id}",
+        "status": "**Estado del semáforo:** {status_desc}",
+        "method_status": "**Estado Método DA SILVA:** {stage_title}",
+        "road_char": "**Caracterización de las vías:** {road_char}",
+        "params_header": "\n**Parámetros de maduración configurados:**",
+        "param_entropy": "- **Umbral máximo de entropía ($H_{{\\text{{límite}}}}$):** H < {entropy_limit}",
+        "param_window": "- **Ventana mínima de muestreo:** {min_window}",
+        "param_margin": "- **Margen de ganancia exigido:** {perf_margin}",
+        "calc_header": "\n**Evolución real calculada por fase (Método DA SILVA):**",
+        "child_phase": "- **Fase Niño (Línea Base):** Entropía (H): **{ent_child}** | Velocidad: {spd_child} km/h | Demora: {delay_child} s",
+        "teen_phase": "- **Fase Adolescente:** Entropía (H): **{ent_teen}** | Velocidad: {spd_teen} km/h | Demora: {delay_teen} s",
+        "adult_phase": "- **Fase Adulta:** Entropía (H): **{ent_adult}** | Velocidad: {spd_adult} km/h | Demora: {delay_adult} s | **Ganancia: {gain_str}**",
+        "justification_header": "\n**Informe técnico MFD:** {justification}\n"
+      }
+    },
+    "ru": {
+      "default_road_characterization": "Главная дорога (2 полосы | 50 км/ч) | Второстепенная дорога (1 полоса | 40 км/ч)",
+      "status_description": "Светофорное регулирование (CARINA)",
+      "adult_stage_title": "Взрослая фаза (Автономия 24/7)",
+      "teen_stage_title": "Подростковая фаза (Контролируемый)",
+      "labels": {
+        "header": "### Перекресток: ID {inter_id}",
+        "status": "**Статус светофора:** {status_desc}",
+        "method_status": "**Статус DA SILVA:** {stage_title}",
+        "road_char": "**Характеристика дорог:** {road_char}",
+        "params_header": "\n**Параметры обучения:**",
+        "param_entropy": "- **Порог энтропии ($H_{{\\text{{предел}}}}$):** H < {entropy_limit}",
+        "param_window": "- **Минимальное окно выборки:** {min_window}",
+        "param_margin": "- **Требуемый прирост:** {perf_margin}",
+        "calc_header": "\n**Динамика по фазам обучения (DA SILVA):**",
+        "child_phase": "- **Детская фаза (Базовая):** Энтропия (H): **{ent_child}** | Скорость: {spd_child} км/ч",
+        "teen_phase": "- **Подростковая фаза:** Энтропия (H): **{ent_teen}** | Скорость: {spd_teen} км/ч",
+        "adult_phase": "- **Взрослая фаза:** Энтропия (H): **{ent_adult}** | Скорость: {spd_adult} км/ч | **Прирост: {gain_str}**",
+        "justification_header": "\n**Техническое обоснование MFD:** {justification}\n"
+      }
+    },
+    "zh": {
+      "default_road_characterization": "主干道（2车道 | 50 km/h）| 次干道（1车道 | 40 km/h）",
+      "status_description": "信号控制（CARINA 主动控制）",
+      "adult_stage_title": "成熟阶段（24/7全自动）",
+      "teen_stage_title": "青少年阶段（监督控制）",
+      "labels": {
+        "header": "### 信号灯交叉口：ID {inter_id}",
+        "status": "**信号灯状态：** {status_desc}",
+        "method_status": "**DA SILVA 方法状态：** {stage_title}",
+        "road_char": "**道路物理特征：** {road_char}",
+        "params_header": "\n**系统配置的成熟度参数：**",
+        "param_entropy": "- **最大允许策略熵阈值 ($H_{{\\text{{极限}}}}$)：** H < {entropy_limit}",
+        "param_window": "- **最小采样时间窗口：** {min_window}",
+        "param_margin": "- **最小要求收益率：** {perf_margin}",
+        "calc_header": "\n**按成熟阶段计算的实际演进（DA SILVA 方法）：**",
+        "child_phase": "- **初始阶段（基线模式）：** 策略熵 (H)：**{ent_child}** | 车速：{spd_child} km/h | 延误：{delay_child} s",
+        "teen_phase": "- **青少年阶段（优化中）：** 策略熵 (H)：**{ent_teen}** | 车速：{spd_teen} km/h | 延误：{delay_teen} s",
+        "adult_phase": "- **成熟阶段（已优化）：** 策略熵 (H)：**{ent_adult}** | 车速：{spd_adult} km/h | 延误：{delay_adult} s | **净收益：{gain_str}**",
+        "justification_header": "\n**MFD 技术与管理鉴定书：** {justification}\n"
+      }
+    }
+  },
+  "deterministic_justification": {
+    "pt_br": {
+      "adult": "A atuação do agente neural no nó semafórico {inter_id} eliminou a sobrecriticação observada na Fase Criança (X={sat_child}). Ao redistribuir dinamicamente as fases de verde em tempo real, o motor MFD reduziu a taxa de saturação para X={sat_adult}, {delay_phrase} e estabilizou a Entropia da Política em H={entropy_adult} (cumprindo H < 0,15) com ganho líquido de {gain_str} na fluidez viária.",
+      "teen": "O nó semafórico {inter_id} encontra-se em Fase Adolescente (Autonomia Supervisada do Modelo RL), apresentando aprendizado ativo com evolução na velocidade de {speed_child} km/h para {speed_teen} km/h e redução da entropia para H={entropy_teen}.",
+      "free_flow_delay_phrase": "mantendo a operação viária em fluxo livre sem retenções de tráfego",
+      "reduced_delay_phrase": "aliviando o atraso médio de {delay_child} s para {delay_adult} s"
+    },
+    "en": {
+      "adult": "Neural agent operation at intersection {inter_id} eliminated overcritical congestion observed in Child Phase (X={sat_child}). By dynamically reallocating green splits in real time, the MFD engine reduced saturation ratio to X={sat_adult}, {delay_phrase} and stabilized Policy Entropy at H={entropy_adult} (H < 0.15) with net efficiency gain of {gain_str}.",
+      "teen": "Intersection {inter_id} is currently in Teen Phase (Supervised RL Autonomy), with active learning speed progression from {speed_child} km/h to {speed_teen} km/h.",
+      "free_flow_delay_phrase": "maintaining free-flow traffic operations without bottlenecks",
+      "reduced_delay_phrase": "reducing average delay from {delay_child} s to {delay_adult} s"
+    }
+  }
+}

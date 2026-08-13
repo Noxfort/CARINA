@@ -40,6 +40,7 @@ from database.database_worker import run_database_worker
 from xai.xai_worker import run_xai_worker
 from mfd.mfd_worker import run_mfd_worker
 from utils.metrics_manager import MetricsManager
+from utils.process_monitor import ProcessMonitor
 from utils.locale_manager_backend import LocaleManagerBackend
 
 
@@ -54,8 +55,8 @@ def run_controller_process(settings, pipe_conn, wd_q, sds_q, sas_q, ui_q, mfd_tr
         logging.info("[CentralController Process] Starting...")
         locale_manager = LocaleManagerBackend()
         
-        # Start metrics
-        metrics_manager = MetricsManager(process_name="CentralController", port=8001)
+        # Start metrics & background process/GPU monitor
+        metrics_manager = ProcessMonitor.start_background_monitor(process_name="CentralController", port=8001)
         
         controller = CentralController(settings, pipe_conn, wd_q, sds_q, sas_q, ui_q, locale_manager, mfd_trigger_queue=mfd_trigger_q)
         controller.run() # Blocks here on the gRPC server

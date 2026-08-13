@@ -1,0 +1,56 @@
+{
+  "section_titles": {
+    "section_1_intro": {
+      "pt_br": "## 1. INTRODUÇÃO E CONTEXTO EXECUTIVO",
+      "en": "## 1. INTRODUCTION AND EXECUTIVE CONTEXT",
+      "fr": "## 1. INTRODUCTION ET CONTEXTE DÉCISIONNEL",
+      "es": "## 1. INTRODUCCIÓN Y CONTEXTO EJECUTIVO",
+      "ru": "## 1. ВВЕДЕНИЕ И ИСПОЛНИТЕЛЬНЫЙ КОНТЕКСТ",
+      "zh": "## 1. 引言与决策背景"
+    },
+    "section_5_final_opinion": {
+      "pt_br": "## 5. Considerações Finais e Parecer Técnico",
+      "en": "## 5. Final Considerations and Technical Opinion",
+      "fr": "## 5. Considérations finales et avis technique",
+      "es": "## 5. Consideraciones finales e informe técnico",
+      "ru": "## 5. Заключение и техническое решение",
+      "zh": "## 5. 最终结论与技术意见"
+    }
+  },
+  "executive_summary": {
+    "positive": {
+      "pt_br": "A mobilidade urbana da malha viária analisada apresenta evolução operacional positiva sob o controle ativo do motor CARINA v1.0. A velocidade média alcançou {mature_speed} km/h (Fase Adulta), registrando ganho de fluidez de {speed_gain}% em relação à Linha Base (Fase Criança). Os cruzamentos semafóricos auditados demonstraram estabilização na entropia da política e alívio contínuo do acúmulo de filas no tráfego urbano.",
+      "en": "Urban mobility across the analyzed road network demonstrates positive operational progress under active CARINA v1.0 engine control. Average speed reached {mature_speed} km/h (Adult Phase), recording a flow gain of {speed_gain}% relative to Baseline (Child Phase). Audited intersections showed policy entropy stabilization and continuous queue relief.",
+      "fr": "La mobilité urbaine sur le réseau routier analysé montre une évolution opérationnelle positive sous le contrôle actif du moteur CARINA v1.0. La vitesse moyenne a atteint {mature_speed} km/h (Phase Adulte), enregistrant un gain de fluidité de {speed_gain}% par rapport à la Référence (Phase Enfant).",
+      "es": "La movilidad urbana en la red vial analizada presenta una evolución operacional positiva bajo el control activo del motor CARINA v1.0. La velocidad media alcanzó {mature_speed} km/h (Fase Adulta), registrando una ganancia de fluidez del {speed_gain}% en relación con la Línea Base (Fase Niño).",
+      "ru": "Городская мобильность в проанализированной дорожной сети демонстрирует положительную операционную динамику под активным управлением CARINA v1.0. Средняя скорость достигла {mature_speed} км/ч (Взрослая фаза), зафиксирован прирост плавности движения на {speed_gain}% по сравнению с Базовым уровнем.",
+      "zh": "在 CARINA v1.0 引擎的积极控制下，被分析路网的城市交通呈现出良好运行态势。平均车速达到 {mature_speed} km/h（成熟阶段），较基线（初始阶段）提升了 {speed_gain}% 的流动效率。"
+    },
+    "negative": {
+      "pt_br": "A mobilidade urbana da malha viária analisada registrou ponto de atrito e retenção de fluxo sob o controle ativo do motor CARINA v1.0. A velocidade média da malha evoluiu para {mature_speed} km/h, apresentando variação de {speed_gain}% e elevação no volume de acúmulo de filas. Os dados empíricos observados indicam a necessidade de readequação e sintonia fina nos tempos de ciclo semafórico.",
+      "en": "Urban mobility across the analyzed road network recorded flow friction and bottleneck retention under active CARINA v1.0 engine control. Network average speed reached {mature_speed} km/h ({speed_gain}% variation) with elevated queue accumulation. Empirical data indicates the need for traffic signal cycle fine-tuning.",
+      "fr": "La mobilité urbaine a enregistré des points de friction et des retenues de flux sous le contrôle du moteur CARINA v1.0. La vitesse moyenne a évolué vers {mature_speed} km/h ({speed_gain}%) avec une augmentation des queues. Une réévaluation des paramètres semaphoriques est recommandée.",
+      "es": "La movilidad urbana registró puntos de fricción y retención de flujo bajo el control del motor CARINA v1.0. La velocidad media alcanzó {mature_speed} km/h ({speed_gain}%) con aumento de colas. Se recomienda reajustar los ciclos semafóricos.",
+      "ru": "Городская мобильность зафиксировала задержки потока под управлением CARINA v1.0. Средняя скорость составила {mature_speed} км/ч ({speed_gain}%) с ростом очередей. Требуется тонкая настройка сигнальных циклов.",
+      "zh": "在 CARINA v1.0 引擎控制下，被分析路网出现了流量堵塞。平均速度变化为 {mature_speed} km/h（{speed_gain}%），排队积压增加，需重新精细化调整信号周期。"
+    }
+  },
+  "final_opinion": {
+    "positive": {
+      "pt_br": "O Motor CARINA v1.0 (MFD Engine / Método DA SILVA) atesta que a malha viária urbana analisada registrou ganho efetivo na velocidade de fluxo e redução significativa no tempo de espera dos veículos. Com base nos dados empíricos observados, emitimos o Parecer Técnico de APROVAÇÃO E HOMOLOGAÇÃO DA OTIMIZAÇÃO SEMAFÓRICA da malha auditada.",
+      "en": "The CARINA v1.0 Engine (MFD Engine / DA SILVA Method) certifies that the analyzed urban road network recorded effective flow speed gains and significant vehicle wait time reductions. Based on empirical data, we issue the Technical Opinion of APPROVAL AND HOMOLOGATION OF TRAFFIC SIGNAL OPTIMIZATION for the audited network.",
+      "fr": "Le moteur CARINA v1.0 atteste que le réseau routier urbain analysé a enregistré un gain effectif de vitesse de flux et une réduction significative du temps d'attente. Nous émettons l'Avis Technique d'APPROBATION ET HOMOLOGATION DE L'OPTIMISATION SEMAPHORIQUE.",
+      "es": "El motor CARINA v1.0 certifica que la red vial urbana analizada registró una ganancia efectiva en la velocidad de flujo y una reducción significativa en el tiempo de espera. Emitimos el Dictamen Técnico de APROBACIÓN Y HOMOLOGACIÓN DE LA OPTIMIZACIÓN SEMAFÓRICA.",
+      "ru": "Двигатель CARINA v1.0 подтверждает, что проанализированная сеть зафиксировала реальный прирост скорости и сокращение времени ожидания. Выдано техническое заключение: ОДОБРЕНО И УТВЕРЖДЕНО.",
+      "zh": "CARINA v1.0 引擎（MFD 引擎 / DA SILVA 方法）证实，被分析的城市路网实现了车流速度的有效提升与等待时间的显著减少。根据实测数据，特此签署【信号灯优化批准与Homologation技术鉴定书】。"
+    },
+    "negative": {
+      "pt_br": "O Motor CARINA v1.0 (MFD Engine / Método DA SILVA) atesta que a malha viária urbana analisada registrou retenção no fluxo de veículos e aumento no acúmulo de filas no cenário sob auditoria. Com base nos dados empíricos observados, emitimos o Parecer Técnico de REAPRECIAÇÃO E REAJUSTE DOS PARÂMETROS SEMAFÓRICOS, recomendando a readequação dos tempos de ciclo e a recalibração dos modelos neurais de Aprendizado por Reforço antes da homologação definitiva.",
+      "en": "The CARINA v1.0 Engine certifies that the analyzed urban road network recorded vehicle flow bottlenecks and increased queue accumulation under audit. We issue the Technical Opinion of RE-EVALUATION AND RE-ADJUSTMENT OF SIGNAL PARAMETERS prior to final homologation.",
+      "fr": "Le moteur CARINA v1.0 atteste que le réseau a enregistré des ralentissements et une augmentation des files. Nous émettons l'Avis Technique de RÉÉVALUATION ET RÉAJUSTEMENT DES PARAMÈTRES SÉMAPHORIQUES.",
+      "es": "El motor CARINA v1.0 certifica que la red vial registró retención de flujo e incremento de colas. Emitimos el Dictamen Técnico de REASIGNACIÓN Y REAJUSTE DE PARÁMETROS SEMAFÓRICOS.",
+      "ru": "Двигатель CARINA v1.0 подтверждает задержки потока и рост очередей. Выдано техническое заключение: ТРЕБУЕТСЯ ПЕРЕСМОТР И ПЕРЕКАЛИБРОВКА СИГНАЛОВ.",
+      "zh": "CARINA v1.0 引擎证实，被审计路网出现了车流滞留及排队积压增加。特此签署【信号参数重新评估与再调整技术鉴定书】，建议在最终Homologation前对RL神经网络模型进行再校准。"
+    }
+  }
+}

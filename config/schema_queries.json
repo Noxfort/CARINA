@@ -1,0 +1,63 @@
+{
+  "postgres": {
+    "tables": [
+      "CREATE TABLE IF NOT EXISTS simulation_runs (run_id SERIAL PRIMARY KEY, start_time TIMESTAMP NOT NULL, scenario_name TEXT);",
+      "CREATE TABLE IF NOT EXISTS episodes (episode_id SERIAL PRIMARY KEY, run_id INTEGER NOT NULL REFERENCES simulation_runs(run_id), episode_number INTEGER NOT NULL, total_reward REAL, end_time TIMESTAMP);",
+      "CREATE TABLE IF NOT EXISTS analysis_reports (report_id SERIAL PRIMARY KEY, run_id INTEGER NOT NULL REFERENCES simulation_runs(run_id), timestamp TIMESTAMP NOT NULL, summary TEXT, report_content TEXT);",
+      "CREATE TABLE IF NOT EXISTS synapse_fluid_dynamics (id SERIAL PRIMARY KEY, collected_at TIMESTAMP NOT NULL DEFAULT NOW(), scenario_name TEXT NOT NULL DEFAULT 'default', intersection_id TEXT, edge_id TEXT NOT NULL, density REAL NOT NULL, mean_speed REAL NOT NULL, min_speed REAL, queue_length INTEGER NOT NULL, max_queue INTEGER, occupancy REAL NOT NULL, edge_length REAL, num_lanes INTEGER, speed_limit REAL, maturity_stage TEXT NOT NULL DEFAULT 'CHILD');",
+      "CREATE TABLE IF NOT EXISTS synapse_edge_phase_hourly_summary (edge_id TEXT NOT NULL, maturity_stage TEXT NOT NULL, summary_hour TIMESTAMP NOT NULL, scenario_name TEXT NOT NULL DEFAULT 'default', sample_count INTEGER NOT NULL, avg_speed REAL NOT NULL, min_speed REAL NOT NULL, avg_density REAL NOT NULL, avg_queue REAL NOT NULL, max_queue REAL NOT NULL, total_production REAL NOT NULL, avg_occupancy REAL NOT NULL, PRIMARY KEY (edge_id, maturity_stage, summary_hour));",
+      "CREATE TABLE IF NOT EXISTS synapse_intersection_phase_hourly_summary (intersection_id TEXT NOT NULL, maturity_stage TEXT NOT NULL, summary_hour TIMESTAMP NOT NULL, scenario_name TEXT NOT NULL DEFAULT 'default', sample_count INTEGER NOT NULL, avg_speed REAL NOT NULL, min_speed REAL NOT NULL, avg_queue REAL NOT NULL, max_queue REAL NOT NULL, total_production REAL NOT NULL, total_delay REAL NOT NULL, PRIMARY KEY (intersection_id, maturity_stage, summary_hour));",
+      "CREATE TABLE IF NOT EXISTS cloud_file_vault (id SERIAL PRIMARY KEY, filename TEXT NOT NULL, relative_path TEXT NOT NULL UNIQUE, file_content BYTEA, last_updated TIMESTAMP NOT NULL DEFAULT NOW());",
+      "CREATE TABLE IF NOT EXISTS hardware_controller_connections (intersection_id TEXT PRIMARY KEY, ip_address TEXT NOT NULL, auto_connect BOOLEAN NOT NULL DEFAULT TRUE, last_connected TIMESTAMP DEFAULT NOW());",
+      "CREATE TABLE IF NOT EXISTS sas_analysis_cache (scenario_name VARCHAR(255) PRIMARY KEY, metrics_cache JSONB NOT NULL, updated_at TIMESTAMP DEFAULT NOW());",
+      "CREATE TABLE IF NOT EXISTS mfd_analysis_cache (scenario_name VARCHAR(255) NOT NULL, cache_type VARCHAR(50) NOT NULL, metrics_cache JSONB NOT NULL, updated_at TIMESTAMP DEFAULT NOW(), PRIMARY KEY (scenario_name, cache_type));",
+      "CREATE TABLE IF NOT EXISTS step_decisions (id BIGSERIAL PRIMARY KEY, simulation_time REAL NOT NULL, step_number INTEGER NOT NULL, agent_id VARCHAR(64) NOT NULL, maturity_stage SMALLINT NOT NULL DEFAULT 2, suggested_action SMALLINT NOT NULL DEFAULT 0, final_decision SMALLINT NOT NULL DEFAULT 0, veto_reason_code SMALLINT NOT NULL DEFAULT 0, step_count INTEGER NOT NULL DEFAULT 1, total_step_time_ms REAL, guardian_time_ms REAL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);",
+      "CREATE TABLE IF NOT EXISTS edge_dictionary (edge_int_id SERIAL PRIMARY KEY, edge_str_id VARCHAR(255) UNIQUE NOT NULL, created_at TIMESTAMP DEFAULT NOW());"
+    ],
+    "indexes": [
+      "CREATE INDEX IF NOT EXISTS idx_sfd_collected_at ON synapse_fluid_dynamics(collected_at);",
+      "CREATE INDEX IF NOT EXISTS idx_sfd_edge_id ON synapse_fluid_dynamics(edge_id);",
+      "CREATE INDEX IF NOT EXISTS idx_sfd_maturity_stage ON synapse_fluid_dynamics(maturity_stage);",
+      "CREATE INDEX IF NOT EXISTS idx_sfd_scen_stage_time ON synapse_fluid_dynamics(scenario_name, maturity_stage, collected_at DESC);",
+      "CREATE INDEX IF NOT EXISTS idx_sd_agent_time ON step_decisions(agent_id, created_at DESC);",
+      "CREATE INDEX IF NOT EXISTS idx_sd_final_decision ON step_decisions(final_decision, veto_reason_code);",
+      "CREATE INDEX IF NOT EXISTS idx_edge_dict_str ON edge_dictionary(edge_str_id);"
+    ],
+    "migrations": [
+      {"column": "scenario_name", "sql": "ALTER TABLE synapse_fluid_dynamics ADD COLUMN scenario_name TEXT DEFAULT 'default';"},
+      {"column": "intersection_id", "sql": "ALTER TABLE synapse_fluid_dynamics ADD COLUMN intersection_id TEXT;"},
+      {"column": "min_speed", "sql": "ALTER TABLE synapse_fluid_dynamics ADD COLUMN min_speed REAL;"},
+      {"column": "max_queue", "sql": "ALTER TABLE synapse_fluid_dynamics ADD COLUMN max_queue INTEGER;"},
+      {"column": "maturity_stage", "sql": "ALTER TABLE synapse_fluid_dynamics ADD COLUMN maturity_stage TEXT DEFAULT 'CHILD';"},
+      {"column": "sample_count", "sql": "ALTER TABLE synapse_fluid_dynamics ADD COLUMN sample_count INTEGER DEFAULT 1;"},
+      {"column": "edge_int_id", "sql": "ALTER TABLE synapse_fluid_dynamics ADD COLUMN edge_int_id INTEGER;"}
+    ]
+  },
+  "sqlite": {
+    "tables": [
+      "CREATE TABLE IF NOT EXISTS simulation_runs (run_id INTEGER PRIMARY KEY AUTOINCREMENT, start_time TIMESTAMP NOT NULL, scenario_name TEXT);",
+      "CREATE TABLE IF NOT EXISTS episodes (episode_id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, episode_number INTEGER NOT NULL, total_reward REAL, end_time TIMESTAMP, FOREIGN KEY (run_id) REFERENCES simulation_runs (run_id));",
+      "CREATE TABLE IF NOT EXISTS analysis_reports (report_id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, timestamp TIMESTAMP NOT NULL, summary TEXT, report_content TEXT, FOREIGN KEY (run_id) REFERENCES simulation_runs (run_id));",
+      "CREATE TABLE IF NOT EXISTS synapse_fluid_dynamics (id INTEGER PRIMARY KEY AUTOINCREMENT, collected_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, scenario_name TEXT NOT NULL DEFAULT 'default', intersection_id TEXT, edge_id TEXT NOT NULL, density REAL NOT NULL, mean_speed REAL NOT NULL, min_speed REAL, queue_length INTEGER NOT NULL, max_queue INTEGER, occupancy REAL NOT NULL, edge_length REAL, num_lanes INTEGER, speed_limit REAL, maturity_stage TEXT NOT NULL DEFAULT 'CHILD');",
+      "CREATE TABLE IF NOT EXISTS synapse_edge_phase_hourly_summary (edge_id TEXT NOT NULL, maturity_stage TEXT NOT NULL, summary_hour TIMESTAMP NOT NULL, scenario_name TEXT NOT NULL DEFAULT 'default', sample_count INTEGER NOT NULL, avg_speed REAL NOT NULL, min_speed REAL NOT NULL, avg_density REAL NOT NULL, avg_queue REAL NOT NULL, max_queue REAL NOT NULL, total_production REAL NOT NULL, avg_occupancy REAL NOT NULL, PRIMARY KEY (edge_id, maturity_stage, summary_hour));",
+      "CREATE TABLE IF NOT EXISTS synapse_intersection_phase_hourly_summary (intersection_id TEXT NOT NULL, maturity_stage TEXT NOT NULL, summary_hour TIMESTAMP NOT NULL, scenario_name TEXT NOT NULL DEFAULT 'default', sample_count INTEGER NOT NULL, avg_speed REAL NOT NULL, min_speed REAL NOT NULL, avg_queue REAL NOT NULL, max_queue REAL NOT NULL, total_production REAL NOT NULL, total_delay REAL NOT NULL, PRIMARY KEY (intersection_id, maturity_stage, summary_hour));",
+      "CREATE TABLE IF NOT EXISTS cloud_file_vault (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT NOT NULL, relative_path TEXT NOT NULL UNIQUE, file_content BLOB, last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);",
+      "CREATE TABLE IF NOT EXISTS hardware_controller_connections (intersection_id TEXT PRIMARY KEY, ip_address TEXT NOT NULL, auto_connect BOOLEAN NOT NULL DEFAULT TRUE, last_connected TIMESTAMP DEFAULT CURRENT_TIMESTAMP);",
+      "CREATE TABLE IF NOT EXISTS sas_analysis_cache (scenario_name TEXT PRIMARY KEY, metrics_cache TEXT NOT NULL, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);",
+      "CREATE TABLE IF NOT EXISTS mfd_analysis_cache (scenario_name TEXT NOT NULL, cache_type TEXT NOT NULL, metrics_cache TEXT NOT NULL, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (scenario_name, cache_type));"
+    ],
+    "indexes": [
+      "CREATE INDEX IF NOT EXISTS idx_sfd_collected_at ON synapse_fluid_dynamics(collected_at);",
+      "CREATE INDEX IF NOT EXISTS idx_sfd_edge_id ON synapse_fluid_dynamics(edge_id);",
+      "CREATE INDEX IF NOT EXISTS idx_sfd_maturity_stage ON synapse_fluid_dynamics(maturity_stage);",
+      "CREATE INDEX IF NOT EXISTS idx_sfd_scen_stage_time ON synapse_fluid_dynamics(scenario_name, maturity_stage, collected_at DESC);"
+    ],
+    "migrations": [
+      "ALTER TABLE synapse_fluid_dynamics ADD COLUMN scenario_name TEXT DEFAULT 'default';",
+      "ALTER TABLE synapse_fluid_dynamics ADD COLUMN intersection_id TEXT;",
+      "ALTER TABLE synapse_fluid_dynamics ADD COLUMN min_speed REAL;",
+      "ALTER TABLE synapse_fluid_dynamics ADD COLUMN max_queue INTEGER;",
+      "ALTER TABLE synapse_fluid_dynamics ADD COLUMN maturity_stage TEXT DEFAULT 'CHILD';"
+    ]
+  }
+}

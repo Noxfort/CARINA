@@ -1,0 +1,80 @@
+{
+  "section_4_summary": {
+    "pt_br": {
+      "title": "## 4. Resumo Consolidado e Impactos Operacionais da Malha Viária",
+      "summary_items": [
+        "- **Total de Cruzamentos Semafóricos sob Controle Ativo CARINA:** {signalized_count}",
+        "- **Agentes Graduados na Fase Adulta (Autonomia Plena 24/7):** {adult_cnt} {adult_label}",
+        "- **Agentes em Fase Adolescente (Otimização Transicional):** {teen_cnt} {teen_label}",
+        "- **Velocidade Média da Malha:** Evolução de {initial_speed} km/h (Fase Criança - Linha Base) para {mature_speed} km/h (Fase Adulta), representando ganho de {spd_str}.",
+        "- **Produção Máxima de Pico (MFD):** Elevação de {initial_prod} veíc·km/h para {mature_prod} veíc·km/h ({prd_str}).",
+        "- **Tempo Médio de Espera:** Alteração de {initial_delay} s para {mature_delay} s ({dly_str}).",
+        "- **Economia Diária de Tempo Acumulada:** {man_hours} horas-homem economizadas para os cidadãos no trânsito.\n"
+      ],
+      "singular_label": "cruzamento",
+      "plural_label": "cruzamentos"
+    },
+    "en": {
+      "title": "## 4. Consolidated Summary and Network Operational Impacts",
+      "summary_items": [
+        "- **Total Signalized Intersections under Active CARINA Control:** {signalized_count}",
+        "- **Graduated Adult Agents (Full Autonomy 24/7):** {adult_cnt} {adult_label}",
+        "- **Agents in Teen Phase (Transitional Optimization):** {teen_cnt} {teen_label}",
+        "- **Average Network Speed:** Progression from {initial_speed} km/h (Baseline) to {mature_speed} km/h (Adult Phase), representing a gain of {spd_str}.",
+        "- **Peak MFD Throughput:** Increase from {initial_prod} veh·km/h to {mature_prod} veh·km/h ({prd_str}).",
+        "- **Average Wait Time:** Changed from {initial_delay} s to {mature_delay} s ({dly_str}).",
+        "- **Accumulated Daily Time Savings:** {man_hours} man-hours saved for citizens in traffic.\n"
+      ],
+      "singular_label": "intersection",
+      "plural_label": "intersections"
+    },
+    "fr": {
+      "title": "## 4. Résumé consolidé et impacts opérationnels du réseau",
+      "summary_items": [
+        "- **Total des carrefours sous contrôle CARINA :** {signalized_count}",
+        "- **Agents en Phase Adulte (Autonomie 24/7) :** {adult_cnt} {adult_label}",
+        "- **Agents en Phase Adolescente :** {teen_cnt} {teen_label}",
+        "- **Vitesse moyenne :** Évolution de {initial_speed} km/h à {mature_speed} km/h ({spd_str}).",
+        "- **Gain de temps quotidien :** {man_hours} heures-homme économisées.\n"
+      ],
+      "singular_label": "carrefour",
+      "plural_label": "carrefours"
+    },
+    "es": {
+      "title": "## 4. Resumen consolidado e impactos operacionales",
+      "summary_items": [
+        "- **Total de intersecciones bajo control activo CARINA :** {signalized_count}",
+        "- **Agentes en Fase Adulta (Autonomía 24/7) :** {adult_cnt} {adult_label}",
+        "- **Agentes en Fase Adolescente :** {teen_cnt} {teen_label}",
+        "- **Velocidad media :** Evolución de {initial_speed} km/h a {mature_speed} km/h ({spd_str}).",
+        "- **Ahorro diario de tiempo :** {man_hours} horas-hombre ahorradas.\n"
+      ],
+      "singular_label": "intersección",
+      "plural_label": "intersecciones"
+    },
+    "ru": {
+      "title": "## 4. Сводная статистика и операционные результаты",
+      "summary_items": [
+        "- **Всего перекрестков под контролем CARINA :** {signalized_count}",
+        "- **Агентов во Взрослой фазе (Автономия 24/7) :** {adult_cnt} {adult_label}",
+        "- **Агентов в Подростковой фазе :** {teen_cnt} {teen_label}",
+        "- **Средняя скорость сети :** Динамика с {initial_speed} км/ч до {mature_speed} км/ч ({spd_str}).",
+        "- **Ежедневная экономия времени :** {man_hours} человеко-часов сэкономлено.\n"
+      ],
+      "singular_label": "перекресток",
+      "plural_label": "перекрестков"
+    },
+    "zh": {
+      "title": "## 4. 综合汇总与路网运行效果",
+      "summary_items": [
+        "- **CARINA 主动控制下的信号灯交叉口总数：** {signalized_count}",
+        "- **成熟阶段 Agent 数量（24/7全自动）：** {adult_cnt} {adult_label}",
+        "- **过渡优化阶段 Agent 数量：** {teen_cnt} {teen_label}",
+        "- **路网平均车速：** 由 {initial_speed} km/h 提升至 {mature_speed} km/h（增幅 {spd_str}）。",
+        "- **累计每日节省时间：** 为市民节省 {man_hours} 人/小时通行时间。\n"
+      ],
+      "singular_label": "处交叉口",
+      "plural_label": "处交叉口"
+    }
+  }
+}

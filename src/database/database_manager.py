@@ -33,6 +33,8 @@ from src.database.db_engine import DatabaseEngine
 from src.repositories.simulation_repo import SimulationRepository
 from src.repositories.fluid_dynamics_repo import FluidDynamicsRepository
 from src.repositories.cloud_vault_repo import CloudVaultRepository
+from src.repositories.step_decision_repo import StepDecisionRepository
+from src.database.step_decision_worker import StepDecisionWorker
 
 if TYPE_CHECKING:
     from src.utils.locale_manager_backend import LocaleManagerBackend
@@ -54,6 +56,11 @@ class DatabaseManager:
         self.simulation_repo = SimulationRepository(self.engine, locale_manager)
         self.fluid_dynamics_repo = FluidDynamicsRepository(self.engine, locale_manager)
         self.cloud_vault_repo = CloudVaultRepository(self.engine, locale_manager)
+        self.step_decision_repo = StepDecisionRepository(self.engine, locale_manager)
+
+        # Async telemetry worker thread
+        self.step_decision_worker = StepDecisionWorker(self.step_decision_repo)
+        self.step_decision_worker.start()
 
     # =========================================================================
     # SIMULATION RUNS & EPISODES

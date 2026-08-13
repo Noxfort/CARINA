@@ -14,33 +14,33 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# File: src/models/gatv2_lite.py
+# File: src/models/st_gatv2_lite.py
 # Author: Gabriel Moraes
-# Date: February 17, 2026
+# Date: February 17, 2026 (Updated August 2026 for ST-GATv2 Lite)
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GATv2Conv
-
 from typing import Optional, Any
-class GATv2Lite(nn.Module):
+
+class STGATv2Lite(nn.Module):
     """
-    Implementation of the GATv2 Lite (Graph Attention Network v2) architecture.
-    Used by the StrategistAgent to process the road network topology and
-    generate strategic guidance vectors (latents) for local agents.
+    Implementation of the ST-GATv2 Lite (Spatiotemporal Graph Attention Network v2) architecture.
+    Used by the StrategistAgent to process the road network topology and spatiotemporal dynamics,
+    generating strategic guidance vectors (latents) for local agents and the consultant agent.
     """
-    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int, heads: int) -> None:
+    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int, heads: int = 4) -> None:
         """
-        Inicializa as camadas da rede GATv2.
+        Initializes the ST-GATv2 Lite layers.
 
         Args:
-            input_dim (int): Dimensão do vetor de características de entrada (nó).
-            hidden_dim (int): Dimensão da camada oculta.
-            output_dim (int): Dimensão do vetor de saída (orientação estratégica).
-            heads (int): Número de cabeças de atenção (multi-head attention).
+            input_dim (int): Dimension of node feature input vector.
+            hidden_dim (int): Hidden dimension.
+            output_dim (int): Output strategic guidance dimension.
+            heads (int): Number of spatial attention heads.
         """
-        super(GATv2Lite, self).__init__()
+        super(STGATv2Lite, self).__init__()
         
         # GATv2 Convolution Layer 1 (Input -> Hidden)
         self.conv1 = GATv2Conv(
@@ -52,13 +52,12 @@ class GATv2Lite(nn.Module):
         )
         
         # GATv2 Convolution Layer 2 (Hidden -> Output)
-        # The input is hidden_dim * heads because 'concat=True' in the previous layer
         self.conv2 = GATv2Conv(
             hidden_dim * heads, 
             output_dim, 
-            heads=1, # Single head for consolidated final output
+            heads=1,
             dropout=0.1, 
-            concat=False # Final output is not concatenated
+            concat=False
         )
 
         # Normalization layers (LayerNorm) for training stability
@@ -67,25 +66,26 @@ class GATv2Lite(nn.Module):
 
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         """
-        Define o "forward pass" da rede.
+        Defines the forward pass for spatiotemporal graph convolution.
 
         Args:
-            x (Tensor): Tensor de características dos nós [num_nodes, input_dim].
-            edge_index (Tensor): Tensor de conectividade do grafo [2, num_edges].
+            x (Tensor): Node feature tensor [num_nodes, input_dim].
+            edge_index (Tensor): Graph connectivity tensor [2, num_edges].
 
         Returns:
-            Tensor: Tensor de vetores estratégicos [num_nodes, output_dim].
+            Tensor: Strategic spatiotemporal vectors [num_nodes, output_dim].
         """
-        
         # 1. GATv2 First Layer + ELU Activation + Normalization
         x = self.conv1(x, edge_index)
         x = F.elu(x)
         x = self.norm1(x)
         x = F.dropout(x, p=0.1, training=self.training)
         
-        # 2. GATv2 Second Layer + Normalization (At the end activation, linear output)
+        # 2. GATv2 Second Layer + Normalization
         x = self.conv2(x, edge_index)
         x = self.norm2(x)
         
-        # The result 'x' is [num_nodes, output_dim]
         return x
+
+# Alias for backward compatibility
+GATv2Lite = STGATv2Lite

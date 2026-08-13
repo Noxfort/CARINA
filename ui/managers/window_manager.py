@@ -74,10 +74,17 @@ class WindowManager:
         if hasattr(e, 'data') and e.data == "close":
             if self.shutdown_event and self.shutdown_event.is_set():
                 return
-            logging.info("[WindowManager] Janela fechada pelo usuário. Encerrando aplicação CARINA...")
-            if self.shutdown_event:
-                self.shutdown_event.set()
-            self._destroy_window()
+            logging.info("[WindowManager] Botão 'X' clicado pelo usuário. Minimizando janela para a bandeja em vez de fechar...")
+            if hasattr(self.page, 'window') and self.page.window is not None:
+                self.page.window.minimized = True
+                self.page.window.visible = False
+            else:
+                try:
+                    self.page.window_minimized = True
+                    self.page.window_visible = False
+                except Exception:
+                    pass
+            self.page.update()
 
     def _monitor_tray_loop(self):
         while True:
@@ -136,12 +143,16 @@ class WindowManager:
         logging.info("[UI] Requested hard kill of the application...")
         if self.shutdown_event:
             self.shutdown_event.set()
+        self._destroy_window()
         try:
-            import signal
-            if sys.platform != 'win32':
-                os.kill(os.getpid(), signal.SIGINT)
-            else:
-                os.kill(os.getpid(), signal.CTRL_C_EVENT)
-        except Exception as e:
-            logging.error(f"[UI] Error executing hard kill: {e}")
-            self._destroy_window()
+            import psutil
+            current_proc = psutil.Process(os.getpid())
+            for child in current_proc.children(recursive=True):
+                try:
+                    if child.is_running():
+                        child.kill()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        os._exit(0)

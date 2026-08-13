@@ -72,9 +72,9 @@ class MFDIntersectionMetricsCalculator:
             if spd_mat_kmh > 48.5:
                 spd_mat_kmh = 42.5
 
-            dly_init = m_init.get("delay", 78.0)
-            dly_inter = m_inter.get("delay", 42.0)
-            dly_mat = m_mat.get("delay", 24.5)
+            dly_init = max(12.4, m_init.get("delay", 78.0))
+            dly_inter = max(8.2, m_inter.get("delay", 42.0))
+            dly_mat = max(4.5, m_mat.get("delay", 24.5))
 
             que_init = m_init.get("queue", 28.0)
             que_inter = m_inter.get("queue", 16.0)
@@ -84,9 +84,9 @@ class MFDIntersectionMetricsCalculator:
             sat_inter = m_inter.get("saturation", 0.92)
             sat_mat = m_mat.get("saturation", 0.68)
 
-            entropy_child = m_init.get("entropy", 0.38)
-            entropy_teen = m_inter.get("entropy", 0.22)
-            entropy_adult = m_mat.get("entropy", 0.08)
+            entropy_child = max(0.045, m_init.get("entropy", 0.38))
+            entropy_teen = max(0.018, m_inter.get("entropy", 0.22))
+            entropy_adult = max(0.004, m_mat.get("entropy", 0.08))
 
             gain_pct = MFDIntersectionMetricsCalculator.calc_pct_delta(spd_init_kmh, spd_mat_kmh)
 

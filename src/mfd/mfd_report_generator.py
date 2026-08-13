@@ -58,8 +58,26 @@ class MFDReportGenerator:
         """
         lang = lang or ui_language or "pt_br"
 
+        if not mfd_history_data or not mfd_history_data.get("history"):
+            return {
+                "status": "error",
+                "message": "Dados de simulação MFD insuficientes ou incompletos para auditoria viária."
+            }
+
         # 1. Normalize data and resolve statistics
-        normalized_data = MFDDataNormalizer.normalize_mfd_data(mfd_history_data, lang=lang)
+        history = mfd_history_data.get("history", [])
+        peak_prod = mfd_history_data.get("peak_production", 0.0)
+        peak_accum = mfd_history_data.get("peak_accumulation", 0.0)
+
+        from mfd.mfd_analyzer import MFDAnalyzer
+        summary_stats = MFDAnalyzer.analyze(
+            history, peak_prod, peak_accum,
+            scenario_results_dir=scenario_results_dir,
+            scenario_name=scenario_name,
+            db_manager=db_manager
+        )
+
+        normalized_data = MFDDataNormalizer.normalize_mfd_data(mfd_history_data, summary_stats=summary_stats, lang=lang)
         stats = normalized_data.get("stats", {})
         stages_data = normalized_data.get("stages_data", {})
         impact_stats = normalized_data.get("impact_stats", {})
@@ -72,10 +90,15 @@ class MFDReportGenerator:
         if transducer is None:
             try:
                 from slm.semantic_transducer import SemanticTransducer
-                transducer = SemanticTransducer()
-                transducer.load_resources()
+                st = SemanticTransducer()
+                st.load_resources()
+                if getattr(st, "model", None) is not None:
+                    transducer = st
+                else:
+                    transducer = None
             except Exception as transducer_err:
                 logging.warning(f"[MFD_REPORT_GENERATOR] Could not load in-memory SemanticTransducer: {transducer_err}")
+                transducer = None
 
         # 4. Build narrative sections (1 to 5) and ANEXO I audit sheets
         narrative_text, raw_exec_summary = MFDSectionBuilder.build_narrative_sections(normalized_data, transducer=transducer, lang=lang)

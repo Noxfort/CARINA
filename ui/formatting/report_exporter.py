@@ -161,6 +161,17 @@ class ReportExporter:
                 scenario_clean = raw_scenario.replace("_", " ").title()
 
             from blocks.report_post_processor import ReportPostProcessor
+            
+            if mode == "XAI" and results_dir:
+                try:
+                    from xai.xai_report_generator import XaiReportGenerator
+                    xai_gen = XaiReportGenerator(results_dir)
+                    full_res = xai_gen.generate_full_multi_agent_report(primary_agent_id=agent_id)
+                    if full_res and full_res.get("text_content"):
+                        text_content = full_res["text_content"]
+                except Exception as e:
+                    logging.warning(f"[REPORT_EXPORTER] Failed multi-agent XAI report generation: {e}")
+
             cleaned_text_content = ReportPostProcessor.enforce_semantic_consistency(text_content) if text_content else ""
 
             engine_str = "CARINA v1.0 (MFD Engine)" if mode == "MFD" else ("CARINA v1.0 (SAS Engine)" if mode == "PLANNING" else "CARINA v1.0 (XAI Engine)")

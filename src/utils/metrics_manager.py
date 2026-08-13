@@ -25,7 +25,7 @@ of metrics to Prometheus.
 
 import logging
 import threading
-from prometheus_client import start_http_server, Gauge, Counter
+from prometheus_client import start_http_server, Gauge, Counter, Histogram, Summary
 
 class MetricsManager:
     """
@@ -90,14 +90,15 @@ class MetricsManager:
         except Exception as e:
             logging.error(self._get_string("metrics_manager.thread_critical_error", default="[{process}-METRICS] Critical failure creating server thread: {error}", process=self.process_name, error=e))
 
-    def register_metric(self, name: str, description: str, metric_type: str = 'gauge'):
+    def register_metric(self, name: str, description: str, metric_type: str = 'gauge', buckets: list = None):
         """
         Cria e registra uma nova métrica.
 
         Args:
             name (str): O nome da métrica (ex: 'queue_size').
             description (str): Uma descrição do que a métrica representa.
-            metric_type (str): O tipo de métrica ('gauge' ou 'counter').
+            metric_type (str): O tipo de métrica ('gauge', 'counter', 'histogram' ou 'summary').
+            buckets (list): Lista opcional de limites de buckets para Histogram.
         """
         if name in self.metrics:
             return
@@ -109,6 +110,13 @@ class MetricsManager:
                 metric = Gauge(name, description, labelnames=label_names)
             elif metric_type == 'counter':
                 metric = Counter(name, description, labelnames=label_names)
+            elif metric_type == 'histogram':
+                kwargs = {'labelnames': label_names}
+                if buckets:
+                    kwargs['buckets'] = buckets
+                metric = Histogram(name, description, **kwargs)
+            elif metric_type == 'summary':
+                metric = Summary(name, description, labelnames=label_names)
             else:
                 logging.warning(self._get_string("metrics_manager.unknown_type", default="[{process}-METRICS] Unknown metric type: {type}", process=self.process_name, type=metric_type))
                 return
@@ -125,7 +133,7 @@ class MetricsManager:
 
         Args:
             name (str): O nome da métrica a ser atualizada.
-            value (float): O novo valor para a métrica.
+            value (float): O novo valor para a métrica ou observação.
         """
         if name not in self.metrics:
             return
@@ -137,8 +145,9 @@ class MetricsManager:
             if isinstance(metric, Gauge):
                 metric.labels(process_name=self.process_name).set(value)
             elif isinstance(metric, Counter):
-                # For counters we usually increment, but 'inc' with value allows flexibility
                 metric.labels(process_name=self.process_name).inc(value)
+            elif isinstance(metric, (Histogram, Summary)):
+                metric.labels(process_name=self.process_name).observe(value)
         except Exception:
             # Avoid crashing the main loop if there is an error in the metric
             pass

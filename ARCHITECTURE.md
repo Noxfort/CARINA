@@ -1,11 +1,11 @@
 ---
-tags: [architecture, core, system]
-aliases: [Arquitetura CARINA, Visão Geral]
+tags: [architecture, core, system, gatv2, pae, pbt, amp]
+aliases: [Arquitetura CARINA, Visão Geral, Blueprint]
 ---
 
 # 🏛️ CARINA: System Blueprint & Multiprocessing Architecture
 
-This document specifies the internal engineering architecture of the CARINA ecosystem. It details the 8 concurrent operating system microservices, the inter-process communication (IPC) topology, the `EpisodeRunner` inference loop, and the neuro-symbolic safety firewall.
+This document specifies the internal engineering architecture of the CARINA ecosystem. It details the 8 concurrent operating system microservices, the neural network topology, the `TopologicalScaler`, the `ConsultantAgent`, the `CrossAttentionFusion` duality, and the async PostgreSQL delta storage engine.
 
 ⬅️ Back to [Main Documentation Hub](docs/CARINA_MOC.md)
 
@@ -14,8 +14,6 @@ This document specifies the internal engineering architecture of the CARINA ecos
 ## 1. Multiprocessing Microservices Concurrency Model
 
 Python's Global Interpreter Lock (GIL) prevents multi-threaded CPU-bound AI inference and heavy I/O operations from running in true parallelism. To achieve sub-millisecond actuation latency, CARINA employs a **multiprocessing microservice model** orchestrated by `carina.py` and `ProcessManager`.
-
-The system spawns **8 isolated OS processes**, each executing inside its own Python process memory space with its own event loop.
 
 ```mermaid
 graph TD
@@ -26,7 +24,7 @@ graph TD
     PM --> WD[3. Watchdog Process]
     PM --> SDS[4. DashboardService SDS]
     PM --> SAS[5. AnalysisService SAS]
-    PM --> DB[6. DatabaseWorker]
+    PM --> DB[6. StepDecisionWorker & DatabaseWorker]
     PM --> XAI[7. XAI_Worker LLM]
     PM --> MFD[8. MFD_Worker Engine]
 
@@ -41,101 +39,63 @@ graph TD
     XAI -->|Disk HFT Logs| AI
 ```
 
-### 1.1 Detailed Microservice Directory & Responsibilities
-
-| Process Name | Entry Target | Key Functionality | Isolation Rationale |
-| :--- | :--- | :--- | :--- |
-| **`CentralController`** | `run_controller_process()` | Hosts the `Synapse HFT` gRPC server (port 50051) & Prometheus metrics (port 8001). Receives physical traffic frames and returns phase actuation signals. | Keeps hardware I/O non-blocking and isolated from neural training latency. |
-| **`AI_Process`** | `run_ai_process()` | Runs `EpisodeRunner`, PPO-TCN inference, GATv2 attention, and the Guardian Safety Firewall. | CPU/GPU intensive neural inference loop; isolated to maintain a fixed 50Hz step frequency. |
-| **`Watchdog`** | `run_watchdog()` | Continuously listens to process heartbeats (`wd` queue). Triggers hardware fallback if AI hangs (>500ms). | Real-time safety requirement; must run independently of AI process health. |
-| **`DashboardService (SDS)`** | `run_sds_worker()` | Bridges live telemetry from `sds` queue to the desktop UI and WebSocket streams. | Prevents GUI rendering or client network lag from impacting traffic control. |
-| **`AnalysisService (SAS)`** | `run_analysis_worker()` | Runs offline SQL queries against historical traffic data to compute infrastructure warrants. | Heavy analytical query execution isolated from production database writes. |
-| **`DatabaseWorker`** | `run_database_worker()` | Consumes state/reward tuples from the `db` queue and executes async bulk batch `INSERT` operations (PostgreSQL/SQLite). | Decouples DB disk I/O latency from the real-time control loop. |
-| **`XAI_Worker`** | `run_xai_worker()` | Loads `Qwen3 1.7B` LLM and `Captum` Integrated Gradients into GPU memory to generate natural-language explainability reports. | Huge VRAM footprint (1.7B parameters) and multi-second generation time isolated from real-time loop. |
-| **`MFD_Worker`** | `run_mfd_worker()` | Computes Macroscopic Fundamental Diagrams (network density vs. space-mean speed & flow) to detect regional gridlock. | Matrix aggregation over large spatial grids isolated from step-by-step PPO decisions. |
-
-### 1.2 The SOLID Hardware Controller Subsystem (`src/controller/`)
-
-To comply strictly with the **Single Responsibility Principle (SRP)**, the hardware controller layer is decoupled into specialized micro-modules:
-
-- **`HardwareConnectionManager` (`connection_manager.py`)**: Pure singleton orchestrator for hardware drivers.
-- **`ConnectionConfigRepository` (`connection_config_repo.py`)**: Manages persistence of IP configurations, CSV import/export, and database records.
-- **`ConnectionOperationHandler` (`connection_operation_handler.py`)**: Handles async driver instantiation and connection toggling.
-- **`IntersectionResolver` (`intersection_resolver.py`)**: Performs IP-to-intersection resolution and metadata queries.
-- **`SnmpTrapListener` (`hardware_event_listener.py`)**: Listens on UDP port 162 for active hardware SNMP trap events.
-- **`FailSafeManager` (`failsafe_manager.py`)**: Manages hardware failsafe states and emergency signal overrides.
-- **`TrafficFrameProcessor` (`traffic_frame_processor.py`)**: Parses incoming hardware telemetry streams.
-
 ---
 
-## 2. Inter-Process Communication (IPC) Channels & Schemas
-
-CARINA uses a hybrid IPC model consisting of high-speed duplex `multiprocessing.Pipe` for real-time control and thread-safe bounded `multiprocessing.Queue` instances for event streaming.
+## 2. Advanced Deep Learning Architecture
 
 ```text
-IPC Channel Summary:
-├── controller_conn <--> ai_conn (Duplex Pipe): Telemetry frames & Actuation signals (Zero serialization overhead)
-├── wd (Queue maxsize=500): Process heartbeats -> Watchdog
-├── sds (Queue maxsize=500): Telemetry frames -> DashboardService
-├── sas (Queue maxsize=500): Historical metrics -> AnalysisService
-├── db (Queue maxsize=500): State/Reward/Action tuples -> DatabaseWorker
-├── g_state / g_signal (Queue maxsize=500): Guardian State & Veto Signals
-├── sas_results (Queue maxsize=10): Infrastructure Warrants -> CentralController
-├── mfd_trigger (Queue maxsize=10): Trigger signal -> MFD_Worker
-└── mfd_results (Queue maxsize=10): MFD curves & capacity metrics -> CentralController
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │                        TOPOLOGICAL SCALER (O(1))                        │
+    │   Auto-detects Map Nodes (N) -> Latent Dim (32/64/128/256), Heads (2/4/8/16)│
+    └────────────────────────────────────┬────────────────────────────────────┘
+                                         │
+    ┌─────────────────────────┐   ┌──────┴──────────────────┐   ┌───────────────────────────┐
+    │     LOCAL AGENT TCN     │   │   ST-GATv2 LITE GRAPH   │   │   GLOBAL CONSULTANT PAE   │
+    │ (Edge AI Real-Time 0.5ms)│   │ (Green Wave Coordinator)│   │ (Background Predictive 128ch)│
+    └────────────┬────────────┘   └────────────┬────────────┘   └─────────────┬─────────────┘
+                 │                             │                              │
+                 └──────────────────────┬──────┴──────────────────────────────┘
+                                        │
+                         ┌──────────────┴──────────────┐
+                         │   CROSS-ATTENTION FUSION    │
+                         │ Dual Mode:                  │
+                         │ - LocalAgent: Adaptive PBT  │
+                         │ - Guardian: Fixed Weights   │
+                         └──────────────┬──────────────┘
+                                        │
+                         ┌──────────────┴──────────────┐
+                         │  UNIVERSAL AMP & TENSORCORE │
+                         │ (torch.amp.autocast FP16)   │
+                         └─────────────────────────────┘
 ```
 
----
+### 2.1 Módulo ST-GATv2 Lite (`st_gatv2_lite.py`)
+- **Proposta:** Sincronização espacial de Onda Verde entre semáforos vizinhos da malha urbana.
+- **Dinamismo:** A topologia do grafo viário físico é estática, mas as atenções espaciais $\alpha_{ij}(t)$ são recalculadas em tempo real com base no fluxo.
 
-## 3. The `EpisodeRunner` Inference & Safety Pipeline
+### 2.2 Agente Consultor Global PAE (`consultant_agent.py`)
+- **Proposta:** Rodando em segundo plano acionado por eventos de telemetria, pensa no futuro ($t + \Delta t$) com um Predictive Autoencoder (PAE) de alta capacidade (64 a 128 canais em Londrina).
+- **Mentoria Direcionada:** Emite vetores latentes preditivos individualizados por evento para enriquecer a tomada de decisão dos agentes locais.
 
-The `EpisodeRunner` inside `AI_Process` executes at up to 50Hz. Every tick follows a strict multi-layered execution pipeline:
+### 2.3 Auto-Dimensionador Topológico (`topo_scaler.py`)
+- **Cálculo Algorítmico em $O(1)$:** Auto-detecta a densidade do mapa ($N$ semáforos) e ajusta autonomamente as dimensões neurais em potências de 2 amigáveis aos NVIDIA TensorCores:
+  - $N \le 20 \implies \text{dim} = 32, \text{heads} = 2$
+  - $20 < N \le 80 \implies \text{dim} = 64, \text{heads} = 4$
+  - $80 < N \le 250 \implies \text{dim} = 128, \text{heads} = 8$ (Ex: Londrina)
+  - $N > 250 \implies \text{dim} = 256, \text{heads} = 16$ (Megalópoles)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Controller as CentralController (gRPC)
-    participant Pipe as IPC Pipe
-    participant ER as EpisodeRunner
-    participant PPO as PPO-TCN Agent
-    participant Safety as SafetyAuditor (Guardian)
-    participant DB as Database Queue
+### 2.4 Dualidade no Cross-Attention (`cross_attention.py`)
+- **`LocalAgent` (PPO):** Cross-Attention com **PBT (Population-Based Training)** adaptativo evoluindo a temperatura de Softmax ($\tau$) em tempo real.
+- **`GuardianAgent` (D3QN):** Cross-Attention com **Pesos Fixos e Determinísticos** (`is_fixed=True`) para servir como régua inabalável de veto de segurança.
 
-    Controller->>Pipe: Send TrafficFrame (Sensors, Queues, Speeds)
-    Pipe->>ER: Read Frame
-    ER->>PPO: Predict Optimal Phase (Tactical + Strategic GATv2)
-    PPO-->>ER: Proposed Action (e.g., Phase 2 -> Phase 4)
-    ER->>Safety: Evaluate Action (Symbolic Rules + PAE Spillback Check)
-    alt Action Safe
-        Safety-->>ER: Action Authorized
-    else Rule Violation or High Spillback Risk (>0.8)
-        Safety-->>ER: Action Vetoed! Force Safe Fallback Phase
-    end
-    ER->>Pipe: Return ActuationSignal
-    Pipe->>Controller: Actuate Traffic Light Hardware
-    ER->>DB: Push (State, Action, Reward, NextState) to db Queue
-```
+### 2.5 Aceleração Universal AMP (`torch.amp.autocast`)
+- Todas as inferências neurais foram envelopadas com `torch.amp.autocast`, ativando aceleração nativa FP16/TF32 nos NVIDIA TensorCores e reduzindo o consumo de VRAM para apenas **~20 MB**.
 
 ---
 
-## 4. Neuro-Symbolic Safety Architecture
+## 3. Persistent Data & Delta Storage Engine
 
-CARINA guarantees **zero catastrophic physical failures** through a two-tiered neuro-symbolic firewall:
-
-1. **Symbolic Guard (Deterministic, 0ms Latency):**
-   - Enforces physical hardware rules: *Minimum Green Time* (e.g., 7s), *Yellow Clearance* (3s), *All-Red Interval* (2s), and *Pedestrian Minimum Crossing Time*.
-   - Prevents conflicting phases (e.g., green signals on intersecting lanes).
-
-2. **Neural Guard (Predictive PAE + Dueling DQN):**
-   - The **Predictive Autoencoder (PAE)** projects temporal queue histories into a low-dimensional latent space $Z$.
-   - Predicts **Spillback Risk** (the probability that queue buildup in lane $i$ will block upstream intersection $j$ within the next 30 seconds).
-   - If Spillback Risk exceeds threshold $\tau = 0.8$, a **Neural Veto** is fired preemptively to hold green on the clearing avenue.
-
----
-
-## 5. Single Instance Locking & System Lifecycle
-
-To prevent port conflicts and dual-control race conditions on physical traffic hardware:
-- `carina.py` initializes a `SingleInstanceLock` bound to local TCP port `42123`.
-- If a user launches a second instance of CARINA, the second process detects port `42123` in use, sends a restore command to bring the existing UI to the foreground, and exits immediately.
-- On shutdown, `ProcessManager.shutdown_all()` executes a 10-stage teardown sequence (SIGTERM -> Graceful Join -> SIGKILL fallback -> Process Group cleanup) ensuring zero zombie (`<defunct>`) processes remain.
+CARINA conta com um motor de persistência assíncrona com **compressão delta** no PostgreSQL:
+- **`step_decisions`**: Decisões, vetos e timers gravados via `StepDecisionWorker` em lote assíncrono (< 0,001 ms RAM push).
+- **`edge_dictionary`**: Mapeamento de nomes de vias para IDs inteiros de 4 bytes.
+- **Redução de Armazenamento:** Economia global de **97,9% no disco do PostgreSQL** (~380 MB/dia para 200 semáforos).

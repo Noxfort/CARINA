@@ -21,6 +21,10 @@
 import os
 import torch
 import logging
+import warnings
+
+warnings.filterwarnings("ignore", category=FutureWarning, message=".*weight_norm.*")
+warnings.filterwarnings("ignore", category=FutureWarning, module="torch.nn.utils.weight_norm")
 
 from agents.local_agent import LocalAgent
 from models.pae import PredictiveAutoencoder

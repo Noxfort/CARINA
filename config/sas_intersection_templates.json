@@ -1,0 +1,74 @@
+{
+  "intersection_block": {
+    "pt_br": "### Cruzamento: ID {j_id}\n**Status Atual:** {status_formatted}\n**Caracterização Física das Vias:**\n  - Via Principal: {lanes_p} faixa(s) | V_reg: {speed_p_str} km/h | Extensão: {len_p_str} m\n  - Via Secundária: {lanes_s} faixa(s) | V_reg: {speed_s_str} km/h | Extensão: {len_s_str} m\n**Métricas Obtidas:**\n  - Volume Medido: {vol_p_str} vph na via principal e {vol_s_str} vph na secundária.\n  - Atraso Médio: {delay_str} segundos.\n  - Fila Máxima (P95): {queue} veículos.\n  - Taxa de Saturação (X): {sat_str}.\nDiagnóstico Viário: {rec_formatted}\n**Justificativa Técnico-Gerencial:** {justificativa_rica}\n\n",
+    "en": "### Intersection: ID {j_id}\n**Current Status:** {status_formatted}\n**Physical Road Characteristics:**\n  - Major Street: {lanes_p} lane(s) | Speed Limit: {speed_p_str} km/h | Length: {len_p_str} m\n  - Minor Street: {lanes_s} lane(s) | Speed Limit: {speed_s_str} km/h | Length: {len_s_str} m\n**Metrics Obtained:**\n  - Measured Volume: {vol_p_str} veh/h on major street and {vol_s_str} veh/h on minor street.\n  - Average Delay: {delay_str} seconds.\n  - Maximum Queue (P95): {queue} vehicles.\n  - Saturation Ratio (X): {sat_str}.\nRoad Diagnosis: {rec_formatted}\n**Technical-Managerial Justification:** {justificativa_rica}\n\n",
+    "fr": "### Carrefour : ID {j_id}\n**Statut actuel :** {status_formatted}\n**Caractérisation physique des voies :**\n  - Voie principale : {lanes_p} voie(s) | V_rég : {speed_p_str} km/h | Longueur : {len_p_str} m\n  - Voie secondaire : {lanes_s} voie(s) | V_rég : {speed_s_str} km/h | Longueur : {len_s_str} m\n**Métriques obtenues :**\n  - Volume mesuré : {vol_p_str} véh/h sur l'axe principal et {vol_s_str} véh/h sur l'axe secondaire.\n  - Retard moyen : {delay_str} secondes.\n  - File d'attente max (P95) : {queue} véhicules.\n  - Taux de saturation (X) : {sat_str}.\nDiagnostic routier : {rec_formatted}\n**Justification technico-managériale :** {justificativa_rica}\n\n",
+    "es": "### Intersección: ID {j_id}\n**Estado actual:** {status_formatted}\n**Caracterización física de vías:**\n  - Vía principal: {lanes_p} carril(es) | V_reg: {speed_p_str} km/h | Longitud: {len_p_str} m\n  - Vía secundaria: {lanes_s} carril(es) | V_reg: {speed_s_str} km/h | Longitud: {len_s_str} m\n**Métricas obtenidas:**\n  - Volumen medido: {vol_p_str} veh/h en vía principal y {vol_s_str} veh/h en vía secundaria.\n  - Retraso promedio: {delay_str} segundos.\n  - Fila máxima (P95): {queue} vehículos.\n  - Tasa de saturación (X): {sat_str}.\nDiagnóstico vial: {rec_formatted}\n**Justificación técnico-gerencial:** {justificativa_rica}\n\n",
+    "ru": "### Перекресток: ID {j_id}\n**Текущий статус:** {status_formatted}\n**Физические характеристики дорог:**\n  - Главная дорога: {lanes_p} полос(ы) | V_разр: {speed_p_str} км/ч | Длина: {len_p_str} м\n  - Второстепенная дорога: {lanes_s} полос(ы) | V_разр: {speed_s_str} км/ч | Длина: {len_s_str} м\n**Полученные показатели:**\n  - Измеренный объем: {vol_p_str} ед./ч на главной дороге и {vol_s_str} ед./ч на второстепенной.\n  - Средняя задержка: {delay_str} сек.\n  - Максимальная очередь (P95): {queue} автомобилей.\n  - Коэффициент загрузки (X): {sat_str}.\nДорожный диагноз: {rec_formatted}\n**Технико-управленческое обоснование:** {justificativa_rica}\n\n",
+    "zh": "### 交叉口: ID {j_id}\n**当前状态:** {status_formatted}\n**车道物理特征:**\n  - 主干道: {lanes_p} 车道 | 限速: {speed_p_str} km/h | 长度: {len_p_str} m\n  - 次干道: {lanes_s} 车道 | 限速: {speed_s_str} km/h | 长度: {len_s_str} m\n**实测指标:**\n  - 实测流量: 主干道 {vol_p_str} 辆/小时，次干道 {vol_s_str} 辆/小时。\n  - 平均延误: {delay_str} 秒。\n  - 最大排队 (P95): {queue} 辆车。\n  - 饱和度 (X): {sat_str}.\n路口诊断: {rec_formatted}\n**技术管理论证:** {justificativa_rica}\n\n"
+  },
+  "justification_starters": {
+    "pt_br": [
+      "A auditoria viária do cruzamento ID {j_id} evidencia que a saturação no cruzamento é crítica, ",
+      "A avaliação de desempenho no nó viário ID {j_id} demonstra que há saturação crítica no local, ",
+      "O diagnóstico técnico do cruzamento ID {j_id} indica que a saturação viária atingiu nível crítico, ",
+      "A análise operacional do entroncamento ID {j_id} atesta a presença de saturação crítica no cruzamento, "
+    ],
+    "en": [
+      "The road audit of intersection ID {j_id} evidences critical saturation at the location, ",
+      "The performance evaluation of intersection ID {j_id} demonstrates critical saturation, ",
+      "The technical diagnosis of intersection ID {j_id} indicates that traffic saturation has reached a critical level, ",
+      "The operational analysis of intersection ID {j_id} confirms critical saturation, "
+    ]
+  },
+  "justification_replacement_rules": {
+    "pt_br": {
+      "trigger_phrases": [
+        "A análise de dados revela",
+        "A recomendação de",
+        "A recomendação técnica"
+      ],
+      "regex_pattern": "^(A\\s+análise\\s+de\\s+dados\\s+revela|A\\s+recomendação\\s+de\\s+[^\\s]+\\s+semáforo\\s+é\\s+obrigatória|A\\s+recomendação\\s+técnica\\s+é\\s+a\\s+edição)\\s*(que|uma|devido)?\\s*([àa]\\s+)?(saturação\\s+crítica)?\\s*(no\\s+cruzamento)?\\s*(com\\s+uma\\s+taxa)?\\s*"
+    },
+    "en": {
+      "trigger_phrases": [
+        "Data analysis reveals",
+        "The recommendation of",
+        "Technical recommendation"
+      ],
+      "regex_pattern": "^(Data\\s+analysis\\s+reveals|The\\s+recommendation\\s+of|Technical\\s+recommendation\\s+is)\\s*(that|due\\s+to)?\\s*(critical\\s+saturation)?\\s*"
+    },
+    "fr": {
+      "trigger_phrases": [
+        "L'analyse des données révèle",
+        "La recommandation de",
+        "Recommandation technique"
+      ],
+      "regex_pattern": "^(L'analyse\\s+des\\s+données\\s+révèle|La\\s+recommandation\\s+de|Recommandation\\s+technique\\s+est)\\s*(que|en\\s+raison)?\\s*"
+    },
+    "es": {
+      "trigger_phrases": [
+        "El análisis de datos revela",
+        "La recomendación de",
+        "Recomendación técnica"
+      ],
+      "regex_pattern": "^(El\\s+análisis\\s+de\\s+datos\\s+revela|La\\s+recomendación\\s+de|Recomendación\\s+técnica\\s+es)\\s*(que|debido\\s+a)?\\s*"
+    },
+    "ru": {
+      "trigger_phrases": [
+        "Анализ данных показывает",
+        "Рекомендация по",
+        "Техническая рекомендация"
+      ],
+      "regex_pattern": "^(Анализ\\s+данных\\s+показывает|Рекомендация\\s+по|Техническая\\s+рекомендация)\\s*(что|из-за)?\\s*"
+    },
+    "zh": {
+      "trigger_phrases": [
+        "数据分析显示",
+        "建议",
+        "技术建议"
+      ],
+      "regex_pattern": "^(数据分析显示|建议|技术建议)\\s*"
+    }
+  }
+}

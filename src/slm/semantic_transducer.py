@@ -78,6 +78,12 @@ class SemanticTransducer:
 
     def generate_report(self, input_data: Dict[str, Any]) -> str:
         """Runs inference to generate report narrative text."""
+        if hasattr(self.model, "generate_report"):
+            res = self.model.generate_report(input_data)
+            if isinstance(res, str):
+                return res
+            return str(res)
+
         messages = self._build_prompt(input_data)
 
         # Estimate prompt tokens and dynamically scale max_tokens

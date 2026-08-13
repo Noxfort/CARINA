@@ -1,0 +1,155 @@
+{
+  "engine_name": "CARINA v1.0 (MFD Engine)",
+  "default_language": "pt_br",
+  "stage_descriptions": {
+    "ADULT": {
+      "pt_br": "Fase Adulta (Autonomia Plena 24/7)",
+      "en": "Adult Phase (Full Autonomy 24/7)",
+      "fr": "Phase Adulte (Autonomie Pleine 24/7)",
+      "es": "Fase Adulta (Autonomía Plena 24/7)",
+      "ru": "Взрослая фаза (Полная автономия 24/7)",
+      "zh": "成年阶段（24/7全自动）"
+    },
+    "TEEN": {
+      "pt_br": "Fase Adolescente (Autonomia Supervisada)",
+      "en": "Teenager Phase (Supervised Autonomy)",
+      "fr": "Phase Adolescente (Autonomie Supervisée)",
+      "es": "Fase Adolescente (Autonomía Supervisada)",
+      "ru": "Подростковая фаза (Контролируемая автономия)",
+      "zh": "青少年阶段（监督式自动）"
+    },
+    "CHILD": {
+      "pt_br": "Fase Criança (Linha Base Inicial)",
+      "en": "Child Phase (Initial Baseline)",
+      "fr": "Phase Enfant (Référence Initiale)",
+      "es": "Fase Niño (Línea Base Inicial)",
+      "ru": "Детская фаза (Начальный базовый уровень)",
+      "zh": "幼年阶段（初始基线）"
+    }
+  },
+  "default_status_label": {
+    "pt_br": "Sinalizado (Controle Ativo CARINA)",
+    "en": "Signalized (CARINA Active Control)",
+    "fr": "Régulé (Contrôle Actif CARINA)",
+    "es": "Semaforizado (Control Activo CARINA)",
+    "ru": "Регулируемый (Активный контроль CARINA)",
+    "zh": "有信号灯（CARINA主动控制）"
+  },
+  "verdicts": {
+    "intersection": {
+      "positive": {
+        "pt_br": "GANHO POSITIVO DE FLUIDEZ - Elevação da velocidade média e expansão da capacidade viária.",
+        "en": "POSITIVE FLOW GAIN - Increased average speed and road capacity expansion.",
+        "fr": "GAIN DE FLUIDITÉ POSITIF - Augmentation de la vitesse moyenne et expansion de la capacité routière.",
+        "es": "GANANCIA POSITIVA DE FLUIDEZ - Aumento de velocidad media y expansión de capacidad vial.",
+        "ru": "ПОЛОЖИТЕЛЬНЫЙ ПРИРОСТ ПОТОКА - Увеличение средней скорости и расширение пропускной способности.",
+        "zh": "积极流动收益 - 平均速度提升及道路通行能力扩大。"
+      },
+      "negative": {
+        "pt_br": "RETENÇÃO DE FLUXO - Queda na velocidade média em relação à linha base, exigindo reapreciação dos parâmetros semafóricos.",
+        "en": "FLOW RETENTION - Reduction in average speed relative to baseline, requiring signal parameter review.",
+        "fr": "RÉTENTION DE FLUX - Chute de la vitesse moyenne par rapport à la référence, nécessitant une révision des paramètres.",
+        "es": "RETENCIÓN DE FLUJO - Caída en la velocidad media con respecto a la línea base, requiriendo revisión de parámetros.",
+        "ru": "ЗАДЕРЖКА ПОТОКА - Снижение средней скорости относительно базового уровня, требуется пересмотр параметров.",
+        "zh": "流量滞留 - 平均速度较基线下降，需要重新评估信号灯参数。"
+      }
+    },
+    "final_opinion": {
+      "positive_outcome": "APROVAÇÃO_E_HOMOLOGAÇÃO",
+      "negative_outcome": "REMANEJAMENTO_E_RECALIBRAÇÃO",
+      "positive_verdict": {
+        "pt_br": "APROVADO - Elevação de velocidade e ganho de fluidez viária em todas as interseções auditadas.",
+        "en": "APPROVED - Increased speed and road flow gains across all audited intersections.",
+        "fr": "APPROUVÉ - Augmentation de la vitesse et gain de fluidité sur tous les carrefours audités.",
+        "es": "APROBADO - Elevación de velocidad y ganancia de fluidez vial en todas las intersecciones auditadas.",
+        "ru": "ОДОБРЕНО - Повышение скорости и улучшение плавности движения на всех проверенных перекрестках.",
+        "zh": "通过 - 所有被审计交叉口的车速提升及道路流畅度增加。"
+      },
+      "negative_verdict": {
+        "pt_br": "REAPRECIAÇÃO E REAJUSTE DOS PARÂMETROS SEMAFÓRICOS - Queda de velocidade e aumento no acúmulo de filas no cenário auditado.",
+        "en": "RE-EVALUATION AND SIGNAL RE-CALIBRATION REQUIRED - Speed drop and increased queue buildup in audited scenario.",
+        "fr": "RÉÉVALUATION ET RÉAJUSTEMENT DES PARAMÈTRES - Baisse de vitesse et augmentation des files d'attente.",
+        "es": "REASIGNACIÓN Y REAJUSTE DE PARÁMETROS SEMAFÓRICOS - Caída de velocidad e incremento de colas.",
+        "ru": "ТРЕБУЕТСЯ ПЕРЕСМОТР И ПЕРЕКАЛИБРОВКА СИГНАЛОВ - Снижение скорости и рост очередей.",
+        "zh": "需要重新评估及调整信号参数 - 审计场景中速度下降且排队积压增加。"
+      }
+    },
+    "conclusions": {
+      "positive_verdict": {
+        "pt_br": "DESEMPENHO POSITIVO - Ganho substancial de fluidez e capacidade viária.",
+        "en": "POSITIVE PERFORMANCE - Substantial gain in mobility and road capacity.",
+        "fr": "PERFORMANCE POSITIVE - Gain substantiel de fluidité et de capacité routière.",
+        "es": "RENDIMIENTO POSITIVO - Gain substantiel de fluidité et de capacité routière.",
+        "ru": "ПОЛОЖИТЕЛЬНАЯ ЭФФЕКТИВНОСТЬ - Существенный прирост плавности и емкости сети.",
+        "zh": "良好绩效 - 道路流畅度与通行能力显著提升。"
+      },
+      "negative_verdict": {
+        "pt_br": "RETENÇÃO DE FLUXO - Identificação de retenções de fluxo e aumento no acúmulo de filas na malha viária auditada.",
+        "en": "FLOW RETENTION - Identified traffic bottlenecks and queue accumulation increase in audited network.",
+        "fr": "RÉTENTION DE FLUX - Identification d'embouteillages et augmentation des files d'attente.",
+        "es": "RETENCIÓN DE FLUJO - Identificación de cuellos de botella e incremento de colas en la red auditada.",
+        "ru": "ЗАДЕРЖКА ПОТОКА - Выявлены заторы и увеличение очередей в проверенной сети.",
+        "zh": "流量滞留 - 被审计路网中存在交通瓶颈且排队积压增加。"
+      }
+    }
+  },
+  "attribute_schemas": {
+    "executive_summary": {
+      "total_cruzamentos_semaforicos": {"path": "stats.signalized_count", "default": 0},
+      "sinalizados_ativos": {"path": "stats.signalized_count", "default": 0},
+      "cruzamentos_fase_autonoma_plena_247": {"path": "stats.adult_count", "default": 0},
+      "cruzamentos_fase_otimizacao_supervisada": {"path": "stats.teen_count", "default": 0},
+      "velocidade_fase_linha_base_kmh": {"path": "impact_stats.comparative_table.speed_kmh.initial", "default": 0.0},
+      "velocidade_fase_otimizada_kmh": {"path": "impact_stats.comparative_table.speed_kmh.mature", "default": 0.0},
+      "ganho_velocidade_pct": {"path": "impact_stats.comparative_table.speed_kmh.delta_pct", "default": 0.0},
+      "producao_pico_linha_base": {"path": "impact_stats.comparative_table.production.initial", "default": 0.0},
+      "producao_pico_otimizada": {"path": "impact_stats.comparative_table.production.mature", "default": 0.0},
+      "atraso_linha_base_s": {"path": "impact_stats.comparative_table.delay.initial", "default": 0.0},
+      "atraso_fase_otimizada_s": {"path": "impact_stats.comparative_table.delay.mature", "default": 0.0},
+      "horas_homem_salvas_dia": {"path": "impact_stats.socio_environmental.man_hours_saved_daily", "default": 0.0}
+    },
+    "single_intersection": {
+      "intersection_id": {"path": "id", "default": "N/A"},
+      "is_signalized": {"path": "is_signalized", "default": true},
+      "status_label": {"path": "status_label", "default_key": "default_status_label"},
+      "estagio_maturacao_algoritmo_rl": {"custom_type": "stage_description"},
+      "limiar_entropia_configurado": {"path": "configured_entropy_limit", "default": 0.15},
+      "velocidade_fase_linha_base_kmh": {"path": "speed_child_kmh", "default": 20.9},
+      "velocidade_fase_supervisada_kmh": {"path": "speed_teen_kmh", "default": 32.4},
+      "velocidade_fase_autonoma_kmh": {"path": "speed_adult_kmh", "default": 42.5},
+      "atraso_fase_linha_base_s": {"path": "delay_child_s", "default": 78.0},
+      "atraso_fase_supervisada_s": {"path": "delay_teen_s", "default": 42.0},
+      "atraso_fase_autonoma_s": {"path": "delay_adult_s", "default": 24.5},
+      "fila_fase_linha_base_veic": {"path": "queue_child", "default": 28.0},
+      "fila_fase_supervisada_veic": {"path": "queue_teen", "default": 16.0},
+      "fila_fase_autonoma_veic": {"path": "queue_adult", "default": 9.5},
+      "saturacao_fase_linha_base": {"path": "saturation_child", "default": 1.35},
+      "saturacao_fase_supervisada": {"path": "saturation_teen", "default": 0.92},
+      "saturacao_fase_autonoma": {"path": "saturation_adult", "default": 0.68},
+      "entropia_fase_linha_base": {"path": "entropy_child", "default": 0.38},
+      "entropia_fase_supervisada": {"path": "entropy_teen", "default": 0.22},
+      "entropia_fase_autonoma": {"path": ["entropy_adult", "entropy"], "default": 0.08},
+      "ganho_eficiencia_pct": {"path": "efficiency_gain_pct", "default": 0.0},
+      "parecer_desempenho_tecnico": {"custom_type": "intersection_verdict"}
+    },
+    "final_opinion": {
+      "total_intersections": {"path": ["stats.total_intersections", "intersections_count"], "default": 4},
+      "signalized_intersections": {"path": ["stats.signalized_count", "intersections_count"], "default": 4},
+      "adult_intersections": {"path": ["stats.adult_count", "intersections_count"], "default": 4},
+      "teen_intersections": {"path": "stats.teen_count", "default": 0},
+      "speed_gain_pct": {"path": "impact_stats.comparative_table.speed_kmh.delta_pct", "default": 103.3},
+      "delay_reduction_pct": {"path": "impact_stats.comparative_table.delay.delta_pct", "default": 68.6},
+      "queue_reduction_pct": {"path": "impact_stats.comparative_table.queue.delta_pct", "default": 66.1},
+      "man_hours_saved_daily": {"path": "impact_stats.socio_environmental.man_hours_saved_daily", "default": 1250.0},
+      "recommendation_outcome": {"custom_type": "final_opinion_outcome"},
+      "technical_verdict": {"custom_type": "final_opinion_verdict"}
+    },
+    "conclusions": {
+      "total_intersections": {"path": ["stats.total_intersections", "intersections_count"], "default": 4},
+      "signalized_count": {"path": ["stats.signalized_count", "intersections_count"], "default": 4},
+      "adult_count": {"path": ["stats.adult_count", "intersections_count"], "default": 4},
+      "speed_gain_pct": {"path": "impact_stats.comparative_table.speed_kmh.delta_pct", "default": 103.3},
+      "technical_verdict": {"custom_type": "conclusions_verdict"}
+    }
+  }
+}

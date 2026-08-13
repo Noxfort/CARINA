@@ -55,7 +55,6 @@ except (ImportError, ModuleNotFoundError):
         logging.warning("SUMO_HOME não definido, a importação de TraCIException pode falhar.")
         TraCIException = Exception
 
-class DecisionCoordinator:
     def __init__(self, agents: Dict[str, 'LocalAgent'], 
                  neighborhoods: dict, 
                  environment: 'SumoEnvironment', 
@@ -63,7 +62,8 @@ class DecisionCoordinator:
                  message_size: int,
                  n_observations: int,
                  guardian_agent: Optional['GuardianAgent'] = None,
-                 locale_manager=None):
+                 locale_manager=None,
+                 db_manager=None):
         """
         Inicializa o Coordenador de Decisões.
         """
@@ -75,6 +75,7 @@ class DecisionCoordinator:
         self.message_size = message_size
         self.n_observations = n_observations
         self.locale_manager = locale_manager
+        self.db_manager = db_manager
         
         self.override_states: Dict[str, str] = {} 
         
@@ -210,6 +211,21 @@ class DecisionCoordinator:
                     'entropy': dist_entropy.item(),
                     'vetoed': tl_id in vetos_applied
                 }
+
+                # Non-blocking async database telemetry push (< 0.001 ms)
+                if self.db_manager and hasattr(self.db_manager, 'step_decision_worker'):
+                    sug_str = "PRÓXIMO ESTÁGIO" if suggested_action == 1 else "MANTER ESTÁGIO"
+                    dec_str = "NEGADA" if was_vetoed else "APROVADA"
+                    reason_str = vetos_applied.get(tl_id, "SEM_VETO")
+                    maturity_str = getattr(agent, 'maturity_stage', 'ADULT')
+                    sim_time = float(getattr(self.env, 'sim_step', 0.0))
+                    step_num = int(getattr(self.env, 'step_count', 0))
+
+                    self.db_manager.step_decision_worker.push_decision(
+                        sim_time=sim_time, step_num=step_num, agent_id=tl_id,
+                        maturity=maturity_str, suggested_action=sug_str,
+                        final_decision=dec_str, veto_reason=reason_str
+                    )
 
             except Exception as e_action:
                  logging.error(self._get_string("decision_coordinator.decision_error", default="[Coordinator] Error in decision for {tl_id}: {error}", tl_id=tl_id, error=e_action), exc_info=True)

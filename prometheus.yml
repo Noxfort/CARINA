@@ -1,14 +1,37 @@
 # File: prometheus.yml
+# CARINA Ecosystem Native Prometheus Configuration
 
 global:
-  scrape_interval: 15s # A cada quantos segundos o Prometheus coleta os dados
+  scrape_interval: 5s
+  evaluation_interval: 5s
 
 scrape_configs:
-  - job_name: 'carina_services'
+  - job_name: 'carina_central_controller'
     static_configs:
-      - targets:
-          - 'localhost:8001'  # CentralController
-          - 'localhost:8002'  # AI_Process
-          - 'localhost:8003'  # DashboardService (SDS)
-          - 'localhost:8004'  # AnalysisService (SAS)
-          - 'localhost:8005'  # DatabaseWorker
+      - targets: ['127.0.0.1:8001']
+        labels:
+          service: 'CentralController'
+
+  - job_name: 'carina_ai_process'
+    static_configs:
+      - targets: ['127.0.0.1:8002']
+        labels:
+          service: 'AI_Process'
+
+  - job_name: 'carina_dashboard_service'
+    static_configs:
+      - targets: ['127.0.0.1:8003']
+        labels:
+          service: 'DashboardService'
+
+  - job_name: 'carina_analysis_service'
+    static_configs:
+      - targets: ['127.0.0.1:8004']
+        labels:
+          service: 'AnalysisService'
+
+  - job_name: 'carina_database_worker'
+    static_configs:
+      - targets: ['127.0.0.1:8005']
+        labels:
+          service: 'DatabaseWorker'

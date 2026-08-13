@@ -44,14 +44,21 @@ class MFDSubprocessFallback:
             cmd = [
                 sys.executable,
                 "-m", "slm.semantic_transducer",
-                "--payload", json.dumps(payload),
                 "--device", device,
                 "--gpu_layers", str(gpu_layers)
             ]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            result = subprocess.run(cmd, input=json.dumps(payload), capture_output=True, text=True, timeout=120)
             if result.returncode == 0:
-                resp = json.loads(result.stdout)
-                return resp.get("report_text", "")
+                stdout_text = (result.stdout or "").strip()
+                if not stdout_text:
+                    return ""
+                try:
+                    resp = json.loads(stdout_text)
+                    if isinstance(resp, dict):
+                        return resp.get("report_text", stdout_text)
+                    return str(resp)
+                except Exception:
+                    return stdout_text
             else:
                 logging.warning(f"[MFD_SUBPROCESS_FALLBACK] Isolated process error: {result.stderr}")
                 return ""
